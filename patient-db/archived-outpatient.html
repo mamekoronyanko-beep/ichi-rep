@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>外来終了者一覧 - MedicalDB</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="logo">MedicalDB 🏥</div>
+        <ul class="nav-links">
+            <li><a href="index.html">ホーム</a></li>
+            <li><a href="admission.html">入院</a></li>
+            <li><a href="outpatient.html">外来</a></li>
+            <li><a href="../reservation-app/index.html">予約表</a></li>
+        </ul>
+    </nav>
+
+    <main class="container">
+        <div class="header-v2">
+            <div>
+                <h1>📁 外来終了者一覧</h1>
+                <p>診察・リハビリが終了した外来患者の履歴データです。必要に応じて元のリストへ復元できます。</p>
+            </div>
+            <a href="index.html" class="btn secondary">ホームへ戻る</a>
+        </div>
+
+        <div class="table-wrapper">
+            <table class="patient-table">
+                <thead>
+                    <tr>
+                        <th>外来患者ID</th>
+                        <th>氏名</th>
+                        <th>区分</th>
+                        <th>疾患種別</th>
+                        <th>疾患名</th>
+                        <th>診断日</th>
+                        <th>終了日</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="archivedOutpatientTableBody">
+                    <!-- JavaScriptで動的に生成 -->
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>患者データベース - ホーム</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="logo">MedicalDB 🏥</div>
+        <ul class="nav-links">
+            <li><a href="index.html" class="active">ホーム</a></li>
+            <li><a href="admission.html">入院</a></li>
+            <li><a href="outpatient.html">外来</a></li>
+            <li><a href="../reservation-app/index.html">予約表</a></li>
+        </ul>
+        <div class="import-wrapper"
+            style="margin-left: auto; display: flex; align-items: center; padding-right: 1.5rem; gap: 1rem;">
+            <a href="../reservation-app/index.html" class="btn primary" style="margin: 0;">カレンダー（予約表）へ</a>
+            <label for="excel-import" class="btn import-btn"
+                style="margin: 0; background-color: #10b981; color: white; cursor: pointer;">Excelインポート</label>
+            <input type="file" id="excel-import" accept=".xlsx, .xls" style="display: none;">
+        </div>
+    </nav>
+    <main class="container">
+        <h1>ダッシュボード</h1>
+        <p>総合患者データベースのサンプルアプリです。「入院」タブ（ナビゲーション）または下のカードをクリックして入院患者管理ページへ移動してください。</p>
+
+        <div class="card-grid">
+            <div class="card" onclick="location.href='admission.html'">
+                <h3>🛏️ 入院患者管理</h3>
+                <p>入院患者のID、氏名、疾患名、診断日などを管理します。</p>
+                <button class="btn primary">ページへ移動</button>
+            </div>
+            <div class="card" onclick="location.href='outpatient.html'">
+                <h3>🏥 外来患者管理</h3>
+                <p>外来患者のID、氏名、疾患名、診断日、次回リハ予約日などを管理します。</p>
+                <button class="btn primary">ページへ移動</button>
+            </div>
+            <!-- Archive Cards -->
+            <div class="card" onclick="location.href='archived-admission.html'" style="border-top: 4px solid #64748b;">
+                <h3>📁 退院者一覧</h3>
+                <p>退院した患者の履歴データを確認します。</p>
+                <button class="btn secondary" style="background-color: #64748b; color: white;">データを確認</button>
+            </div>
+            <div class="card" onclick="location.href='archived-outpatient.html'" style="border-top: 4px solid #64748b;">
+                <h3>📁 外来終了者一覧</h3>
+                <p>診療が終了した外来患者のデータを確認します。</p>
+                <button class="btn secondary" style="background-color: #64748b; color: white;">データを確認</button>
+            </div>
+        </div>
+    </main>
+</body>
+
+</html>

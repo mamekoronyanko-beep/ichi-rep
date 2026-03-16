@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>患者データベース - 入院患者管理</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="logo">MedicalDB 🏥</div>
+        <ul class="nav-links">
+            <li><a href="index.html">ホーム</a></li>
+            <li><a href="admission.html" class="active">入院</a></li>
+            <li><a href="outpatient.html">外来</a></li>
+            <li><a href="../reservation-app/index.html">予約表</a></li>
+        </ul>
+    </nav>
+    <main class="container">
+        <div class="header-actions">
+            <h1>入院患者データ</h1>
+            <button class="btn primary" onclick="document.getElementById('addModal').style.display='flex'">＋
+                新規登録</button>
+        </div>
+
+        <div class="table-container">
+            <table id="patientTable">
+                <thead>
+                    <tr>
+                        <th>入院患者ID</th>
+                        <th>氏名</th>
+                        <th>区分</th>
+                        <th>疾患種別</th>
+                        <th>疾患名</th>
+                        <th>診断日</th>
+                        <th>次回リハ予約日</th>
+                        <th>アクション</th>
+                    </tr>
+                </thead>
+                <tbody id="patientTableBody">
+                    <!-- Data will be populated here -->
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Modal for adding new patient -->
+    <div id="addModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="document.getElementById('addModal').style.display='none'">&times;</span>
+            <h2>新規入院患者登録</h2>
+            <form id="addPatientForm">
+                <div class="form-group">
+                    <label for="patientId">入院患者ID</label>
+                    <input type="text" id="patientId" required placeholder="例: P-1001">
+                </div>
+                <div class="form-group">
+                    <label for="patientName">氏名</label>
+                    <input type="text" id="patientName" required placeholder="例: 山田 太郎">
+                </div>
+                <div class="form-group">
+                    <label for="patientCategory">疾患種別</label>
+                    <select id="patientCategory" required>
+                        <option value="">選択してください</option>
+                        <option value="運動器">運動器</option>
+                        <option value="脳血管">脳血管</option>
+                        <option value="廃用">廃用</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="diseaseName">疾患名</label>
+                    <input type="text" id="diseaseName" required placeholder="例: 肺炎">
+                </div>
+                <div class="form-group">
+                    <label for="diagnosisDate">診断日</label>
+                    <input type="date" id="diagnosisDate" required>
+                </div>
+                <button type="submit" class="btn primary full-width">登録する</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Patient Details Modal -->
+    <div id="patientDetailsModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <span class="close"
+                onclick="document.getElementById('patientDetailsModal').style.display='none'">&times;</span>
+            <h2 id="details-patient-name" style="margin-bottom: 0.25rem;">患者詳細</h2>
+            <div id="details-patient-category" style="margin-bottom: 0.5rem;"></div>
+            <p id="details-patient-id" style="color: var(--text-muted); margin-bottom: 1.5rem;"></p>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2rem;">
+                <div style="background: var(--bg-color); padding: 1rem; border-radius: 8px;">
+                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.25rem;">キャンセル率</p>
+                    <p id="details-cancel-rate" style="font-size: 1.5rem; font-weight: bold; color: #ef4444;">--%</p>
+                    <p id="details-cancel-count" style="font-size: 0.8rem; color: var(--text-muted);">0 / 0 回</p>
+                </div>
+                <div style="background: var(--bg-color); padding: 1rem; border-radius: 8px;">
+                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.25rem;">次回リハ予約日</p>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                        <input type="date" id="next-visit-date"
+                            style="padding: 0.25rem; border: 1px solid #ccc; border-radius: 4px; width: 100%;">
+                        <button onclick="saveNextVisit()" class="btn primary"
+                            style="padding: 0.25rem 0.5rem; margin: 0;">保存</button>
+                    </div>
+                </div>
+            </div>
+
+            <h3
+                style="margin-bottom: 1rem; font-size: 1.1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+                予約・来院履歴</h3>
+            <div
+                style="max-height: 250px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                    <thead style="background-color: var(--bg-color); position: sticky; top: 0;">
+                        <tr>
+                            <th
+                                style="padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--border-color);">
+                                日付</th>
+                            <th
+                                style="padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--border-color);">
+                                時間</th>
+                            <th
+                                style="padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--border-color);">
+                                内容</th>
+                            <th
+                                style="padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--border-color);">
+                                キャンセル理由</th>
+                            <th
+                                style="padding: 0.75rem; text-align: center; border-bottom: 1px solid var(--border-color);">
+                                状況</th>
+                        </tr>
+                    </thead>
+                    <tbody id="details-history-body">
+                        <!-- History rows -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

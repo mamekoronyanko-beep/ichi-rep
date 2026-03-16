@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>患者予約表</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <nav class="navbar">
+            <div class="logo">MedicalDB 🏥</div>
+            <ul class="nav-links">
+                <li><a href="../patient-db/index.html">ホーム</a></li>
+                <li><a href="../patient-db/admission.html">入院</a></li>
+                <li><a href="../patient-db/outpatient.html">外来</a></li>
+                <li><a href="index.html" class="active">予約表</a></li>
+            </ul>
+        </nav>
+        <header class="app-header" style="margin-top: 1rem;">
+            <div>
+                <h1>クリニック予約管理システム</h1>
+                <p class="subtitle">患者様の予約状況をリアルタイムで確認・管理</p>
+            </div>
+            <div class="date-selector-wrapper">
+                <div class="import-container">
+                    <label for="excel-import" class="import-btn">Excelインポート</label>
+                    <input type="file" id="excel-import" accept=".xlsx, .xls" style="display: none;">
+                </div>
+                <button id="staff-settings-btn" class="nav-link-btn" style="background-color: #6366f1; color: white; border: none;">スタッフ設定</button>
+                <label for="target-date">予約日:</label>
+                <div class="date-input-container">
+                    <button id="prev-date" class="date-nav-btn" title="前日">◁</button>
+                    <input type="date" id="target-date">
+                    <button id="next-date" class="date-nav-btn" title="翌日">⇒</button>
+                </div>
+            </div>
+        </header>
+        <main class="schedule-wrapper" style="display: grid; grid-template-columns: 1fr 300px; gap: 1.5rem;">
+            <div class="table-content-area" style="display: flex; flex-direction: column; gap: 1.5rem; height: 100%; overflow: hidden;">
+                <div class="table-container">
+                <table class="schedule-table">
+                    <thead>
+                        <tr>
+                            <th class="time-col" rowspan="2">時間</th>
+                            <th colspan="5" class="staff-header-group">スタッフ枠</th>
+                            <th class="anti-header-group">消炎枠</th>
+                            <th class="cancel-header-group" rowspan="2"
+                                style="background-color: var(--border-color); color: var(--text-color); width: 150px;">
+                                キャンセル枠</th>
+                        </tr>
+                        <tr class="sub-header-row">
+                            <th>スタッフ 1</th>
+                            <th>スタッフ 2</th>
+                            <th>スタッフ 3</th>
+                            <th>スタッフ 4</th>
+                            <th>スタッフ 5</th>
+                            <th>消炎 1</th>
+                        </tr>
+                    </thead>
+                    <tbody id="schedule-body">
+                        <!-- JavaScriptで動的に生成されます -->
+                    </tbody>
+                </table>
+                </div>
+
+                <div
+                    style="background: var(--bg-color); padding: 1.5rem; border-radius: var(--border-radius-lg); box-shadow: var(--box-shadow-sm);">
+                    <h2
+                        style="font-size: 1.1rem; border-bottom: 2px solid var(--primary-color); padding-bottom: 0.5rem; margin-bottom: 1rem; color: var(--text-color);">
+                        📋 本日のキャンセル予約一覧</h2>
+                    <div id="canceled-list-container" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <!-- Canceled items will be populated here -->
+                        <p style="color: var(--text-muted); font-size: 0.9rem;">現在、該当するキャンセルデータはありません。</p>
+                    </div>
+                </div>
+            </div>
+
+            <aside class="stats-sidebar"
+                style="display: flex; flex-direction: column; gap: 1.5rem; position: sticky; top: 1rem;">
+                <div
+                    style="background: #ffffff; padding: 1.5rem; border-radius: var(--border-radius-lg); border: 1px solid var(--border-color); box-shadow: var(--box-shadow-sm);">
+                    <h3 style="font-size: 1rem; margin-bottom: 1rem; color: var(--text-main); font-weight: 700;">当日集計サマリー</h3>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 1rem;">
+                        <div style="background: #eff6ff; padding: 1rem; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                            <p style="font-size: 0.8rem; color: #1e40af; font-weight: 600; margin-bottom: 0.25rem;">合計予約単位数</p>
+                            <div style="display: flex; align-items: baseline; gap: 0.25rem;">
+                                <span id="total-units-count" style="font-size: 1.75rem; font-weight: 800; color: #1e3a8a;">0</span>
+                                <span style="font-size: 0.9rem; color: #1e3a8a; font-weight: 600;">単位</span>
+                            </div>
+                            <div style="margin-top: 0.5rem; font-size: 0.75rem; color: #60a5fa; display: flex; gap: 1rem;">
+                                <span>スタッフ: <span id="staff-units-count">0</span></span>
+                                <span>消炎: <span id="anti-units-count">0</span></span>
+                            </div>
+                        </div>
+
+                        <!-- Detailed Breakdown -->
+                        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+                            <div style="background: #f8fafc; padding: 0.5rem 0.75rem; border-bottom: 1px solid #e2e8f0; font-size: 0.75rem; font-weight: 700; color: #475569;">
+                                📊 項目別詳細集計
+                            </div>
+                            <div style="padding: 0.75rem; display: flex; flex-direction: column; gap: 0.75rem;">
+                                <!-- Inpatient Row -->
+                                <div>
+                                    <p style="font-size: 0.7rem; color: #9d174d; font-weight: 700; margin-bottom: 0.25rem;">🏥 入院患者介入</p>
+                                    <div style="display: flex; gap: 0.5rem;">
+                                        <div style="flex: 1; background: #fff1f2; padding: 0.4rem; border-radius: 4px; text-align: center;">
+                                            <span style="display: block; font-size: 0.6rem; color: #be185d;">予定</span>
+                                            <span id="inpatient-planned-units" style="font-size: 0.9rem; font-weight: 700; color: #9f1239;">0</span>
+                                        </div>
+                                        <div style="flex: 1; background: #f0fdf4; padding: 0.4rem; border-radius: 4px; text-align: center;">
+                                            <span style="display: block; font-size: 0.6rem; color: #166534;">実施</span>
+                                            <span id="inpatient-actual-units" style="font-size: 0.9rem; font-weight: 700; color: #15803d;">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Outpatient Row -->
+                                <div>
+                                    <p style="font-size: 0.7rem; color: #1e40af; font-weight: 700; margin-bottom: 0.25rem;">👤 外来患者予約</p>
+                                    <div style="display: flex; gap: 0.5rem;">
+                                        <div style="flex: 1; background: #eff6ff; padding: 0.4rem; border-radius: 4px; text-align: center;">
+                                            <span style="display: block; font-size: 0.6rem; color: #2563eb;">予定</span>
+                                            <span id="outpatient-planned-units" style="font-size: 0.9rem; font-weight: 700; color: #1e40af;">0</span>
+                                        </div>
+                                        <div style="flex: 1; background: #f0fdf4; padding: 0.4rem; border-radius: 4px; text-align: center;">
+                                            <span style="display: block; font-size: 0.6rem; color: #166534;">実施</span>
+                                            <span id="outpatient-actual-units" style="font-size: 0.9rem; font-weight: 700; color: #15803d;">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="background: #fef2f2; padding: 1rem; border-radius: 8px; border-left: 4px solid #ef4444;">
+                            <p style="font-size: 0.8rem; color: #991b1b; font-weight: 600; margin-bottom: 0.25rem;">当日キャンセル数</p>
+                            <div style="display: flex; align-items: baseline; gap: 0.25rem;">
+                                <span id="total-cancellations-count" style="font-size: 1.75rem; font-weight: 800; color: #7f1d1d;">0</span>
+                                <span style="font-size: 0.9rem; color: #7f1d1d; font-weight: 600;">件</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <!-- Booking Modal -->
+    <div id="booking-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" id="close-modal-btn">&times;</span>
+            <h2 id="modal-title" style="margin-bottom: 1rem;">予約登録</h2>
+            <p id="modal-subtitle" style="color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.9rem;"></p>
+
+            <form id="booking-form">
+                <div class="form-group" style="background: #f8fafc; padding: 0.75rem; border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); margin-bottom: 1rem;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-color); margin-bottom: 0.5rem;">予約タイプ</label>
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <label style="display: flex; align-items: center; gap: 0.4rem; font-weight: normal; cursor: pointer;">
+                            <input type="radio" name="booking-type" value="outpatient" checked> 通常予約
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.4rem; font-weight: normal; cursor: pointer;">
+                            <input type="radio" name="booking-type" value="inpatient"> 入院ブロック
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.4rem; font-weight: normal; cursor: pointer;">
+                            <input type="radio" name="booking-type" value="meeting"> 面談
+                        </label>
+                    </div>
+                </div>
+
+                <div id="inpatient-selection-fields" style="display: none;">
+                    <div class="form-group">
+                        <label for="inpatient-id">入院患者選択 (IDまたは氏名)</label>
+                        <input type="text" id="inpatient-id" list="inpatient-list" placeholder="IDまたは名前を入力...">
+                        <datalist id="inpatient-list"></datalist>
+                    </div>
+                </div>
+
+                <div id="outpatient-fields">
+                    <div class="form-group">
+                        <label for="patient-id">外来患者ID</label>
+                        <input type="text" id="patient-id" list="patient-id-list">
+                        <datalist id="patient-id-list"></datalist>
+                    </div>
+                    <div class="form-group">
+                        <label for="patient-name">外来患者名</label>
+                        <input type="text" id="patient-name" list="patient-name-list" required>
+                        <datalist id="patient-name-list"></datalist>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="remarks">備考欄</label>
+                    <input type="text" id="remarks">
+                </div>
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label>予約枠数（1枠＝20分）</label>
+                    <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+                        <label
+                            style="display: flex; align-items: center; gap: 0.5rem; font-weight: normal; cursor: pointer;">
+                            <input type="radio" name="booking-units" value="1">
+                            1枠 (20分)
+                        </label>
+                        <label
+                            style="display: flex; align-items: center; gap: 0.5rem; font-weight: normal; cursor: pointer;">
+                            <input type="radio" name="booking-units" value="2" checked>
+                            2枠 (40分)
+                        </label>
+                    </div>
+                </div>
+                <button type="submit" class="submit-btn"
+                    style="background-color: var(--primary-color); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: var(--border-radius-md); cursor: pointer; width: 100%; font-size: 1rem; font-weight: 500; margin-top: 1rem;">予約を保存</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Status Change Modal -->
+    <div id="status-modal" class="modal">
+        <div class="modal-content" style="max-width: 350px;">
+            <span class="close-btn" id="close-status-modal-btn">&times;</span>
+            <h2 style="margin-bottom: 1rem;">予約状況の変更</h2>
+            <p id="status-modal-subtitle" style="color: var(--text-muted); margin-bottom: 0.5rem; font-size: 0.95rem; font-weight: 600;"></p>
+            <p id="status-modal-diagnosis-date" style="color: #4b5563; margin-bottom: 1.5rem; font-size: 0.9rem;"></p>
+
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <div id="cancel-reason-container"
+                    style="display: flex; flex-direction: column; gap: 0.25rem; margin-bottom: 0.5rem;">
+                    <label for="cancel-reason"
+                        style="font-size: 0.85rem; color: var(--text-color);">キャンセル理由（キャンセル時のみ選択）:</label>
+                    <select id="cancel-reason"
+                        style="padding: 0.5rem; border: 1px solid var(--border-color); border-radius: var(--border-radius-sm); font-size: 0.9rem;">
+                        <option value="">選択してください</option>
+                        <option value="体調不良">体調不良</option>
+                        <option value="自己都合">自己都合</option>
+                        <option value="無断キャンセル">無断キャンセル</option>
+                        <option value="日程変更">日程変更</option>
+                        <option value="その他">その他</option>
+                    </select>
+                </div>
+                <button id="btn-status-arrived" class="submit-btn"
+                    style="background-color: #10b981; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: var(--border-radius-md); cursor: pointer; font-size: 1rem; font-weight: 500;">来院済みにする</button>
+                <button id="btn-status-canceled" class="submit-btn"
+                    style="background-color: #6b7280; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: var(--border-radius-md); cursor: pointer; font-size: 1rem; font-weight: 500;">キャンセルする</button>
+                <button id="btn-status-delete" class="submit-btn"
+                    style="background-color: #ef4444; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: var(--border-radius-md); cursor: pointer; font-size: 1rem; font-weight: 500; margin-top: 0.5rem;">予約を削除（取り消し）</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cancel Details Modal -->
+    <div id="cancel-details-modal" class="modal">
+        <div class="modal-content" style="max-width: 350px;">
+            <span class="close-btn" id="close-cancel-details-btn">&times;</span>
+            <h2 style="margin-bottom: 1rem;">キャンセル詳細</h2>
+            <div id="cancel-details-content"
+                style="color: var(--text-color); margin-bottom: 1.5rem; font-size: 0.95rem; line-height: 1.5;">
+            </div>
+            <button id="btn-delete-canceled" class="submit-btn"
+                style="background-color: #ef4444; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: var(--border-radius-md); cursor: pointer; width: 100%; font-size: 1rem; font-weight: 500;">この履歴を削除</button>
+        </div>
+    </div>
+
+    <!-- Staff Settings Modal -->
+    <div id="staff-settings-modal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <span class="close-btn" id="close-staff-settings-btn">&times;</span>
+            <h2 style="margin-bottom: 1rem;">スタッフ管理・出勤設定</h2>
+            <p id="staff-settings-date-label" style="color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.9rem; font-weight: 600;"></p>
+            
+            <form id="staff-settings-form">
+                <div id="staff-inputs-container" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <!-- Dynamically populated -->
+                </div>
+                <button type="submit" class="submit-btn" style="background-color: var(--primary-color); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: var(--border-radius-md); cursor: pointer; width: 100%; font-size: 1rem; font-weight: 500; margin-top: 1.5rem;">設定を保存</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

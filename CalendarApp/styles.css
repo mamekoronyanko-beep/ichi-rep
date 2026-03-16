@@ -1,0 +1,184 @@
+:root {
+    --primary: #4f46e5;
+    --primary-hover: #4338ca;
+    --next-bg: #e0f2fe;
+    --next-text: #0284c7;
+    --first-bg: #ffe4e6;
+    --first-text: #e11d48;
+    --text-main: #1f2937;
+    --text-muted: #6b7280;
+    --bg-color: #f3f4f6;
+    --border-color: #e5e7eb;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: url('bg.png') no-repeat center center fixed;
+    background-size: cover;
+    color: var(--text-main);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 2rem;
+}
+
+.calendar-wrapper {
+    background: rgba(255, 255, 255, 0.45);
+    /* 透過させて背景を一層強調 */
+    backdrop-filter: blur(16px);
+    padding: 2.5rem;
+    border-radius: 16px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    width: 100%;
+    max-width: 900px;
+}
+
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+h1 {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.nav-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color 0.2s;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+}
+
+.nav-btn:hover {
+    color: var(--primary);
+    background-color: #f3f4f6;
+}
+
+.legend {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    justify-content: flex-end;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+}
+
+.legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.next-color {
+    background-color: var(--next-bg);
+    border: 1px solid var(--next-text);
+}
+
+.first-color {
+    background-color: var(--first-bg);
+    border: 1px solid var(--first-text);
+}
+
+.calendar-grid-header {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: var(--text-muted);
+}
+
+.calendar-grid-header div:first-child {
+    color: #ef4444;
+}
+
+/* Sun */
+.calendar-grid-header div:last-child {
+    color: #3b82f6;
+}
+
+/* Sat */
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
+}
+
+.day-cell {
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    min-height: 100px;
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    background: rgba(255, 255, 255, 0.65);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.day-cell:hover:not(.empty-cell) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    border-color: var(--primary);
+}
+
+.empty-cell {
+    background: transparent;
+    border: none;
+}
+
+.day-number {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.sun .day-number {
+    color: #ef4444;
+}
+
+.sat .day-number {
+    color: #3b82f6;
+}
+
+.calc-label {
+    font-size: 0.85rem;
+    padding: 0.4rem 0.5rem;
+    border-radius: 6px;
+    text-align: center;
+    font-weight: 600;
+    margin-top: auto;
+}
+
+.label-next {
+    background-color: var(--next-bg);
+    color: var(--next-text);
+}
+
+.label-first {
+    background-color: var(--first-bg);
+    color: var(--first-text);
+}

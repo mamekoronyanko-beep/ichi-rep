@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>算定カレンダー</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="calendar-wrapper">
+        <header class="calendar-header">
+            <button id="prevBtn" class="nav-btn">&lt;</button>
+            <h1 id="monthYear">2026年 3月</h1>
+            <button id="nextBtn" class="nav-btn">&gt;</button>
+        </header>
+        <div class="legend" style="flex-direction: column; align-items: flex-end; gap: 0.5rem;">
+            <div style="display: flex; gap: 1.5rem;">
+                <div class="legend-item"><span class="legend-color next-color"></span> 次回算定 (1日〜14日)</div>
+                <div class="legend-item"><span class="legend-color first-color"></span> 初回算定 (15日以降)</div>
+            </div>
+            <div
+                style="font-size: 0.85rem; color: #e11d48; background: #fff1f2; padding: 4px 8px; border-radius: 4px; border: 1px solid #fda4af;">
+                ※ 労災・自賠責の場合は、日数にかかわらず「初回算定」となります。
+            </div>
+        </div>
+        <div class="calendar-grid-header">
+            <div>日</div>
+            <div>月</div>
+            <div>火</div>
+            <div>水</div>
+            <div>木</div>
+            <div>金</div>
+            <div>土</div>
+        </div>
+        <div id="calendarGrid" class="calendar-grid">
+            <!-- JavaScriptで生成 -->
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+
+</html>
