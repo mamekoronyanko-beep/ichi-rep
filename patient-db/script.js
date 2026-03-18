@@ -1,19 +1,7 @@
-// Sample initial data for Admission
-let admissionPatients = JSON.parse(localStorage.getItem('admissionPatients')) || [
-    { id: '1001', name: '山田 太郎', category: '廃用', disease: '肺炎', date: '2026-03-01' },
-    { id: '1002', name: '佐藤 花子', category: '運動器', disease: '大腿骨骨折', date: '2026-03-05' },
-    { id: '1003', name: '鈴木 一郎', category: '脳血管', disease: '脳梗塞', date: '2026-03-08' }
-];
-
-// Sample initial data for Outpatient
-let outpatientPatients = JSON.parse(localStorage.getItem('outpatientPatients')) || [
-    { id: 'OP-2001', name: '田中 誠', category: '脳血管', disease: '脳出血後遺症', date: '2026-03-02' },
-    { id: 'OP-2002', name: '高橋 涼子', category: '運動器', disease: '変形性膝関節症', date: '2026-03-06' }
-];
-
-// Archived Data
-let dischargedPatients = JSON.parse(localStorage.getItem('dischargedPatients')) || [];
-let terminatedOutpatients = JSON.parse(localStorage.getItem('terminatedOutpatients')) || [];
+// --- Supabase Configuration ---
+const SUPABASE_URL = 'https://dhazmbhvztzbrzyyiojw.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_lVw1SMjIgL4m9KovI09CKg_hl0WycWS';
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Utility to convert full-width alphanumeric to half-width
 const toHalfWidth = (str) => {
@@ -22,87 +10,62 @@ const toHalfWidth = (str) => {
     }).replace(/ー/g, '-');
 };
 
-const savePatientDB = () => {
-    localStorage.setItem('admissionPatients', JSON.stringify(admissionPatients));
-    localStorage.setItem('outpatientPatients', JSON.stringify(outpatientPatients));
-    localStorage.setItem('dischargedPatients', JSON.stringify(dischargedPatients));
-    localStorage.setItem('terminatedOutpatients', JSON.stringify(terminatedOutpatients));
-};
-
-// Migration: Convert all existing IDs to half-width
-const migrateIdsToHalfWidth = () => {
-    let changed = false;
-    admissionPatients.forEach(p => {
-        const hId = toHalfWidth(p.id);
-        if (p.id !== hId) {
-            p.id = hId;
-            changed = true;
-        }
-    });
-    outpatientPatients.forEach(p => {
-        const hId = toHalfWidth(p.id);
-        if (p.id !== hId) {
-            p.id = hId;
-            changed = true;
-        }
-    });
-    if (changed) {
-        savePatientDB();
-        console.log('Patient IDs migrated to half-width.');
-    }
-};
-
-// Initial save and migration
-migrateIdsToHalfWidth();
-savePatientDB();
-
 const admissionTableBody = document.getElementById('patientTableBody');
+const outpatientTableBody = document.getElementById('outpatientTableBody');
+const archivedAdmissionTableBody = document.getElementById('archivedAdmissionTableBody');
+const archivedOutpatientTableBody = document.getElementById('archivedOutpatientTableBody');
+
 const addAdmissionModal = document.getElementById('addModal');
 const addAdmissionForm = document.getElementById('addPatientForm');
-
-const outpatientTableBody = document.getElementById('outpatientTableBody');
 const addOutpatientModal = document.getElementById('addOutpatientModal');
 const addOutpatientForm = document.getElementById('addOutpatientForm');
 
 // Initialize Admission Table
-function renderAdmissionTable() {
+async function renderAdmissionTable() {
     if (!admissionTableBody) return;
+    admissionTableBody.innerHTML = '';
 
-    // Filter to ensure only admission data is shown (even if mixed)
-    const filteredAdmission = admissionPatients.filter(p => !p.type || p.type === 'admission');
+    const { data: dbPatients, error } = await supabase
+        .from('patients')
+        .select('*')
+        .eq('p_type', 'admission')
+        .order('p_id', { ascending: true });
 
-    filteredAdmission.forEach((patient, index) => {
+    if (error || !dbPatients) return;
+
+    dbPatients.forEach((patient) => {
         let categoryClass = 'tag-unknown';
-        if (patient.category === '運動器') categoryClass = 'tag-locomotor';
-        else if (patient.category === '脳血管') categoryClass = 'tag-cerebro';
-        else if (patient.category === '廃用') categoryClass = 'tag-disuse';
+        if (patient.p_category === '運動器') categoryClass = 'tag-locomotor';
+        else if (patient.p_category === '脳血管') categoryClass = 'tag-cerebro';
+        else if (patient.p_category === '廃用') categoryClass = 'tag-disuse';
 
         const tr = document.createElement('tr');
         tr.style.cursor = 'pointer';
         tr.innerHTML = `
-            <td onclick="openPatientDetails(${index}, 'admission')"><strong>${patient.id}</strong></td>
-            <td onclick="openPatientDetails(${index}, 'admission')">${patient.name}</td>
-            <td onclick="openPatientDetails(${index}, 'admission')"><span class="tag-type-admission">入院</span></td>
-            <td onclick="openPatientDetails(${index}, 'admission')"><span class="${categoryClass}">${patient.category || '未設定'}</span></td>
-            <td onclick="openPatientDetails(${index}, 'admission')"><span style="background: #e1f5fe; color: #0277bd; padding: 4px 8px; border-radius: 12px; font-size: 0.85rem; display: inline-block;">${patient.disease}</span></td>
-            <td onclick="openPatientDetails(${index}, 'admission')">${patient.date}</td>
-            <td onclick="openPatientDetails(${index}, 'admission')">${patient.nextVisit || '<span style="color:var(--text-muted);font-size:0.85rem;">未定</span>'}</td>
+            <td onclick="openPatientDetails('${patient.id}')"><strong>${patient.p_id}</strong></td>
+            <td onclick="openPatientDetails('${patient.id}')">${patient.p_name}</td>
+            <td onclick="openPatientDetails('${patient.id}')"><span class="tag-type-admission">入院</span></td>
+            <td onclick="openPatientDetails('${patient.id}')"><span class="${categoryClass}">${patient.p_category || '未設定'}</span></td>
+            <td onclick="openPatientDetails('${patient.id}')"><span style="background: #e1f5fe; color: #0277bd; padding: 4px 8px; border-radius: 12px; font-size: 0.85rem; display: inline-block;">${patient.p_disease}</span></td>
+            <td onclick="openPatientDetails('${patient.id}')">${patient.p_diagnosis_date}</td>
+            <td onclick="openPatientDetails('${patient.id}')">${patient.next_reserve_date || '<span style="color:var(--text-muted);font-size:0.85rem;">未定</span>'}</td>
             <td>
-                <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin: 0; background: #ffebee; color: #c62828;" onclick="event.stopPropagation(); deleteAdmissionPatient(${index})">削除</button>
+                <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin: 0; background: #ffebee; color: #c62828;" onclick="event.stopPropagation(); deleteAdmissionPatient('${patient.id}')">削除</button>
             </td>
         `;
         admissionTableBody.appendChild(tr);
     });
 }
 
-// Function to delete an admission patient record
-function deleteAdmissionPatient(index) {
+// Function to delete an admission patient record (Archive)
+async function deleteAdmissionPatient(dbId) {
     if (confirm('この患者データを「退院者」としてアーカイブへ移動しますか？')) {
-        const archivedPatient = admissionPatients.splice(index, 1)[0];
-        archivedPatient.dischargeDate = new Date().toLocaleDateString('ja-JP');
-        dischargedPatients.push(archivedPatient);
-        savePatientDB(); // Ensure persistence
-        renderAdmissionTable();
+        const dischargeDate = new Date().toLocaleDateString('ja-JP');
+        await supabase.from('patients').update({ 
+            p_type: 'archived_admission',
+            p_termination_date: dischargeDate 
+        }).eq('id', dbId);
+        await renderAdmissionTable();
     }
 }
 
@@ -110,33 +73,36 @@ function deleteAdmissionPatient(index) {
 let currentPatientIndex = -1;
 let currentPatientType = ''; // 'admission' or 'outpatient'
 
-function openPatientDetails(index, type) {
+// Function to open patient details modal
+let currentPatientDbId = null;
+
+async function openPatientDetails(dbId) {
     const modal = document.getElementById('patientDetailsModal');
     if (!modal) return;
 
-    currentPatientIndex = index;
-    currentPatientType = type;
+    currentPatientDbId = dbId;
 
-    const patient = type === 'admission' ? admissionPatients[index] : outpatientPatients[index];
+    const { data: patient, error } = await supabase.from('patients').select('*').eq('id', dbId).single();
+    if (error || !patient) return;
 
-    document.getElementById('details-patient-name').textContent = patient.name;
+    document.getElementById('details-patient-name').textContent = patient.p_name;
     
     const categoryEl = document.getElementById('details-patient-category');
     if (categoryEl) {
         let categoryClass = 'tag-unknown';
-        if (patient.category === '運動器') categoryClass = 'tag-locomotor';
-        else if (patient.category === '脳血管') categoryClass = 'tag-cerebro';
-        else if (patient.category === '廃用') categoryClass = 'tag-disuse';
-        categoryEl.innerHTML = `<span class="${categoryClass}">${patient.category || '未設定'}</span>`;
+        if (patient.p_category === '運動器') categoryClass = 'tag-locomotor';
+        else if (patient.p_category === '脳血管') categoryClass = 'tag-cerebro';
+        else if (patient.p_category === '廃用') categoryClass = 'tag-disuse';
+        categoryEl.innerHTML = `<span class="${categoryClass}">${patient.p_category || '未設定'}</span>`;
     }
     
-    document.getElementById('details-patient-id').textContent = `ID: ${patient.id}`;
+    document.getElementById('details-patient-id').textContent = `ID: ${patient.p_id}`;
 
     // Parse history
     let history = [];
     try {
         if (patient.history) {
-            history = JSON.parse(patient.history);
+            history = typeof patient.history === 'string' ? JSON.parse(patient.history) : patient.history;
         }
     } catch (e) { }
 
@@ -154,18 +120,12 @@ function openPatientDetails(index, type) {
     });
 
     const cancelRate = totalAppointments > 0 ? Math.round((cancelCount / totalAppointments) * 100) : 0;
-
     const rateEl = document.getElementById('details-cancel-rate');
     rateEl.textContent = `${cancelRate}%`;
 
-    // Color coding based on cancel rate
-    if (cancelRate >= 30) {
-        rateEl.style.color = '#ef4444'; // Red for high cancel rate
-    } else if (cancelRate > 0) {
-        rateEl.style.color = '#f59e0b'; // Amber
-    } else {
-        rateEl.style.color = '#10b981'; // Green for 0%
-    }
+    if (cancelRate >= 30) rateEl.style.color = '#ef4444';
+    else if (cancelRate > 0) rateEl.style.color = '#f59e0b';
+    else rateEl.style.color = '#10b981';
 
     document.getElementById('details-cancel-count').textContent = `${cancelCount} / ${totalAppointments} 回`;
 
@@ -176,20 +136,12 @@ function openPatientDetails(index, type) {
     if (history.length === 0) {
         historyBody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 1rem; color: var(--text-muted);">履歴はありません</td></tr>`;
     } else {
-        // Filter out deleted from view if preferred, or show them
-        const visibleHistory = history.filter(h => h.status !== 'deleted');
-
-        visibleHistory.forEach(h => {
+        history.filter(h => h.status !== 'deleted').forEach(h => {
             const tr = document.createElement('tr');
-
             let statusHtml = '';
-            if (h.status === 'arrived') {
-                statusHtml = '<span style="background: #d1fae5; color: #065f46; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">来院</span>';
-            } else if (h.status === 'canceled') {
-                statusHtml = '<span style="background: #f3f4f6; color: #6b7280; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">キャンセル</span>';
-            } else {
-                statusHtml = '<span style="background: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">予約中</span>';
-            }
+            if (h.status === 'arrived') statusHtml = '<span style="background: #d1fae5; color: #065f46; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">来院</span>';
+            else if (h.status === 'canceled') statusHtml = '<span style="background: #f3f4f6; color: #6b7280; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">キャンセル</span>';
+            else statusHtml = '<span style="background: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">予約中</span>';
 
             tr.innerHTML = `
                 <td style="padding: 0.75rem; border-bottom: 1px solid var(--border-color);">${h.date}</td>
@@ -202,93 +154,92 @@ function openPatientDetails(index, type) {
         });
     }
 
-    // Set next visit date if it was saved
-    document.getElementById('next-visit-date').value = patient.nextVisit || '';
-
+    document.getElementById('next-visit-date').value = patient.next_reserve_date || '';
     modal.style.display = 'flex';
 }
 
-function saveNextVisit() {
-    if (currentPatientIndex < 0) return;
-
+async function saveNextVisit() {
+    if (!currentPatientDbId) return;
     const nextDate = document.getElementById('next-visit-date').value;
-
-    if (currentPatientType === 'admission') {
-        admissionPatients[currentPatientIndex].nextVisit = nextDate;
-        savePatientDB(); // Ensure persistence
-        renderAdmissionTable();
-    } else {
-        outpatientPatients[currentPatientIndex].nextVisit = nextDate;
-        savePatientDB(); // Ensure persistence
-        renderOutpatientTable();
-    }
-
+    await supabase.from('patients').update({ next_reserve_date: nextDate }).eq('id', currentPatientDbId);
     alert('次回リハ予約日を保存しました。');
+    // Refresh relevant table
+    await renderAdmissionTable();
+    await renderOutpatientTable();
 }
 
 // Initialize Outpatient Table
-function renderOutpatientTable() {
+async function renderOutpatientTable() {
     if (!outpatientTableBody) return;
-
     outpatientTableBody.innerHTML = '';
 
-    // Filter to ensure only outpatient data is shown
-    const filteredOutpatient = outpatientPatients.filter(p => !p.type || p.type === 'outpatient');
+    const { data: dbPatients, error } = await supabase
+        .from('patients')
+        .select('*')
+        .eq('p_type', 'outpatient')
+        .order('p_id', { ascending: true });
 
-    filteredOutpatient.forEach((op, index) => {
+    if (error || !dbPatients) return;
+
+    dbPatients.forEach((op) => {
         let categoryClass = 'tag-unknown';
-        if (op.category === '運動器') categoryClass = 'tag-locomotor';
-        else if (op.category === '脳血管') categoryClass = 'tag-cerebro';
-        else if (op.category === '廃用') categoryClass = 'tag-disuse';
+        if (op.p_category === '運動器') categoryClass = 'tag-locomotor';
+        else if (op.p_category === '脳血管') categoryClass = 'tag-cerebro';
+        else if (op.p_category === '廃用') categoryClass = 'tag-disuse';
 
         const tr = document.createElement('tr');
         tr.style.cursor = 'pointer';
         tr.innerHTML = `
-            <td onclick="openPatientDetails(${index}, 'outpatient')"><strong>${op.id}</strong></td>
-            <td onclick="openPatientDetails(${index}, 'outpatient')">${op.name}</td>
-            <td onclick="openPatientDetails(${index}, 'outpatient')"><span class="tag-type-outpatient">外来</span></td>
-            <td onclick="openPatientDetails(${index}, 'outpatient')"><span class="${categoryClass}">${op.category || '未設定'}</span></td>
-            <td onclick="openPatientDetails(${index}, 'outpatient')"><span style="background: #e8f5e9; color: #2e7d32; padding: 4px 8px; border-radius: 12px; font-size: 0.85rem; display: inline-block;">${op.disease}</span></td>
-            <td onclick="openPatientDetails(${index}, 'outpatient')">${op.date}</td>
-            <td onclick="openPatientDetails(${index}, 'outpatient')">${op.nextVisit || '<span style="color:var(--text-muted);font-size:0.85rem;">未定</span>'}</td>
+            <td onclick="openPatientDetails('${op.id}')"><strong>${op.p_id}</strong></td>
+            <td onclick="openPatientDetails('${op.id}')">${op.p_name}</td>
+            <td onclick="openPatientDetails('${op.id}')"><span class="tag-type-outpatient">外来</span></td>
+            <td onclick="openPatientDetails('${op.id}')"><span class="${categoryClass}">${op.p_category || '未設定'}</span></td>
+            <td onclick="openPatientDetails('${op.id}')"><span style="background: #e8f5e9; color: #2e7d32; padding: 4px 8px; border-radius: 12px; font-size: 0.85rem; display: inline-block;">${op.p_disease}</span></td>
+            <td onclick="openPatientDetails('${op.id}')">${op.p_diagnosis_date}</td>
+            <td onclick="openPatientDetails('${op.id}')">${op.next_reserve_date || '<span style="color:var(--text-muted);font-size:0.85rem;">未定</span>'}</td>
             <td>
-                <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin: 0; background: #ffebee; color: #c62828;" onclick="event.stopPropagation(); deleteOutpatient(${index})">削除</button>
+                <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin: 0; background: #ffebee; color: #c62828;" onclick="event.stopPropagation(); deleteOutpatient('${op.id}')">削除</button>
             </td>
         `;
         outpatientTableBody.appendChild(tr);
     });
 }
 
-// Function to delete an outpatient record
-function deleteOutpatient(index) {
+// Function to delete an outpatient record (Archive)
+async function deleteOutpatient(dbId) {
     if (confirm('この外来データを「外来終了」としてアーカイブへ移動しますか？')) {
-        const archivedPatient = outpatientPatients.splice(index, 1)[0];
-        archivedPatient.terminationDate = new Date().toLocaleDateString('ja-JP');
-        terminatedOutpatients.push(archivedPatient);
-        savePatientDB(); // Ensure persistence
-        renderOutpatientTable();
+        const terminationDate = new Date().toLocaleDateString('ja-JP');
+        await supabase.from('patients').update({ 
+            p_type: 'archived_outpatient',
+            p_termination_date: terminationDate 
+        }).eq('id', dbId);
+        await renderOutpatientTable();
     }
 }
 
 
 // Handle form submission to add new admission patient
 if (addAdmissionForm) {
-    addAdmissionForm.addEventListener('submit', function (e) {
+    addAdmissionForm.addEventListener('submit', async function (e) {
         e.preventDefault();
 
         const newPatient = {
-            id: toHalfWidth(document.getElementById('patientId').value),
-            name: document.getElementById('patientName').value,
-            type: 'admission',
-            category: document.getElementById('patientCategory').value,
-            disease: document.getElementById('diseaseName').value,
-            date: document.getElementById('diagnosisDate').value
+            p_id: toHalfWidth(document.getElementById('patientId').value),
+            p_name: document.getElementById('patientName').value,
+            p_type: 'admission',
+            p_category: document.getElementById('patientCategory').value,
+            p_disease: document.getElementById('diseaseName').value,
+            p_diagnosis_date: document.getElementById('diagnosisDate').value
         };
 
-        admissionPatients.push(newPatient);
-        savePatientDB(); // Ensure persistence
-        renderAdmissionTable();
+        const { error } = await supabase.from('patients').insert([newPatient]);
+        if (error) {
+            console.error(error);
+            alert("保存に失敗しました。");
+            return;
+        }
 
+        await renderAdmissionTable();
         addAdmissionForm.reset();
         addAdmissionModal.style.display = 'none';
     });
@@ -296,97 +247,113 @@ if (addAdmissionForm) {
 
 // Handle form submission to add new outpatient
 if (addOutpatientForm) {
-    addOutpatientForm.addEventListener('submit', function (e) {
+    addOutpatientForm.addEventListener('submit', async function (e) {
         e.preventDefault();
 
         const newOp = {
-            id: toHalfWidth(document.getElementById('opPatientId').value),
-            name: document.getElementById('opPatientName').value,
-            type: 'outpatient',
-            category: document.getElementById('opPatientCategory').value,
-            disease: document.getElementById('opDiseaseName').value,
-            date: document.getElementById('opVisitDate').value
+            p_id: toHalfWidth(document.getElementById('opPatientId').value),
+            p_name: document.getElementById('opPatientName').value,
+            p_type: 'outpatient',
+            p_category: document.getElementById('opPatientCategory').value,
+            p_disease: document.getElementById('opDiseaseName').value,
+            p_diagnosis_date: document.getElementById('opVisitDate').value
         };
 
-        outpatientPatients.push(newOp);
-        savePatientDB(); // Ensure persistence
-        renderOutpatientTable();
+        const { error } = await supabase.from('patients').insert([newOp]);
+        if (error) {
+            console.error(error);
+            alert("保存に失敗しました。");
+            return;
+        }
 
+        await renderOutpatientTable();
         addOutpatientForm.reset();
         addOutpatientModal.style.display = 'none';
     });
 }
 
 // Archive Table Rendering
-function renderDischargedTable() {
-    const tableBody = document.getElementById('archivedAdmissionTableBody');
-    if (!tableBody) return;
-    tableBody.innerHTML = '';
-    dischargedPatients.forEach((p, index) => {
+async function renderDischargedTable() {
+    if (!archivedAdmissionTableBody) return;
+    archivedAdmissionTableBody.innerHTML = '';
+
+    const { data: dbPatients } = await supabase
+        .from('patients')
+        .select('*')
+        .eq('p_type', 'archived_admission')
+        .order('p_termination_date', { ascending: false });
+
+    if (!dbPatients) return;
+
+    dbPatients.forEach((p) => {
         let categoryClass = 'tag-unknown';
-        if (p.category === '運動器') categoryClass = 'tag-locomotor';
-        else if (p.category === '脳血管') categoryClass = 'tag-cerebro';
-        else if (p.category === '廃用') categoryClass = 'tag-disuse';
+        if (p.p_category === '運動器') categoryClass = 'tag-locomotor';
+        else if (p.p_category === '脳血管') categoryClass = 'tag-cerebro';
+        else if (p.p_category === '廃用') categoryClass = 'tag-disuse';
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td><strong>${p.id}</strong></td>
-            <td>${p.name}</td>
+            <td><strong>${p.p_id}</strong></td>
+            <td>${p.p_name}</td>
             <td><span class="tag-type-admission">入院</span></td>
-            <td><span class="${categoryClass}">${p.category || '未設定'}</span></td>
-            <td>${p.disease}</td>
-            <td>${p.date}</td>
-            <td>${p.dischargeDate || '-'}</td>
+            <td><span class="${categoryClass}">${p.p_category || '未設定'}</span></td>
+            <td>${p.p_disease}</td>
+            <td>${p.p_diagnosis_date}</td>
+            <td>${p.p_termination_date || '-'}</td>
             <td>
-                <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: #e0f2fe; color: #0369a1;" onclick="restoreAdmission(${index})">復元</button>
+                <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: #e0f2fe; color: #0369a1;" onclick="restoreAdmission('${p.id}')">復元</button>
             </td>
         `;
-        tableBody.appendChild(tr);
+        archivedAdmissionTableBody.appendChild(tr);
     });
 }
 
-function renderTerminatedTable() {
-    const tableBody = document.getElementById('archivedOutpatientTableBody');
-    if (!tableBody) return;
-    tableBody.innerHTML = '';
-    terminatedOutpatients.forEach((p, index) => {
+async function renderTerminatedTable() {
+    if (!archivedOutpatientTableBody) return;
+    archivedOutpatientTableBody.innerHTML = '';
+
+    const { data: dbPatients } = await supabase
+        .from('patients')
+        .select('*')
+        .eq('p_type', 'archived_outpatient')
+        .order('p_termination_date', { ascending: false });
+
+    if (!dbPatients) return;
+
+    dbPatients.forEach((p) => {
         let categoryClass = 'tag-unknown';
-        if (p.category === '運動器') categoryClass = 'tag-locomotor';
-        else if (p.category === '脳血管') categoryClass = 'tag-cerebro';
-        else if (p.category === '廃用') categoryClass = 'tag-disuse';
+        if (p.p_category === '運動器') categoryClass = 'tag-locomotor';
+        else if (p.p_category === '脳血管') categoryClass = 'tag-cerebro';
+        else if (p.p_category === '廃用') categoryClass = 'tag-disuse';
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td><strong>${p.id}</strong></td>
-            <td>${p.name}</td>
+            <td><strong>${p.p_id}</strong></td>
+            <td>${p.p_name}</td>
             <td><span class="tag-type-outpatient">外来</span></td>
-            <td><span class="${categoryClass}">${p.category || '未設定'}</span></td>
-            <td>${p.disease}</td>
-            <td>${p.date}</td>
-            <td>${p.terminationDate || '-'}</td>
+            <td><span class="${categoryClass}">${p.p_category || '未設定'}</span></td>
+            <td>${p.p_disease}</td>
+            <td>${p.p_diagnosis_date}</td>
+            <td>${p.p_termination_date || '-'}</td>
             <td>
-                <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: #e0f2fe; color: #0369a1;" onclick="restoreOutpatient(${index})">復元</button>
+                <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: #e0f2fe; color: #0369a1;" onclick="restoreOutpatient('${p.id}')">復元</button>
             </td>
         `;
-        tableBody.appendChild(tr);
+        archivedOutpatientTableBody.appendChild(tr);
     });
 }
 
-function restoreAdmission(index) {
-    const p = dischargedPatients.splice(index, 1)[0];
-    delete p.dischargeDate;
-    admissionPatients.push(p);
-    savePatientDB();
-    renderDischargedTable();
+async function restoreAdmission(dbId) {
+    await supabase.from('patients').update({ p_type: 'admission', p_termination_date: null }).eq('id', dbId);
+    await renderDischargedTable();
+    await renderAdmissionTable();
     alert('入院患者リストに復元しました。');
 }
 
-function restoreOutpatient(index) {
-    const p = terminatedOutpatients.splice(index, 1)[0];
-    delete p.terminationDate;
-    outpatientPatients.push(p);
-    savePatientDB();
-    renderTerminatedTable();
+async function restoreOutpatient(dbId) {
+    await supabase.from('patients').update({ p_type: 'outpatient', p_termination_date: null }).eq('id', dbId);
+    await renderTerminatedTable();
+    await renderOutpatientTable();
     alert('外来患者リストに復元しました。');
 }
 
@@ -401,11 +368,11 @@ window.onclick = function (event) {
 }
 
 // Initial render
-document.addEventListener('DOMContentLoaded', () => {
-    renderAdmissionTable();
-    renderOutpatientTable();
-    renderDischargedTable();
-    renderTerminatedTable();
+document.addEventListener('DOMContentLoaded', async () => {
+    await renderAdmissionTable();
+    await renderOutpatientTable();
+    await renderDischargedTable();
+    await renderTerminatedTable();
 
     // Excel Import Logic
     const excelImportInput = document.getElementById('excel-import');
