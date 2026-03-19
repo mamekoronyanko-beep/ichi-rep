@@ -1,10 +1,11 @@
 // --- Supabase Configuration ---
 const SUPABASE_URL = 'https://dhazmbhvztzbrzyyiojw.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_lVw1SMjIgL4m9KovI09CKg_hl0WycWS';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let supabase;
 
 // Utility to convert full-width alphanumeric to half-width
 const toHalfWidth = (str) => {
+    if (!str) return "";
     return str.replace(/[Ａ-Ｚａ-ｚ０-９－]/g, (s) => {
         return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
     }).replace(/ー/g, '-');
@@ -35,22 +36,12 @@ function calculateRemainingDays(diagDate, category) {
     return remaining;
 }
 
-const admissionTableBody = document.getElementById('patientTableBody');
-const outpatientTableBody = document.getElementById('outpatientTableBody');
-const archivedAdmissionTableBody = document.getElementById('archivedAdmissionTableBody');
-const archivedOutpatientTableBody = document.getElementById('archivedOutpatientTableBody');
-const nursingCareTableBody = document.getElementById('nursingCareTableBody');
-const archivedNursingCareTableBody = document.getElementById('archivedNursingCareTableBody');
-
-const addAdmissionModal = document.getElementById('addModal');
-const addAdmissionForm = document.getElementById('addPatientForm');
-const addOutpatientModal = document.getElementById('addOutpatientModal');
-const addOutpatientForm = document.getElementById('addOutpatientForm');
-const addNursingCareModal = document.getElementById('addNursingCareModal');
-const addNursingCareForm = document.getElementById('addNursingCareForm');
+let admissionTableBody, outpatientTableBody, archivedAdmissionTableBody, archivedOutpatientTableBody, nursingCareTableBody, archivedNursingCareTableBody;
+let addAdmissionModal, addAdmissionForm, addOutpatientModal, addOutpatientForm, addNursingCareModal, addNursingCareForm;
 
 // Initialize Admission Table
 async function renderAdmissionTable() {
+    admissionTableBody = document.getElementById('patientTableBody');
     if (!admissionTableBody) return;
     admissionTableBody.innerHTML = '';
 
@@ -98,6 +89,7 @@ async function renderAdmissionTable() {
 
 // Initialize Nursing Care Table
 async function renderNursingCareTable() {
+    nursingCareTableBody = document.getElementById('nursingCareTableBody');
     if (!nursingCareTableBody) return;
     nursingCareTableBody.innerHTML = '';
 
@@ -299,6 +291,7 @@ async function saveNextVisit() {
 
 // Initialize Outpatient Table
 async function renderOutpatientTable() {
+    outpatientTableBody = document.getElementById('outpatientTableBody');
     if (!outpatientTableBody) return;
     outpatientTableBody.innerHTML = '';
 
@@ -357,92 +350,10 @@ async function deleteOutpatient(dbId) {
 }
 
 
-// Handle form submission to add new admission patient
-if (addAdmissionForm) {
-    addAdmissionForm.addEventListener('submit', async function (e) {
-        e.preventDefault();
-
-        const newPatient = {
-            p_id: toHalfWidth(document.getElementById('patientId').value),
-            p_name: document.getElementById('patientName').value,
-            p_type: 'admission',
-            p_category: document.getElementById('patientCategory').value,
-            p_disease: document.getElementById('diseaseName').value,
-            p_diagnosis_date: document.getElementById('diagnosisDate').value,
-            p_nursing_care: document.getElementById('patientNursingCare')?.checked || false
-        };
-
-        const { error } = await supabase.from('patients').insert([newPatient]);
-        if (error) {
-            console.error(error);
-            alert("保存に失敗しました。");
-            return;
-        }
-
-        await renderAdmissionTable();
-        addAdmissionForm.reset();
-        addAdmissionModal.style.display = 'none';
-    });
-}
-
-// Handle form submission to add new outpatient
-if (addOutpatientForm) {
-    addOutpatientForm.addEventListener('submit', async function (e) {
-        e.preventDefault();
-
-        const newOp = {
-            p_id: toHalfWidth(document.getElementById('opPatientId').value),
-            p_name: document.getElementById('opPatientName').value,
-            p_type: 'outpatient',
-            p_category: document.getElementById('opPatientCategory').value,
-            p_disease: document.getElementById('opDiseaseName').value,
-            p_diagnosis_date: document.getElementById('opVisitDate').value,
-            p_nursing_care: document.getElementById('opPatientNursingCare')?.checked || false
-        };
-
-        const { error } = await supabase.from('patients').insert([newOp]);
-        if (error) {
-            console.error(error);
-            alert("保存に失敗しました。");
-            return;
-        }
-
-        await renderOutpatientTable();
-        addOutpatientForm.reset();
-        addOutpatientModal.style.display = 'none';
-    });
-}
-
-// Handle form submission to add new nursing care member
-if (addNursingCareForm) {
-    addNursingCareForm.addEventListener('submit', async function (e) {
-        e.preventDefault();
-
-        const newNc = {
-            p_id: toHalfWidth(document.getElementById('ncPatientId').value),
-            p_name: document.getElementById('ncPatientName').value,
-            p_type: 'nursing_care',
-            p_category: document.getElementById('ncPatientCategory').value,
-            p_disease: document.getElementById('ncDiseaseName').value,
-            p_diagnosis_date: document.getElementById('ncDiagnosisDate').value,
-            p_nursing_care: document.getElementById('ncPatientNursingCare')?.checked || false
-        };
-
-        const { error } = await supabase.from('patients').insert([newNc]);
-        if (error) {
-            console.error(error);
-            alert("保存に失敗しました。");
-            return;
-        }
-
-        await renderNursingCareTable();
-        addNursingCareForm.reset();
-        addNursingCareModal.style.display = 'none';
-    });
-}
 
 // Archive Table Rendering
 async function renderDischargedTable() {
+    archivedAdmissionTableBody = document.getElementById('archivedAdmissionTableBody');
     if (!archivedAdmissionTableBody) return;
     archivedAdmissionTableBody.innerHTML = '';
 
@@ -488,6 +399,7 @@ async function renderDischargedTable() {
 }
 
 async function renderTerminatedTable() {
+    archivedOutpatientTableBody = document.getElementById('archivedOutpatientTableBody');
     if (!archivedOutpatientTableBody) return;
     archivedOutpatientTableBody.innerHTML = '';
 
@@ -533,6 +445,7 @@ async function renderTerminatedTable() {
 }
 
 async function renderNursingCareArchivedTable() {
+    archivedNursingCareTableBody = document.getElementById('archivedNursingCareTableBody');
     if (!archivedNursingCareTableBody) return;
     archivedNursingCareTableBody.innerHTML = '';
 
@@ -613,6 +526,95 @@ window.onclick = function (event) {
 
 // Initial render
 document.addEventListener('DOMContentLoaded', async () => {
+    // Initialize Supabase Client safely
+    if (window.supabase) {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    } else {
+        console.error("Supabase library not loaded!");
+        alert("システムの初期化に失敗しました。ページを再読み込みしてください。");
+        return;
+    }
+
+    addAdmissionModal = document.getElementById('addModal');
+    addAdmissionForm = document.getElementById('addPatientForm');
+    addOutpatientModal = document.getElementById('addOutpatientModal');
+    addOutpatientForm = document.getElementById('addOutpatientForm');
+    addNursingCareModal = document.getElementById('addNursingCareModal');
+    addNursingCareForm = document.getElementById('addNursingCareForm');
+
+    // --- Form Submission Listeners ---
+    if (addAdmissionForm) {
+        addAdmissionForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const newPatient = {
+                p_id: toHalfWidth(document.getElementById('patientId').value),
+                p_name: document.getElementById('patientName').value,
+                p_type: 'admission',
+                p_category: document.getElementById('patientCategory').value,
+                p_disease: document.getElementById('diseaseName').value,
+                p_diagnosis_date: document.getElementById('diagnosisDate').value,
+                p_nursing_care: document.getElementById('patientNursingCare')?.checked || false
+            };
+            const { error } = await supabase.from('patients').insert([newPatient]);
+            if (error) {
+                console.error(error);
+                alert("保存に失敗しました。");
+                return;
+            }
+            await renderAdmissionTable();
+            addAdmissionForm.reset();
+            addAdmissionModal.style.display = 'none';
+        });
+    }
+
+    if (addOutpatientForm) {
+        addOutpatientForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const newOp = {
+                p_id: toHalfWidth(document.getElementById('opPatientId').value),
+                p_name: document.getElementById('opPatientName').value,
+                p_type: 'outpatient',
+                p_category: document.getElementById('opPatientCategory').value,
+                p_disease: document.getElementById('opDiseaseName').value,
+                p_diagnosis_date: document.getElementById('opVisitDate').value,
+                p_nursing_care: document.getElementById('opPatientNursingCare')?.checked || false
+            };
+            const { error } = await supabase.from('patients').insert([newOp]);
+            if (error) {
+                console.error(error);
+                alert("保存に失敗しました。");
+                return;
+            }
+            await renderOutpatientTable();
+            addOutpatientForm.reset();
+            addOutpatientModal.style.display = 'none';
+        });
+    }
+
+    if (addNursingCareForm) {
+        addNursingCareForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const newNc = {
+                p_id: toHalfWidth(document.getElementById('ncPatientId').value),
+                p_name: document.getElementById('ncPatientName').value,
+                p_type: 'nursing_care',
+                p_category: document.getElementById('ncPatientCategory').value,
+                p_disease: document.getElementById('ncDiseaseName').value,
+                p_diagnosis_date: document.getElementById('ncDiagnosisDate').value,
+                p_nursing_care: document.getElementById('ncPatientNursingCare')?.checked || false
+            };
+            const { error } = await supabase.from('patients').insert([newNc]);
+            if (error) {
+                console.error(error);
+                alert("保存に失敗しました。");
+                return;
+            }
+            await renderNursingCareTable();
+            addNursingCareForm.reset();
+            addNursingCareModal.style.display = 'none';
+        });
+    }
+
     // --- Auto Migration if Opened from Patient DB ---
     const migrateDataToSupabase = async () => {
         const isMigrated = localStorage.getItem('supabase_migrated_v6');
