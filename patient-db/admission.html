@@ -41,6 +41,7 @@
                         <th>診断日</th>
                         <th>残日数</th>
                         <th>次回面談予定日</th>
+                        <th>要介護</th>
                         <th>アクション</th>
                     </tr>
                 </thead>
@@ -82,6 +83,10 @@
                     <label for="diagnosisDate">診断日</label>
                     <input type="date" id="diagnosisDate" required>
                 </div>
+                <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem; margin-top: 1rem;">
+                    <input type="checkbox" id="patientNursingCare" style="width: auto;">
+                    <label for="patientNursingCare" style="margin: 0; cursor: pointer;">要介護認定あり</label>
+                </div>
                 <button type="submit" class="btn primary full-width">登録する</button>
             </form>
         </div>
@@ -104,11 +109,15 @@
                 </div>
                 <div style="background: var(--bg-color); padding: 1rem; border-radius: 8px;">
                     <p id="next-visit-label" style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.25rem;">次回面談予定日</p>
-                    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem;">
                         <input type="date" id="next-visit-date"
                             style="padding: 0.25rem; border: 1px solid #ccc; border-radius: 4px; width: 100%;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="checkbox" id="details-nursing-care" style="width: auto;">
+                            <label for="details-nursing-care" style="font-size: 0.85rem; cursor: pointer; margin: 0;">要介護認定あり</label>
+                        </div>
                         <button onclick="saveNextVisit()" class="btn primary"
-                            style="padding: 0.25rem 0.5rem; margin: 0;">保存</button>
+                            style="padding: 0.25rem 0.5rem; margin: 0; width: 100%;">修正を保存</button>
                     </div>
                 </div>
             </div>

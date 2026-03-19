@@ -355,3 +355,13 @@ tr:hover {
     text-overflow: ellipsis;
     font-weight: 500;
 }
+
+.tag-nursing-care {
+    background-color: #fee2e2;
+    color: #991b1b;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border: 1px solid #fecaca;
+}

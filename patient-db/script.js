@@ -83,6 +83,7 @@ async function renderAdmissionTable() {
             <td onclick="openPatientDetails('${patient.p_id}')">${patient.p_diagnosis_date}</td>
             <td onclick="openPatientDetails('${patient.p_id}')">${remainingHtml}</td>
             <td onclick="openPatientDetails('${patient.p_id}')">${patient.next_reserve_date || '<span style="color:var(--text-muted);font-size:0.85rem;">未定</span>'}</td>
+            <td onclick="openPatientDetails('${patient.p_id}')">${patient.p_nursing_care ? '<span class="tag-nursing-care">あり</span>' : '<span style="color:var(--text-muted);">-</span>'}</td>
             <td>
                 <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin: 0; background: #ffebee; color: #c62828;" onclick="event.stopPropagation(); deleteAdmissionPatient('${patient.p_id}')">削除</button>
             </td>
@@ -189,15 +190,22 @@ async function openPatientDetails(dbId) {
     }
 
     document.getElementById('next-visit-date').value = patient.next_reserve_date || '';
+    if (document.getElementById('details-nursing-care')) {
+        document.getElementById('details-nursing-care').checked = !!patient.p_nursing_care;
+    }
     modal.style.display = 'flex';
 }
 
 async function saveNextVisit() {
     if (!currentPatientDbId) return;
     const nextDate = document.getElementById('next-visit-date').value;
+    const nursingCare = document.getElementById('details-nursing-care')?.checked || false;
     const label = document.getElementById('next-visit-label')?.textContent || '次回予定日';
-    await supabase.from('patients').update({ next_reserve_date: nextDate }).eq('p_id', currentPatientDbId);
-    alert(`${label}を保存しました。`);
+    await supabase.from('patients').update({ 
+        next_reserve_date: nextDate,
+        p_nursing_care: nursingCare
+    }).eq('p_id', currentPatientDbId);
+    alert(`${label}および設定を保存しました。`);
     // Refresh relevant table
     await renderAdmissionTable();
     await renderOutpatientTable();
@@ -246,6 +254,7 @@ async function renderOutpatientTable() {
             <td onclick="openPatientDetails('${op.p_id}')">${op.p_diagnosis_date}</td>
             <td onclick="openPatientDetails('${op.p_id}')">${remainingHtml}</td>
             <td onclick="openPatientDetails('${op.p_id}')">${op.next_reserve_date || '<span style="color:var(--text-muted);font-size:0.85rem;">未定</span>'}</td>
+            <td onclick="openPatientDetails('${op.p_id}')">${op.p_nursing_care ? '<span class="tag-nursing-care">あり</span>' : '<span style="color:var(--text-muted);">-</span>'}</td>
             <td>
                 <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin: 0; background: #ffebee; color: #c62828;" onclick="event.stopPropagation(); deleteOutpatient('${op.p_id}')">削除</button>
             </td>
@@ -278,7 +287,8 @@ if (addAdmissionForm) {
             p_type: 'admission',
             p_category: document.getElementById('patientCategory').value,
             p_disease: document.getElementById('diseaseName').value,
-            p_diagnosis_date: document.getElementById('diagnosisDate').value
+            p_diagnosis_date: document.getElementById('diagnosisDate').value,
+            p_nursing_care: document.getElementById('patientNursingCare')?.checked || false
         };
 
         const { error } = await supabase.from('patients').insert([newPatient]);
@@ -305,7 +315,8 @@ if (addOutpatientForm) {
             p_type: 'outpatient',
             p_category: document.getElementById('opPatientCategory').value,
             p_disease: document.getElementById('opDiseaseName').value,
-            p_diagnosis_date: document.getElementById('opVisitDate').value
+            p_diagnosis_date: document.getElementById('opVisitDate').value,
+            p_nursing_care: document.getElementById('opPatientNursingCare')?.checked || false
         };
 
         const { error } = await supabase.from('patients').insert([newOp]);
@@ -357,6 +368,7 @@ async function renderDischargedTable() {
             <td>${p.p_disease}</td>
             <td>${p.p_diagnosis_date}</td>
             <td>${remainingHtml}</td>
+            <td>${p.p_nursing_care ? '<span class="tag-nursing-care">あり</span>' : '<span style="color:var(--text-muted);">-</span>'}</td>
             <td>${p.p_termination_date || '-'}</td>
             <td>
                 <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: #e0f2fe; color: #0369a1;" onclick="restoreAdmission('${p.p_id}')">復元</button>
@@ -401,6 +413,7 @@ async function renderTerminatedTable() {
             <td>${p.p_disease}</td>
             <td>${p.p_diagnosis_date}</td>
             <td>${remainingHtml}</td>
+            <td>${p.p_nursing_care ? '<span class="tag-nursing-care">あり</span>' : '<span style="color:var(--text-muted);">-</span>'}</td>
             <td>${p.p_termination_date || '-'}</td>
             <td>
                 <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: #e0f2fe; color: #0369a1;" onclick="restoreOutpatient('${p.p_id}')">復元</button>
