@@ -730,11 +730,11 @@ async function renderMeetingCalendar() {
         grid.appendChild(dayDiv);
     }
 
-    // Fetch admission patients with meeting dates
+    // Fetch both admission and nursing care patients with meeting dates
     const { data: patients, error } = await supabase
         .from('patients')
         .select('p_name, next_reserve_date')
-        .eq('p_type', 'admission')
+        .in('p_type', ['admission', 'nursing_care'])
         .not('next_reserve_date', 'is', null);
 
     if (error) console.error("Calendar fetch error:", error);
