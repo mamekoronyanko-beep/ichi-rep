@@ -524,8 +524,8 @@ window.onclick = function (event) {
     }
 }
 
-// Initial render
-document.addEventListener('DOMContentLoaded', async () => {
+// Main Initialization Function
+async function initApp() {
     // Initialize Supabase Client safely
     if (window.supabase) {
         supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -704,7 +704,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             reader.readAsArrayBuffer(file);
         });
     }
-});
+} // End of initApp()
+
+// Run initialization immediately if DOM is ready, otherwise wait for it
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initApp);
+} else {
+    initApp();
+}
 
 // --- Meeting Calendar Logic ---
 let currentCalendarDate = new Date();
