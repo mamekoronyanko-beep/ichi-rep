@@ -25,6 +25,7 @@
             <h1>🏥 介護医療院管理</h1>
             <div style="display: flex; gap: 0.5rem; align-items: flex-end;">
                 <button class="btn" onclick="openMeetingCalendar()" style="background-color: #3b82f6; color: white;">🗓️ 面談予定</button>
+                <button class="btn" onclick="openDocSubmissionCalendar()" style="background-color: #10b981; color: white;">📄 書類提出</button>
                 <button class="btn print-btn" onclick="window.print()" style="background-color: #64748b; color: white;">印刷する</button>
                 <button class="btn primary" onclick="document.getElementById('addNursingCareModal').style.display='flex'">新規入所者追加</button>
             </div>
@@ -102,7 +103,7 @@
             <div id="details-patient-category" style="margin-bottom: 0.5rem;"></div>
             <p id="details-patient-id" style="color: var(--text-muted); margin-bottom: 1.5rem;"></p>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2rem;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2rem;" id="details-grid-container">
                 <div style="background: var(--bg-color); padding: 1rem; border-radius: 8px;">
                     <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.25rem;">キャンセル率</p>
                     <p id="details-cancel-rate" style="font-size: 1.5rem; font-weight: bold; color: #ef4444;">--%</p>
@@ -119,6 +120,13 @@
                         </div>
                         <button onclick="saveNextVisit()" class="btn primary"
                             style="padding: 0.25rem 0.5rem; margin: 0; width: 100%;">修正を保存</button>
+                    </div>
+                </div>
+                <div style="background: var(--bg-color); padding: 1rem; border-radius: 8px;">
+                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.25rem;">書類提出予定日</p>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem;">
+                        <input type="date" id="doc-submission-date"
+                            style="padding: 0.25rem; border: 1px solid #ccc; border-radius: 4px; width: 100%;">
                     </div>
                 </div>
             </div>

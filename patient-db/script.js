@@ -254,6 +254,14 @@ async function openPatientDetails(dbId) {
     if (document.getElementById('details-nursing-care')) {
         document.getElementById('details-nursing-care').checked = !!patient.p_nursing_care;
     }
+    if (document.getElementById('doc-submission-date')) {
+        document.getElementById('doc-submission-date').value = patient.p_doc_submission_date || '';
+    }
+    // Adjust grid for 3 items
+    const gridContainer = document.getElementById('details-grid-container');
+    if (gridContainer) {
+        gridContainer.style.gridTemplateColumns = 'repeat(3, 1fr)';
+    }
     modal.style.display = 'flex';
 }
 
@@ -261,11 +269,15 @@ async function saveNextVisit() {
     if (!currentPatientDbId) return;
     const nextDate = document.getElementById('next-visit-date').value;
     const nursingCare = document.getElementById('details-nursing-care')?.checked || false;
+    const docDate = document.getElementById('doc-submission-date')?.value || null;
     const label = document.getElementById('next-visit-label')?.textContent || '次回予定日';
+    
     await supabase.from('patients').update({ 
         next_reserve_date: nextDate,
-        p_nursing_care: nursingCare
+        p_nursing_care: nursingCare,
+        p_doc_submission_date: docDate
     }).eq('p_id', currentPatientDbId);
+    
     alert(`${label}および設定を保存しました。`);
     // Refresh relevant table
     await renderAdmissionTable();
@@ -274,7 +286,12 @@ async function saveNextVisit() {
     // Refresh calendar if modal is open
     const calendarModal = document.getElementById('calendarModal');
     if (calendarModal && calendarModal.style.display === 'flex') {
-        renderMeetingCalendar();
+        const title = document.getElementById('calendarMonthTitle').textContent;
+        if (title.includes('面談予定')) {
+            renderMeetingCalendar();
+        } else if (title.includes('書類提出')) {
+            renderDocSubmissionCalendar();
+        }
     }
 }
 
@@ -687,25 +704,26 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // --- Meeting Calendar Logic ---
 let currentCalendarDate = new Date();
+let currentCalendarMode = 'meeting'; // 'meeting' or 'document'
 
 function openMeetingCalendar() {
-    currentCalendarDate = new Date();
-    const modal = document.getElementById('calendarModal');
-    if (modal) {
-        modal.style.display = 'flex';
-        renderMeetingCalendar();
-    }
+    currentCalendarMode = 'meeting';
+    document.getElementById('calendarModal').style.display = 'flex';
+    renderMeetingCalendar();
+}
+
+function openDocSubmissionCalendar() {
+    currentCalendarMode = 'document';
+    document.getElementById('calendarModal').style.display = 'flex';
+    renderDocSubmissionCalendar();
 }
 
 async function renderMeetingCalendar() {
     const grid = document.getElementById('calendarGrid');
-    const title = document.getElementById('calendarMonthTitle');
-    if (!grid || !title) return;
-
+    if (!grid) return;
     grid.innerHTML = '';
-    const year = currentCalendarDate.getFullYear();
-    const month = currentCalendarDate.getMonth();
-    title.textContent = `${year}年${month + 1}月 面談予定`;
+    
+    document.getElementById('calendarMonthTitle').textContent = `🗓️ 面談予定 (${currentCalendarDate.getFullYear()}年${currentCalendarDate.getMonth() + 1}月)`;
 
     // Add day headers
     const days = ['日', '月', '火', '水', '木', '金', '土'];
@@ -716,7 +734,8 @@ async function renderMeetingCalendar() {
         grid.appendChild(header);
     });
 
-    // Get first day of month and last day of month
+    const year = currentCalendarDate.getFullYear();
+    const month = currentCalendarDate.getMonth();
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
     const startDayOfWeek = firstDay.getDay();
@@ -774,7 +793,93 @@ async function renderMeetingCalendar() {
     }
 
     // Fill next month's days to complete the grid
-    const currentCells = grid.children.length - 7;
+    const currentCells = grid.children.length - 7; // Subtract 7 for the day headers
+    const remainingCells = 42 - currentCells;
+    for (let i = 1; i <= remainingCells; i++) {
+        const dayDiv = document.createElement('div');
+        dayDiv.className = 'calendar-day other-month';
+        dayDiv.innerHTML = `<span class="day-number">${i}</span>`;
+        grid.appendChild(dayDiv);
+    }
+}
+
+async function renderDocSubmissionCalendar() {
+    const grid = document.getElementById('calendarGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    
+    document.getElementById('calendarMonthTitle').textContent = `📄 書類提出 (${currentCalendarDate.getFullYear()}年${currentCalendarDate.getMonth() + 1}月)`;
+
+    // Add day headers
+    const days = ['日', '月', '火', '水', '木', '金', '土'];
+    days.forEach(day => {
+        const header = document.createElement('div');
+        header.className = 'calendar-day-header';
+        header.textContent = day;
+        grid.appendChild(header);
+    });
+
+    const year = currentCalendarDate.getFullYear();
+    const month = currentCalendarDate.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startDayOfWeek = firstDay.getDay();
+
+    // Fill previous month's days
+    const prevLastDay = new Date(year, month, 0);
+    for (let i = startDayOfWeek - 1; i >= 0; i--) {
+        const dayDiv = document.createElement('div');
+        dayDiv.className = 'calendar-day other-month';
+        dayDiv.innerHTML = `<span class="day-number">${prevLastDay.getDate() - i}</span>`;
+        grid.appendChild(dayDiv);
+    }
+
+    // Fetch both admission and nursing care patients with submission dates
+    const { data: patients, error } = await supabase
+        .from('patients')
+        .select('p_name, p_doc_submission_date')
+        .in('p_type', ['admission', 'nursing_care'])
+        .not('p_doc_submission_date', 'is', null);
+
+    if (error) console.error("Calendar fetch error:", error);
+
+    const docsByDate = {};
+    if (patients) {
+        patients.forEach(p => {
+            if (p.p_doc_submission_date) {
+                const d = p.p_doc_submission_date;
+                if (!docsByDate[d]) docsByDate[d] = [];
+                docsByDate[d].push(p.p_name);
+            }
+        });
+    }
+
+    // Fill current month's days
+    const today = new Date();
+    for (let d = 1; d <= lastDay.getDate(); d++) {
+        const dayDiv = document.createElement('div');
+        dayDiv.className = 'calendar-day';
+        if (year === today.getFullYear() && month === today.getMonth() && d === today.getDate()) {
+            dayDiv.classList.add('today');
+        }
+
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        dayDiv.innerHTML = `<span class="day-number">${d}</span>`;
+
+        if (docsByDate[dateStr]) {
+            docsByDate[dateStr].forEach(name => {
+                const event = document.createElement('div');
+                event.className = 'calendar-event';
+                event.style.backgroundColor = '#10b981'; // Green for document
+                event.textContent = name;
+                dayDiv.appendChild(event);
+            });
+        }
+        grid.appendChild(dayDiv);
+    }
+
+    // Fill next month's days to complete the grid
+    const currentCells = grid.children.length - 7; // Subtract 7 for the day headers
     const remainingCells = 42 - currentCells;
     for (let i = 1; i <= remainingCells; i++) {
         const dayDiv = document.createElement('div');
@@ -786,7 +891,11 @@ async function renderMeetingCalendar() {
 
 function changeCalendarMonth(offset) {
     currentCalendarDate.setMonth(currentCalendarDate.getMonth() + offset);
-    renderMeetingCalendar();
+    if (currentCalendarMode === 'meeting') {
+        renderMeetingCalendar();
+    } else {
+        renderDocSubmissionCalendar();
+    }
 }
 
 // Close calendar modal when clicking outside
