@@ -708,21 +708,28 @@ let currentCalendarMode = 'meeting'; // 'meeting' or 'document'
 
 function openMeetingCalendar() {
     currentCalendarMode = 'meeting';
-    document.getElementById('calendarModal').style.display = 'flex';
-    renderMeetingCalendar();
+    const modal = document.getElementById('calendarModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        renderMeetingCalendar();
+    }
 }
 
 function openDocSubmissionCalendar() {
     currentCalendarMode = 'document';
-    document.getElementById('calendarModal').style.display = 'flex';
-    renderDocSubmissionCalendar();
+    const modal = document.getElementById('calendarModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        renderDocSubmissionCalendar();
+    }
 }
 
 async function renderMeetingCalendar() {
     const grid = document.getElementById('calendarGrid');
     if (!grid) return;
-    grid.innerHTML = '';
     
+    // Render basic grid structure FIRST for immediate feedback
+    grid.innerHTML = '';
     document.getElementById('calendarMonthTitle').textContent = `🗓️ 面談予定 (${currentCalendarDate.getFullYear()}年${currentCalendarDate.getMonth() + 1}月)`;
 
     // Add day headers
@@ -749,14 +756,39 @@ async function renderMeetingCalendar() {
         grid.appendChild(dayDiv);
     }
 
-    // Fetch both admission and nursing care patients with meeting dates
+    // Fill current month's days (empty for now)
+    const currentMonthDays = [];
+    for (let d = 1; d <= lastDay.getDate(); d++) {
+        const dayDiv = document.createElement('div');
+        dayDiv.className = 'calendar-day';
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        dayDiv.innerHTML = `<span class="day-number">${d}</span>`;
+        dayDiv.dataset.date = dateStr;
+        grid.appendChild(dayDiv);
+        currentMonthDays.push(dayDiv);
+    }
+
+    // Fill next month's days to complete the grid (up to 42 cells)
+    const currentCells = grid.children.length - 7;
+    const remainingCells = 42 - currentCells;
+    for (let i = 1; i <= remainingCells; i++) {
+        const dayDiv = document.createElement('div');
+        dayDiv.className = 'calendar-day other-month';
+        dayDiv.innerHTML = `<span class="day-number">${i}</span>`;
+        grid.appendChild(dayDiv);
+    }
+
+    // Now Fetch data
     const { data: patients, error } = await supabase
         .from('patients')
         .select('p_name, next_reserve_date')
         .in('p_type', ['admission', 'nursing_care'])
         .not('next_reserve_date', 'is', null);
 
-    if (error) console.error("Calendar fetch error:", error);
+    if (error) {
+        console.error("Calendar fetch error:", error);
+        return;
+    }
 
     const meetingsByDate = {};
     if (patients) {
@@ -769,18 +801,14 @@ async function renderMeetingCalendar() {
         });
     }
 
-    // Fill current month's days
+    // Update the already rendered grid with events
     const today = new Date();
-    for (let d = 1; d <= lastDay.getDate(); d++) {
-        const dayDiv = document.createElement('div');
-        dayDiv.className = 'calendar-day';
+    currentMonthDays.forEach(dayDiv => {
+        const dateStr = dayDiv.dataset.date;
+        const d = parseInt(dayDiv.querySelector('.day-number').textContent);
         if (year === today.getFullYear() && month === today.getMonth() && d === today.getDate()) {
             dayDiv.classList.add('today');
         }
-
-        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-        dayDiv.innerHTML = `<span class="day-number">${d}</span>`;
-
         if (meetingsByDate[dateStr]) {
             meetingsByDate[dateStr].forEach(name => {
                 const event = document.createElement('div');
@@ -789,25 +817,15 @@ async function renderMeetingCalendar() {
                 dayDiv.appendChild(event);
             });
         }
-        grid.appendChild(dayDiv);
-    }
-
-    // Fill next month's days to complete the grid
-    const currentCells = grid.children.length - 7; // Subtract 7 for the day headers
-    const remainingCells = 42 - currentCells;
-    for (let i = 1; i <= remainingCells; i++) {
-        const dayDiv = document.createElement('div');
-        dayDiv.className = 'calendar-day other-month';
-        dayDiv.innerHTML = `<span class="day-number">${i}</span>`;
-        grid.appendChild(dayDiv);
-    }
+    });
 }
 
 async function renderDocSubmissionCalendar() {
     const grid = document.getElementById('calendarGrid');
     if (!grid) return;
-    grid.innerHTML = '';
     
+    // Render basic grid structure FIRST
+    grid.innerHTML = '';
     document.getElementById('calendarMonthTitle').textContent = `📄 書類提出 (${currentCalendarDate.getFullYear()}年${currentCalendarDate.getMonth() + 1}月)`;
 
     // Add day headers
@@ -834,14 +852,39 @@ async function renderDocSubmissionCalendar() {
         grid.appendChild(dayDiv);
     }
 
-    // Fetch both admission and nursing care patients with submission dates
+    // Fill current month's days
+    const currentMonthDays = [];
+    for (let d = 1; d <= lastDay.getDate(); d++) {
+        const dayDiv = document.createElement('div');
+        dayDiv.className = 'calendar-day';
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        dayDiv.innerHTML = `<span class="day-number">${d}</span>`;
+        dayDiv.dataset.date = dateStr;
+        grid.appendChild(dayDiv);
+        currentMonthDays.push(dayDiv);
+    }
+
+    // Fill next month's days to complete the grid
+    const currentCells = grid.children.length - 7;
+    const remainingCells = 42 - currentCells;
+    for (let i = 1; i <= remainingCells; i++) {
+        const dayDiv = document.createElement('div');
+        dayDiv.className = 'calendar-day other-month';
+        dayDiv.innerHTML = `<span class="day-number">${i}</span>`;
+        grid.appendChild(dayDiv);
+    }
+
+    // Now Fetch data
     const { data: patients, error } = await supabase
         .from('patients')
         .select('p_name, p_doc_submission_date')
         .in('p_type', ['admission', 'nursing_care'])
         .not('p_doc_submission_date', 'is', null);
 
-    if (error) console.error("Calendar fetch error:", error);
+    if (error) {
+        console.error("Calendar fetch error:", error);
+        return;
+    }
 
     const docsByDate = {};
     if (patients) {
@@ -854,18 +897,14 @@ async function renderDocSubmissionCalendar() {
         });
     }
 
-    // Fill current month's days
+    // Update with events
     const today = new Date();
-    for (let d = 1; d <= lastDay.getDate(); d++) {
-        const dayDiv = document.createElement('div');
-        dayDiv.className = 'calendar-day';
+    currentMonthDays.forEach(dayDiv => {
+        const dateStr = dayDiv.dataset.date;
+        const d = parseInt(dayDiv.querySelector('.day-number').textContent);
         if (year === today.getFullYear() && month === today.getMonth() && d === today.getDate()) {
             dayDiv.classList.add('today');
         }
-
-        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-        dayDiv.innerHTML = `<span class="day-number">${d}</span>`;
-
         if (docsByDate[dateStr]) {
             docsByDate[dateStr].forEach(name => {
                 const event = document.createElement('div');
@@ -875,18 +914,7 @@ async function renderDocSubmissionCalendar() {
                 dayDiv.appendChild(event);
             });
         }
-        grid.appendChild(dayDiv);
-    }
-
-    // Fill next month's days to complete the grid
-    const currentCells = grid.children.length - 7; // Subtract 7 for the day headers
-    const remainingCells = 42 - currentCells;
-    for (let i = 1; i <= remainingCells; i++) {
-        const dayDiv = document.createElement('div');
-        dayDiv.className = 'calendar-day other-month';
-        dayDiv.innerHTML = `<span class="day-number">${i}</span>`;
-        grid.appendChild(dayDiv);
-    }
+    });
 }
 
 function changeCalendarMonth(offset) {
