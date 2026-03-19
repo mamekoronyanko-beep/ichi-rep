@@ -201,6 +201,11 @@ async function saveNextVisit() {
     // Refresh relevant table
     await renderAdmissionTable();
     await renderOutpatientTable();
+    // Refresh calendar if modal is open
+    const calendarModal = document.getElementById('calendarModal');
+    if (calendarModal && calendarModal.style.display === 'flex') {
+        renderMeetingCalendar();
+    }
 }
 
 // Initialize Outpatient Table
@@ -520,3 +525,117 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 });
+
+// --- Meeting Calendar Logic ---
+let currentCalendarDate = new Date();
+
+function openMeetingCalendar() {
+    currentCalendarDate = new Date();
+    const modal = document.getElementById('calendarModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        renderMeetingCalendar();
+    }
+}
+
+async function renderMeetingCalendar() {
+    const grid = document.getElementById('calendarGrid');
+    const title = document.getElementById('calendarMonthTitle');
+    if (!grid || !title) return;
+
+    grid.innerHTML = '';
+    const year = currentCalendarDate.getFullYear();
+    const month = currentCalendarDate.getMonth();
+    title.textContent = `${year}年${month + 1}月 面談予定`;
+
+    // Add day headers
+    const days = ['日', '月', '火', '水', '木', '金', '土'];
+    days.forEach(day => {
+        const header = document.createElement('div');
+        header.className = 'calendar-day-header';
+        header.textContent = day;
+        grid.appendChild(header);
+    });
+
+    // Get first day of month and last day of month
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startDayOfWeek = firstDay.getDay();
+
+    // Fill previous month's days
+    const prevLastDay = new Date(year, month, 0);
+    for (let i = startDayOfWeek - 1; i >= 0; i--) {
+        const dayDiv = document.createElement('div');
+        dayDiv.className = 'calendar-day other-month';
+        dayDiv.innerHTML = `<span class="day-number">${prevLastDay.getDate() - i}</span>`;
+        grid.appendChild(dayDiv);
+    }
+
+    // Fetch admission patients with meeting dates
+    const { data: patients, error } = await supabase
+        .from('patients')
+        .select('p_name, next_reserve_date')
+        .eq('p_type', 'admission')
+        .not('next_reserve_date', 'is', null);
+
+    if (error) console.error("Calendar fetch error:", error);
+
+    const meetingsByDate = {};
+    if (patients) {
+        patients.forEach(p => {
+            if (p.next_reserve_date) {
+                const d = p.next_reserve_date;
+                if (!meetingsByDate[d]) meetingsByDate[d] = [];
+                meetingsByDate[d].push(p.p_name);
+            }
+        });
+    }
+
+    // Fill current month's days
+    const today = new Date();
+    for (let d = 1; d <= lastDay.getDate(); d++) {
+        const dayDiv = document.createElement('div');
+        dayDiv.className = 'calendar-day';
+        if (year === today.getFullYear() && month === today.getMonth() && d === today.getDate()) {
+            dayDiv.classList.add('today');
+        }
+
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        dayDiv.innerHTML = `<span class="day-number">${d}</span>`;
+
+        if (meetingsByDate[dateStr]) {
+            meetingsByDate[dateStr].forEach(name => {
+                const event = document.createElement('div');
+                event.className = 'calendar-event';
+                event.textContent = name;
+                dayDiv.appendChild(event);
+            });
+        }
+        grid.appendChild(dayDiv);
+    }
+
+    // Fill next month's days to complete the grid
+    const currentCells = grid.children.length - 7;
+    const remainingCells = 42 - currentCells;
+    for (let i = 1; i <= remainingCells; i++) {
+        const dayDiv = document.createElement('div');
+        dayDiv.className = 'calendar-day other-month';
+        dayDiv.innerHTML = `<span class="day-number">${i}</span>`;
+        grid.appendChild(dayDiv);
+    }
+}
+
+function changeCalendarMonth(offset) {
+    currentCalendarDate.setMonth(currentCalendarDate.getMonth() + offset);
+    renderMeetingCalendar();
+}
+
+// Close calendar modal when clicking outside
+const originalWindowClick = window.onclick;
+window.onclick = function (event) {
+    if (originalWindowClick) originalWindowClick(event);
+    const calendarModal = document.getElementById('calendarModal');
+    if (calendarModal && event.target == calendarModal) {
+        calendarModal.style.display = "none";
+    }
+}

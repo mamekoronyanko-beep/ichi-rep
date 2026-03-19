@@ -23,6 +23,7 @@
         <div class="header-actions">
             <h1>🏥 入院患者管理</h1>
             <div style="display: flex; gap: 0.5rem; align-items: flex-end;">
+                <button class="btn" onclick="openMeetingCalendar()" style="background-color: #3b82f6; color: white;">🗓️ 面談予定</button>
                 <button class="btn print-btn" onclick="window.print()" style="background-color: #64748b; color: white;">印刷する</button>
                 <button class="btn primary" onclick="document.getElementById('addModal').style.display='flex'">新規患者追加</button>
             </div>
@@ -141,6 +142,23 @@
                         <!-- History rows -->
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Meeting Calendar Modal -->
+    <div id="calendarModal" class="modal">
+        <div class="modal-content" style="max-width: 800px; width: 95%;">
+            <span class="close-btn" onclick="document.getElementById('calendarModal').style.display='none'">&times;</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2 id="calendarMonthTitle" style="margin: 0;">面談予定</h2>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn" onclick="changeCalendarMonth(-1)" style="padding: 5px 10px; background-color: #f1f5f9; color: #1e293b; border: 1px solid #cbd5e1;">◀ 前月</button>
+                    <button class="btn" onclick="changeCalendarMonth(1)" style="padding: 5px 10px; background-color: #f1f5f9; color: #1e293b; border: 1px solid #cbd5e1;">次月 ▶</button>
+                </div>
+            </div>
+            <div id="calendarGrid" class="calendar-grid">
+                <!-- JavaScriptで生成 -->
             </div>
         </div>
     </div>
