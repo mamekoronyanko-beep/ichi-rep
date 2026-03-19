@@ -17,6 +17,7 @@
             <li><a href="index.html" class="active">ホーム</a></li>
             <li><a href="admission.html">入院</a></li>
             <li><a href="outpatient.html">外来</a></li>
+            <li><a href="nursing-care.html">介護医療院</a></li>
             <li><a href="../reservation-app/index.html">予約表</a></li>
         </ul>
         <div class="import-wrapper"
@@ -42,6 +43,11 @@
                 <p>外来患者のID、氏名、疾患名、診断日、次回リハ予約日などを管理します。</p>
                 <button class="btn primary">ページへ移動</button>
             </div>
+            <div class="card" onclick="location.href='nursing-care.html'" style="border-top: 4px solid #8b5cf6;">
+                <h3>施設のアイコン 介護医療院管理</h3>
+                <p>介護医療院入所者の情報を管理します。面談予定日や要介護状態を一括確認できます。</p>
+                <button class="btn primary" style="background-color: #8b5cf6;">ページへ移動</button>
+            </div>
             <!-- Archive Cards -->
             <div class="card" onclick="location.href='archived-admission.html'" style="border-top: 4px solid #64748b;">
                 <h3>📁 退院者一覧</h3>
@@ -51,6 +57,11 @@
             <div class="card" onclick="location.href='archived-outpatient.html'" style="border-top: 4px solid #64748b;">
                 <h3>📁 外来終了者一覧</h3>
                 <p>診療が終了した外来患者のデータを確認します。</p>
+                <button class="btn secondary" style="background-color: #64748b; color: white;">データを確認</button>
+            </div>
+            <div class="card" onclick="location.href='archived-nursing-care.html'" style="border-top: 4px solid #64748b;">
+                <h3>📁 介護医療院修了者</h3>
+                <p>退所・修了した利用者の履歴データを確認します。</p>
                 <button class="btn secondary" style="background-color: #64748b; color: white;">データを確認</button>
             </div>
         </div>

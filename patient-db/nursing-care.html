@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>患者データベース - 外来患者管理</title>
+    <title>患者データベース - 介護医療院管理</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -15,64 +15,61 @@
         <ul class="nav-links">
             <li><a href="index.html">ホーム</a></li>
             <li><a href="admission.html">入院</a></li>
-            <li><a href="outpatient.html" class="active">外来</a></li>
-            <li><a href="nursing-care.html">介護医療院</a></li>
+            <li><a href="outpatient.html">外来</a></li>
+            <li><a href="nursing-care.html" class="active">介護医療院</a></li>
             <li><a href="../reservation-app/index.html">予約表</a></li>
         </ul>
     </nav>
     <main class="container">
-        <div class="header-v2">
-            <div>
-                <h1>🏥 外来患者管理</h1>
-                <p>現在通院中の外来患者一覧です。ダブルクリックで詳細を確認・編集できます。</p>
-            </div>
-            <div style="display: flex; gap: 0.5rem; align-items: flex-start;">
-                <button class="btn print-btn" onclick="window.print()" style="background-color: #64748b; color: white; margin-top: 0;">印刷する</button>
-                <button class="btn primary" style="margin-top: 0;" onclick="document.getElementById('addOutpatientModal').style.display='flex'">新規外来追加</button>
+        <div class="header-actions">
+            <h1>🏥 介護医療院管理</h1>
+            <div style="display: flex; gap: 0.5rem; align-items: flex-end;">
+                <button class="btn" onclick="openMeetingCalendar()" style="background-color: #3b82f6; color: white;">🗓️ 面談予定</button>
+                <button class="btn print-btn" onclick="window.print()" style="background-color: #64748b; color: white;">印刷する</button>
+                <button class="btn primary" onclick="document.getElementById('addNursingCareModal').style.display='flex'">新規入所者追加</button>
             </div>
         </div>
 
         <div class="table-container">
-            <table id="outpatientTable">
+            <table id="nursingCareTable">
                 <thead>
                     <tr>
-                        <th>外来患者ID</th>
+                        <th>利用者ID</th>
                         <th>氏名</th>
                         <th>区分</th>
                         <th>疾患種別</th>
                         <th>疾患名</th>
                         <th>診断日</th>
                         <th>残日数</th>
-                        <th>次回リハ予約日</th>
+                        <th>次回面談予定日</th>
                         <th>要介護</th>
                         <th>アクション</th>
                     </tr>
                 </thead>
-                <tbody id="outpatientTableBody">
+                <tbody id="nursingCareTableBody">
                     <!-- Data will be populated here -->
                 </tbody>
             </table>
         </div>
     </main>
 
-    <!-- Modal for adding new outpatient -->
-    <div id="addOutpatientModal" class="modal">
+    <!-- Modal for adding new patient -->
+    <div id="addNursingCareModal" class="modal">
         <div class="modal-content">
-            <span class="close"
-                onclick="document.getElementById('addOutpatientModal').style.display='none'">&times;</span>
-            <h2>新規外来患者登録</h2>
-            <form id="addOutpatientForm">
+            <span class="close" onclick="document.getElementById('addNursingCareModal').style.display='none'">&times;</span>
+            <h2>新規介護医療院利用者登録</h2>
+            <form id="addNursingCareForm">
                 <div class="form-group">
-                    <label for="opPatientId">外来患者ID</label>
-                    <input type="text" id="opPatientId" required placeholder="例: OP-2001">
+                    <label for="ncPatientId">利用者ID</label>
+                    <input type="text" id="ncPatientId" required placeholder="例: NC-3001">
                 </div>
                 <div class="form-group">
-                    <label for="opPatientName">氏名</label>
-                    <input type="text" id="opPatientName" required placeholder="例: 鈴木 健太">
+                    <label for="ncPatientName">氏名</label>
+                    <input type="text" id="ncPatientName" required placeholder="例: 田中 幸子">
                 </div>
                 <div class="form-group">
-                    <label for="opPatientCategory">疾患種別</label>
-                    <select id="opPatientCategory" required>
+                    <label for="ncPatientCategory">疾患種別</label>
+                    <select id="ncPatientCategory" required>
                         <option value="">選択してください</option>
                         <option value="運動器">運動器</option>
                         <option value="脳血管">脳血管</option>
@@ -80,16 +77,16 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="opDiseaseName">疾患名</label>
-                    <input type="text" id="opDiseaseName" required placeholder="例: 高血圧">
+                    <label for="ncDiseaseName">疾患名</label>
+                    <input type="text" id="ncDiseaseName" required placeholder="例: 大腿骨骨折">
                 </div>
                 <div class="form-group">
-                    <label for="opVisitDate">診断日</label>
-                    <input type="date" id="opVisitDate" required>
+                    <label for="ncDiagnosisDate">診断日</label>
+                    <input type="date" id="ncDiagnosisDate" required>
                 </div>
                 <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem; margin-top: 1rem;">
-                    <input type="checkbox" id="opPatientNursingCare" style="width: auto;">
-                    <label for="opPatientNursingCare" style="margin: 0; cursor: pointer;">要介護認定あり</label>
+                    <input type="checkbox" id="ncPatientNursingCare" style="width: auto;">
+                    <label for="ncPatientNursingCare" style="margin: 0; cursor: pointer;">要介護認定あり</label>
                 </div>
                 <button type="submit" class="btn primary full-width">登録する</button>
             </form>
@@ -101,7 +98,7 @@
         <div class="modal-content" style="max-width: 600px;">
             <span class="close"
                 onclick="document.getElementById('patientDetailsModal').style.display='none'">&times;</span>
-            <h2 id="details-patient-name" style="margin-bottom: 0.25rem;">患者詳細</h2>
+            <h2 id="details-patient-name" style="margin-bottom: 0.25rem;">利用者詳細</h2>
             <div id="details-patient-category" style="margin-bottom: 0.5rem;"></div>
             <p id="details-patient-id" style="color: var(--text-muted); margin-bottom: 1.5rem;"></p>
 
@@ -112,7 +109,7 @@
                     <p id="details-cancel-count" style="font-size: 0.8rem; color: var(--text-muted);">0 / 0 回</p>
                 </div>
                 <div style="background: var(--bg-color); padding: 1rem; border-radius: 8px;">
-                    <p id="next-visit-label" style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.25rem;">次回リハ予約日</p>
+                    <p id="next-visit-label" style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.25rem;">次回面談予定日</p>
                     <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem;">
                         <input type="date" id="next-visit-date"
                             style="padding: 0.25rem; border: 1px solid #ccc; border-radius: 4px; width: 100%;">
@@ -155,6 +152,23 @@
                         <!-- History rows -->
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Meeting Calendar Modal -->
+    <div id="calendarModal" class="modal">
+        <div class="modal-content" style="max-width: 800px; width: 95%;">
+            <span class="close-btn" onclick="document.getElementById('calendarModal').style.display='none'">&times;</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2 id="calendarMonthTitle" style="margin: 0;">面談予定</h2>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn" onclick="changeCalendarMonth(-1)" style="padding: 5px 10px; background-color: #f1f5f9; color: #1e293b; border: 1px solid #cbd5e1;">◀ 前月</button>
+                    <button class="btn" onclick="changeCalendarMonth(1)" style="padding: 5px 10px; background-color: #f1f5f9; color: #1e293b; border: 1px solid #cbd5e1;">次月 ▶</button>
+                </div>
+            </div>
+            <div id="calendarGrid" class="calendar-grid">
+                <!-- JavaScriptで生成 -->
             </div>
         </div>
     </div>

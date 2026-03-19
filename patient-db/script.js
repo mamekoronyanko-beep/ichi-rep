@@ -39,11 +39,15 @@ const admissionTableBody = document.getElementById('patientTableBody');
 const outpatientTableBody = document.getElementById('outpatientTableBody');
 const archivedAdmissionTableBody = document.getElementById('archivedAdmissionTableBody');
 const archivedOutpatientTableBody = document.getElementById('archivedOutpatientTableBody');
+const nursingCareTableBody = document.getElementById('nursingCareTableBody');
+const archivedNursingCareTableBody = document.getElementById('archivedNursingCareTableBody');
 
 const addAdmissionModal = document.getElementById('addModal');
 const addAdmissionForm = document.getElementById('addPatientForm');
 const addOutpatientModal = document.getElementById('addOutpatientModal');
 const addOutpatientForm = document.getElementById('addOutpatientForm');
+const addNursingCareModal = document.getElementById('addNursingCareModal');
+const addNursingCareForm = document.getElementById('addNursingCareForm');
 
 // Initialize Admission Table
 async function renderAdmissionTable() {
@@ -84,11 +88,56 @@ async function renderAdmissionTable() {
             <td onclick="openPatientDetails('${patient.p_id}')">${remainingHtml}</td>
             <td onclick="openPatientDetails('${patient.p_id}')">${patient.next_reserve_date || '<span style="color:var(--text-muted);font-size:0.85rem;">未定</span>'}</td>
             <td onclick="openPatientDetails('${patient.p_id}')">${patient.p_nursing_care ? '<span class="tag-nursing-care">あり</span>' : '<span style="color:var(--text-muted);">-</span>'}</td>
-            <td>
-                <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin: 0; background: #ffebee; color: #c62828;" onclick="event.stopPropagation(); deleteAdmissionPatient('${patient.p_id}')">削除</button>
             </td>
         `;
         admissionTableBody.appendChild(tr);
+    });
+}
+
+// Initialize Nursing Care Table
+async function renderNursingCareTable() {
+    if (!nursingCareTableBody) return;
+    nursingCareTableBody.innerHTML = '';
+
+    const { data: dbPatients, error } = await supabase
+        .from('patients')
+        .select('*')
+        .eq('p_type', 'nursing_care')
+        .order('p_id', { ascending: true });
+
+    if (error || !dbPatients) return;
+
+    dbPatients.forEach((patient) => {
+        let categoryClass = 'tag-unknown';
+        if (patient.p_category === '運動器') categoryClass = 'tag-locomotor';
+        else if (patient.p_category === '脳血管') categoryClass = 'tag-cerebro';
+        else if (patient.p_category === '廃用') categoryClass = 'tag-disuse';
+
+        const remainingDays = calculateRemainingDays(patient.p_diagnosis_date, patient.p_category);
+        let remainingHtml = '<span style="color:var(--text-muted);">-</span>';
+        if (remainingDays !== null) {
+            const color = remainingDays <= 10 ? '#ef4444' : 'inherit';
+            const weight = remainingDays <= 10 ? 'bold' : 'normal';
+            remainingHtml = `<span style="color: ${color}; font-weight: ${weight};">${remainingDays}日</span>`;
+        }
+
+        const tr = document.createElement('tr');
+        tr.style.cursor = 'pointer';
+        tr.innerHTML = `
+            <td onclick="openPatientDetails('${patient.p_id}')"><strong>${patient.p_id}</strong></td>
+            <td onclick="openPatientDetails('${patient.p_id}')">${patient.p_name}</td>
+            <td onclick="openPatientDetails('${patient.p_id}')"><span class="tag-type-admission" style="background:#ede9fe; color:#6d28d9;">介護医療院</span></td>
+            <td onclick="openPatientDetails('${patient.p_id}')"><span class="${categoryClass}">${patient.p_category || '未設定'}</span></td>
+            <td onclick="openPatientDetails('${patient.p_id}')"><span style="background: #f3f4f6; color: #374151; padding: 4px 8px; border-radius: 12px; font-size: 0.85rem; display: inline-block;">${patient.p_disease}</span></td>
+            <td onclick="openPatientDetails('${patient.p_id}')">${patient.p_diagnosis_date}</td>
+            <td onclick="openPatientDetails('${patient.p_id}')">${remainingHtml}</td>
+            <td onclick="openPatientDetails('${patient.p_id}')">${patient.next_reserve_date || '<span style="color:var(--text-muted);font-size:0.85rem;">未定</span>'}</td>
+            <td onclick="openPatientDetails('${patient.p_id}')">${patient.p_nursing_care ? '<span class="tag-nursing-care">あり</span>' : '<span style="color:var(--text-muted);">-</span>'}</td>
+            <td>
+                <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin: 0; background: #ffebee; color: #c62828;" onclick="event.stopPropagation(); deleteNursingCarePatient('${patient.p_id}')">削除</button>
+            </td>
+        `;
+        nursingCareTableBody.appendChild(tr);
     });
 }
 
@@ -101,6 +150,18 @@ async function deleteAdmissionPatient(dbId) {
             p_termination_date: dischargeDate 
         }).eq('p_id', dbId);
         await renderAdmissionTable();
+    }
+}
+
+// Function to delete a nursing care patient record (Archive)
+async function deleteNursingCarePatient(dbId) {
+    if (confirm('この利用者を「介護医療院修了者」としてアーカイブへ移動しますか？')) {
+        const terminationDate = new Date().toLocaleDateString('ja-JP');
+        await supabase.from('patients').update({ 
+            p_type: 'archived_nursing_care',
+            p_termination_date: terminationDate 
+        }).eq('p_id', dbId);
+        await renderNursingCareTable();
     }
 }
 
@@ -209,6 +270,7 @@ async function saveNextVisit() {
     // Refresh relevant table
     await renderAdmissionTable();
     await renderOutpatientTable();
+    await renderNursingCareTable();
     // Refresh calendar if modal is open
     const calendarModal = document.getElementById('calendarModal');
     if (calendarModal && calendarModal.style.display === 'flex') {
@@ -332,6 +394,34 @@ if (addOutpatientForm) {
     });
 }
 
+// Handle form submission to add new nursing care member
+if (addNursingCareForm) {
+    addNursingCareForm.addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const newNc = {
+            p_id: toHalfWidth(document.getElementById('ncPatientId').value),
+            p_name: document.getElementById('ncPatientName').value,
+            p_type: 'nursing_care',
+            p_category: document.getElementById('ncPatientCategory').value,
+            p_disease: document.getElementById('ncDiseaseName').value,
+            p_diagnosis_date: document.getElementById('ncDiagnosisDate').value,
+            p_nursing_care: document.getElementById('ncPatientNursingCare')?.checked || false
+        };
+
+        const { error } = await supabase.from('patients').insert([newNc]);
+        if (error) {
+            console.error(error);
+            alert("保存に失敗しました。");
+            return;
+        }
+
+        await renderNursingCareTable();
+        addNursingCareForm.reset();
+        addNursingCareModal.style.display = 'none';
+    });
+}
+
 // Archive Table Rendering
 async function renderDischargedTable() {
     if (!archivedAdmissionTableBody) return;
@@ -423,6 +513,58 @@ async function renderTerminatedTable() {
     });
 }
 
+async function renderNursingCareArchivedTable() {
+    if (!archivedNursingCareTableBody) return;
+    archivedNursingCareTableBody.innerHTML = '';
+
+    const { data: dbPatients } = await supabase
+        .from('patients')
+        .select('*')
+        .eq('p_type', 'archived_nursing_care')
+        .order('p_termination_date', { ascending: false });
+
+    if (!dbPatients) return;
+
+    dbPatients.forEach((p) => {
+        let categoryClass = 'tag-unknown';
+        if (p.p_category === '運動器') categoryClass = 'tag-locomotor';
+        else if (p.p_category === '脳血管') categoryClass = 'tag-cerebro';
+        else if (p.p_category === '廃用') categoryClass = 'tag-disuse';
+
+        const remainingDays = calculateRemainingDays(p.p_diagnosis_date, p.p_category);
+        let remainingHtml = '<span style="color:var(--text-muted);">-</span>';
+        if (remainingDays !== null) {
+            const color = remainingDays <= 10 ? '#ef4444' : 'inherit';
+            const weight = remainingDays <= 10 ? 'bold' : 'normal';
+            remainingHtml = `<span style="color: ${color}; font-weight: ${weight};">${remainingDays}日</span>`;
+        }
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong>${p.p_id}</strong></td>
+            <td>${p.p_name}</td>
+            <td><span class="tag-type-admission" style="background:#ede9fe; color:#6d28d9;">介護医療院</span></td>
+            <td><span class="${categoryClass}">${p.p_category || '未設定'}</span></td>
+            <td>${p.p_disease}</td>
+            <td>${p.p_diagnosis_date}</td>
+            <td>${remainingHtml}</td>
+            <td>${p.p_nursing_care ? '<span class="tag-nursing-care">あり</span>' : '<span style="color:var(--text-muted);">-</span>'}</td>
+            <td>${p.p_termination_date || '-'}</td>
+            <td>
+                <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: #e0f2fe; color: #0369a1;" onclick="restoreNursingCare('${p.p_id}')">復元</button>
+            </td>
+        `;
+        archivedNursingCareTableBody.appendChild(tr);
+    });
+}
+
+async function restoreNursingCare(dbId) {
+    await supabase.from('patients').update({ p_type: 'nursing_care', p_termination_date: null }).eq('p_id', dbId);
+    await renderNursingCareArchivedTable();
+    await renderNursingCareTable();
+    alert('介護医療院リストに復元しました。');
+}
+
 async function restoreAdmission(dbId) {
     await supabase.from('patients').update({ p_type: 'admission', p_termination_date: null }).eq('p_id', dbId);
     await renderDischargedTable();
@@ -444,6 +586,9 @@ window.onclick = function (event) {
     }
     if (addOutpatientModal && event.target == addOutpatientModal) {
         addOutpatientModal.style.display = "none";
+    }
+    if (addNursingCareModal && event.target == addNursingCareModal) {
+        addNursingCareModal.style.display = "none";
     }
 }
 
@@ -495,11 +640,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     await migrateDataToSupabase();
 
-    // Render Tables
     await renderAdmissionTable();
     await renderOutpatientTable();
+    await renderNursingCareTable();
     await renderDischargedTable();
     await renderTerminatedTable();
+    await renderNursingCareArchivedTable();
 
     // Excel Import Logic
     const excelImportInput = document.getElementById('excel-import');
