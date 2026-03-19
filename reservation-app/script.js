@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const INTERVAL_MINUTES = 20;
     const BREAK_START_HOUR = 12;
     const BREAK_END_HOUR = 13;
-    const STAFF_COUNT = 5;
+    const STAFF_COUNT = 6;
     const ANTI_COUNT = 1;
 
     let draggedSourceKey = null; // Global to store key during drag
@@ -36,22 +36,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- Staff Management Logic (DB Optimized) ---
     const getStaffData = async () => {
         const { data, error } = await supabase.from('staff_settings').select('*').order('id', { ascending: true });
-        if (error || !data || data.length === 0) {
-            return Array.from({ length: STAFF_COUNT }, (_, i) => `スタッフ ${i + 1}`);
+        const names = Array.from({ length: STAFF_COUNT }, (_, i) => `スタッフ ${i + 1}`);
+        if (!error && data && data.length > 0) {
+            data.forEach((s, i) => {
+                if (i < STAFF_COUNT) names[i] = s.name;
+            });
         }
-        return data.map(s => s.name);
+        return names;
     };
 
     const getStaffAttendance = async (dateStr) => {
-        const { data, error } = await supabase.from('staff_settings').select('id, attendance');
-        // Note: Currently, staff_settings stores per-staff general info. 
-        // For per-date attendance, we would need a separate table or a JSON column.
-        // To keep it simple and match existing functionality without adding too many tables, 
-        // we'll use a specific naming convention or just return the current settings.
-        // However, the original code used `staffAttendance_${dateStr}` which implies daily settings.
-        // Let's check for a daily_attendance table or use the staff_settings for now.
-        if (error || !data) return Array(STAFF_COUNT).fill('work');
-        return data.map(s => s.attendance || 'work');
+        const { data, error } = await supabase.from('staff_settings').select('id, attendance').order('id', { ascending: true });
+        const attendance = Array(STAFF_COUNT).fill('work');
+        if (!error && data && data.length > 0) {
+            data.forEach((s, i) => {
+                if (i < STAFF_COUNT) attendance[i] = s.attendance || 'work';
+            });
+        }
+        return attendance;
     };
 
     const saveStaffData = async (names) => {
@@ -157,7 +159,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (h === BREAK_START_HOUR && m === 0) {
                     const breakTd = document.createElement('td');
                     breakTd.classList.add('break-cell');
-                    breakTd.colSpan = STAFF_COUNT + ANTI_COUNT;
+                    breakTd.colSpan = STAFF_COUNT + ANTI_COUNT + 1;
                     breakTd.rowSpan = 60 / INTERVAL_MINUTES;
                     breakTd.textContent = '休憩時間';
                     tr.appendChild(breakTd);
@@ -763,12 +765,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const staffInputsContainer = document.getElementById('staff-inputs-container');
     const staffSettingsDateLabel = document.getElementById('staff-settings-date-label');
 
-    const openStaffSettingsModal = () => {
+    const openStaffSettingsModal = async () => {
         const selectedDate = targetDateInput.value;
         staffSettingsDateLabel.textContent = `対象日: ${selectedDate}`;
         
-        const names = getStaffData();
-        const attendance = getStaffAttendance(selectedDate);
+        const names = await getStaffData();
+        const attendance = await getStaffAttendance(selectedDate);
         
         staffInputsContainer.innerHTML = '';
         names.forEach((name, i) => {
