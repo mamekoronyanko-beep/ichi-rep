@@ -20,10 +20,15 @@
         </ul>
     </nav>
     <main class="container">
-        <div class="header-actions">
-            <h1>外来患者データ</h1>
-            <button class="btn primary" onclick="document.getElementById('addOutpatientModal').style.display='flex'">＋
-                新規登録</button>
+        <div class="header-v2">
+            <div>
+                <h1>🏥 外来患者管理</h1>
+                <p>現在通院中の外来患者一覧です。ダブルクリックで詳細を確認・編集できます。</p>
+            </div>
+            <div style="display: flex; gap: 0.5rem; align-items: flex-start;">
+                <button class="btn print-btn" onclick="window.print()" style="background-color: #64748b; color: white; margin-top: 0;">印刷する</button>
+                <button class="btn primary" style="margin-top: 0;" onclick="document.getElementById('addOutpatientModal').style.display='flex'">新規外来追加</button>
+            </div>
         </div>
 
         <div class="table-container">
@@ -36,6 +41,7 @@
                         <th>疾患種別</th>
                         <th>疾患名</th>
                         <th>診断日</th>
+                        <th>残日数</th>
                         <th>次回リハ予約日</th>
                         <th>アクション</th>
                     </tr>
@@ -100,7 +106,7 @@
                     <p id="details-cancel-count" style="font-size: 0.8rem; color: var(--text-muted);">0 / 0 回</p>
                 </div>
                 <div style="background: var(--bg-color); padding: 1rem; border-radius: 8px;">
-                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.25rem;">次回リハ予約日</p>
+                    <p id="next-visit-label" style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.25rem;">次回リハ予約日</p>
                     <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
                         <input type="date" id="next-visit-date"
                             style="padding: 0.25rem; border: 1px solid #ccc; border-radius: 4px; width: 100%;">

@@ -21,9 +21,11 @@
     </nav>
     <main class="container">
         <div class="header-actions">
-            <h1>入院患者データ</h1>
-            <button class="btn primary" onclick="document.getElementById('addModal').style.display='flex'">＋
-                新規登録</button>
+            <h1>🏥 入院患者管理</h1>
+            <div style="display: flex; gap: 0.5rem; align-items: flex-end;">
+                <button class="btn print-btn" onclick="window.print()" style="background-color: #64748b; color: white;">印刷する</button>
+                <button class="btn primary" onclick="document.getElementById('addModal').style.display='flex'">新規患者追加</button>
+            </div>
         </div>
 
         <div class="table-container">
@@ -36,7 +38,8 @@
                         <th>疾患種別</th>
                         <th>疾患名</th>
                         <th>診断日</th>
-                        <th>次回リハ予約日</th>
+                        <th>残日数</th>
+                        <th>次回面談予定日</th>
                         <th>アクション</th>
                     </tr>
                 </thead>
@@ -99,7 +102,7 @@
                     <p id="details-cancel-count" style="font-size: 0.8rem; color: var(--text-muted);">0 / 0 回</p>
                 </div>
                 <div style="background: var(--bg-color); padding: 1rem; border-radius: 8px;">
-                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.25rem;">次回リハ予約日</p>
+                    <p id="next-visit-label" style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.25rem;">次回面談予定日</p>
                     <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
                         <input type="date" id="next-visit-date"
                             style="padding: 0.25rem; border: 1px solid #ccc; border-radius: 4px; width: 100%;">

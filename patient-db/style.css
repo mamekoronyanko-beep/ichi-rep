@@ -269,3 +269,30 @@ tr:hover {
     font-weight: 600;
     border: 1px solid #dcfce7;
 }
+
+/* Print Styles */
+@media print {
+    .navbar, .btn:not(.print-btn), #excel-import-label, .import-btn {
+        display: none !important;
+    }
+    body {
+        background-color: white !important;
+        padding: 0 !important;
+    }
+    .container {
+        max-width: none !important;
+        margin: 0 !important;
+        padding: 10mm !important;
+        width: 100% !important;
+    }
+    .table-container, .table-wrapper {
+        box-shadow: none !important;
+        border: 1px solid #ccc !important;
+    }
+    th, td {
+        border-bottom: 1px solid #eee !important;
+    }
+    @page {
+        margin: 15mm;
+    }
+}

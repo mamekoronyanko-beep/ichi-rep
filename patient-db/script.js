@@ -10,6 +10,31 @@ const toHalfWidth = (str) => {
     }).replace(/ー/g, '-');
 };
 
+// Function to calculate remaining days based on category and diagnosis date
+function calculateRemainingDays(diagDate, category) {
+    if (!diagDate || !category) return null;
+    
+    let limit = 0;
+    if (category === '脳血管') limit = 180;
+    else if (category === '運動器') limit = 150;
+    else if (category === '廃用') limit = 120;
+    else return null;
+
+    const diag = new Date(diagDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    diag.setHours(0, 0, 0, 0);
+
+    const diffTime = today.getTime() - diag.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    // Day 1 is the diagnosis date itself.
+    const elapsed = diffDays + 1;
+    const remaining = limit - elapsed;
+    
+    return remaining;
+}
+
 const admissionTableBody = document.getElementById('patientTableBody');
 const outpatientTableBody = document.getElementById('outpatientTableBody');
 const archivedAdmissionTableBody = document.getElementById('archivedAdmissionTableBody');
@@ -39,6 +64,14 @@ async function renderAdmissionTable() {
         else if (patient.p_category === '脳血管') categoryClass = 'tag-cerebro';
         else if (patient.p_category === '廃用') categoryClass = 'tag-disuse';
 
+        const remainingDays = calculateRemainingDays(patient.p_diagnosis_date, patient.p_category);
+        let remainingHtml = '<span style="color:var(--text-muted);">-</span>';
+        if (remainingDays !== null) {
+            const color = remainingDays <= 10 ? '#ef4444' : 'inherit';
+            const weight = remainingDays <= 10 ? 'bold' : 'normal';
+            remainingHtml = `<span style="color: ${color}; font-weight: ${weight};">${remainingDays}日</span>`;
+        }
+
         const tr = document.createElement('tr');
         tr.style.cursor = 'pointer';
         tr.innerHTML = `
@@ -48,6 +81,7 @@ async function renderAdmissionTable() {
             <td onclick="openPatientDetails('${patient.p_id}')"><span class="${categoryClass}">${patient.p_category || '未設定'}</span></td>
             <td onclick="openPatientDetails('${patient.p_id}')"><span style="background: #e1f5fe; color: #0277bd; padding: 4px 8px; border-radius: 12px; font-size: 0.85rem; display: inline-block;">${patient.p_disease}</span></td>
             <td onclick="openPatientDetails('${patient.p_id}')">${patient.p_diagnosis_date}</td>
+            <td onclick="openPatientDetails('${patient.p_id}')">${remainingHtml}</td>
             <td onclick="openPatientDetails('${patient.p_id}')">${patient.next_reserve_date || '<span style="color:var(--text-muted);font-size:0.85rem;">未定</span>'}</td>
             <td>
                 <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin: 0; background: #ffebee; color: #c62828;" onclick="event.stopPropagation(); deleteAdmissionPatient('${patient.p_id}')">削除</button>
@@ -161,8 +195,9 @@ async function openPatientDetails(dbId) {
 async function saveNextVisit() {
     if (!currentPatientDbId) return;
     const nextDate = document.getElementById('next-visit-date').value;
+    const label = document.getElementById('next-visit-label')?.textContent || '次回予定日';
     await supabase.from('patients').update({ next_reserve_date: nextDate }).eq('p_id', currentPatientDbId);
-    alert('次回リハ予約日を保存しました。');
+    alert(`${label}を保存しました。`);
     // Refresh relevant table
     await renderAdmissionTable();
     await renderOutpatientTable();
@@ -187,6 +222,14 @@ async function renderOutpatientTable() {
         else if (op.p_category === '脳血管') categoryClass = 'tag-cerebro';
         else if (op.p_category === '廃用') categoryClass = 'tag-disuse';
 
+        const remainingDays = calculateRemainingDays(op.p_diagnosis_date, op.p_category);
+        let remainingHtml = '<span style="color:var(--text-muted);">-</span>';
+        if (remainingDays !== null) {
+            const color = remainingDays <= 10 ? '#ef4444' : 'inherit';
+            const weight = remainingDays <= 10 ? 'bold' : 'normal';
+            remainingHtml = `<span style="color: ${color}; font-weight: ${weight};">${remainingDays}日</span>`;
+        }
+
         const tr = document.createElement('tr');
         tr.style.cursor = 'pointer';
         tr.innerHTML = `
@@ -196,6 +239,7 @@ async function renderOutpatientTable() {
             <td onclick="openPatientDetails('${op.p_id}')"><span class="${categoryClass}">${op.p_category || '未設定'}</span></td>
             <td onclick="openPatientDetails('${op.p_id}')"><span style="background: #e8f5e9; color: #2e7d32; padding: 4px 8px; border-radius: 12px; font-size: 0.85rem; display: inline-block;">${op.p_disease}</span></td>
             <td onclick="openPatientDetails('${op.p_id}')">${op.p_diagnosis_date}</td>
+            <td onclick="openPatientDetails('${op.p_id}')">${remainingHtml}</td>
             <td onclick="openPatientDetails('${op.p_id}')">${op.next_reserve_date || '<span style="color:var(--text-muted);font-size:0.85rem;">未定</span>'}</td>
             <td>
                 <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin: 0; background: #ffebee; color: #c62828;" onclick="event.stopPropagation(); deleteOutpatient('${op.p_id}')">削除</button>
@@ -291,6 +335,14 @@ async function renderDischargedTable() {
         else if (p.p_category === '脳血管') categoryClass = 'tag-cerebro';
         else if (p.p_category === '廃用') categoryClass = 'tag-disuse';
 
+        const remainingDays = calculateRemainingDays(p.p_diagnosis_date, p.p_category);
+        let remainingHtml = '<span style="color:var(--text-muted);">-</span>';
+        if (remainingDays !== null) {
+            const color = remainingDays <= 10 ? '#ef4444' : 'inherit';
+            const weight = remainingDays <= 10 ? 'bold' : 'normal';
+            remainingHtml = `<span style="color: ${color}; font-weight: ${weight};">${remainingDays}日</span>`;
+        }
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td><strong>${p.p_id}</strong></td>
@@ -299,6 +351,7 @@ async function renderDischargedTable() {
             <td><span class="${categoryClass}">${p.p_category || '未設定'}</span></td>
             <td>${p.p_disease}</td>
             <td>${p.p_diagnosis_date}</td>
+            <td>${remainingHtml}</td>
             <td>${p.p_termination_date || '-'}</td>
             <td>
                 <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: #e0f2fe; color: #0369a1;" onclick="restoreAdmission('${p.p_id}')">復元</button>
@@ -326,6 +379,14 @@ async function renderTerminatedTable() {
         else if (p.p_category === '脳血管') categoryClass = 'tag-cerebro';
         else if (p.p_category === '廃用') categoryClass = 'tag-disuse';
 
+        const remainingDays = calculateRemainingDays(p.p_diagnosis_date, p.p_category);
+        let remainingHtml = '<span style="color:var(--text-muted);">-</span>';
+        if (remainingDays !== null) {
+            const color = remainingDays <= 10 ? '#ef4444' : 'inherit';
+            const weight = remainingDays <= 10 ? 'bold' : 'normal';
+            remainingHtml = `<span style="color: ${color}; font-weight: ${weight};">${remainingDays}日</span>`;
+        }
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td><strong>${p.p_id}</strong></td>
@@ -334,6 +395,7 @@ async function renderTerminatedTable() {
             <td><span class="${categoryClass}">${p.p_category || '未設定'}</span></td>
             <td>${p.p_disease}</td>
             <td>${p.p_diagnosis_date}</td>
+            <td>${remainingHtml}</td>
             <td>${p.p_termination_date || '-'}</td>
             <td>
                 <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: #e0f2fe; color: #0369a1;" onclick="restoreOutpatient('${p.p_id}')">復元</button>
@@ -391,9 +453,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             p_name: p.name,
             p_type: p.type || (admission.includes(p) ? 'admission' : 'outpatient'),
             p_disease: p.disease,
-            p_diagnosis_date: p.date ? p.date : null,
+            p_diagnosis_date: (p.date && p.date.trim()) ? p.date.trim() : null,
             p_category: p.category,
-            next_reserve_date: p.next_reserve_date ? p.next_reserve_date : null,
+            next_reserve_date: (p.next_reserve_date && p.next_reserve_date.trim()) ? p.next_reserve_date.trim() : null,
             history: p.history || []
         }));
 
