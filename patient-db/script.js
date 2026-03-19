@@ -371,7 +371,7 @@ window.onclick = function (event) {
 document.addEventListener('DOMContentLoaded', async () => {
     // --- Auto Migration if Opened from Patient DB ---
     const migrateDataToSupabase = async () => {
-        const isMigrated = localStorage.getItem('supabase_migrated_v2');
+        const isMigrated = localStorage.getItem('supabase_migrated_v6');
         if (isMigrated) return;
 
         const admission = JSON.parse(localStorage.getItem('admissionPatients')) || [];
@@ -410,7 +410,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             } catch (e) {}
         }
         
-        localStorage.setItem('supabase_migrated_v4', 'true');
+        localStorage.setItem('supabase_migrated_v6', 'true');
     };
     
     await migrateDataToSupabase();

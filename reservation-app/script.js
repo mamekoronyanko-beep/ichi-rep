@@ -1141,7 +1141,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- Migration Logic: localStorage to Supabase ---
     const migrateDataToSupabase = async () => {
-        const isMigrated = localStorage.getItem('supabase_migrated_v2');
+        const isMigrated = localStorage.getItem('supabase_migrated_v6');
         if (isMigrated) return;
 
         console.log("Starting data migration to Supabase...");
@@ -1180,7 +1180,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         if (reservationsToMigrate.length > 0) {
-            await supabase.from('reservations').upsert(reservationsToMigrate, { onConflict: 'res_date, res_time, res_type, res_index' });
+            const { error: resError } = await supabase.from('reservations').insert(reservationsToMigrate);
+            if (resError) console.error('Reservation migration error:', resError);
         }
 
         // Migrate Patients (History is included)
@@ -1212,7 +1213,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (error) console.error('Patient migration error:', error);
         }
 
-        localStorage.setItem('supabase_migrated_v2', 'true');
+        localStorage.setItem('supabase_migrated_v6', 'true');
         console.log("Migration complete.");
     };
 
