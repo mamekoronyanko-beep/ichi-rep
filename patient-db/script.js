@@ -42,15 +42,15 @@ async function renderAdmissionTable() {
         const tr = document.createElement('tr');
         tr.style.cursor = 'pointer';
         tr.innerHTML = `
-            <td onclick="openPatientDetails('${patient.id}')"><strong>${patient.p_id}</strong></td>
-            <td onclick="openPatientDetails('${patient.id}')">${patient.p_name}</td>
-            <td onclick="openPatientDetails('${patient.id}')"><span class="tag-type-admission">入院</span></td>
-            <td onclick="openPatientDetails('${patient.id}')"><span class="${categoryClass}">${patient.p_category || '未設定'}</span></td>
-            <td onclick="openPatientDetails('${patient.id}')"><span style="background: #e1f5fe; color: #0277bd; padding: 4px 8px; border-radius: 12px; font-size: 0.85rem; display: inline-block;">${patient.p_disease}</span></td>
-            <td onclick="openPatientDetails('${patient.id}')">${patient.p_diagnosis_date}</td>
-            <td onclick="openPatientDetails('${patient.id}')">${patient.next_reserve_date || '<span style="color:var(--text-muted);font-size:0.85rem;">未定</span>'}</td>
+            <td onclick="openPatientDetails('${patient.p_id}')"><strong>${patient.p_id}</strong></td>
+            <td onclick="openPatientDetails('${patient.p_id}')">${patient.p_name}</td>
+            <td onclick="openPatientDetails('${patient.p_id}')"><span class="tag-type-admission">入院</span></td>
+            <td onclick="openPatientDetails('${patient.p_id}')"><span class="${categoryClass}">${patient.p_category || '未設定'}</span></td>
+            <td onclick="openPatientDetails('${patient.p_id}')"><span style="background: #e1f5fe; color: #0277bd; padding: 4px 8px; border-radius: 12px; font-size: 0.85rem; display: inline-block;">${patient.p_disease}</span></td>
+            <td onclick="openPatientDetails('${patient.p_id}')">${patient.p_diagnosis_date}</td>
+            <td onclick="openPatientDetails('${patient.p_id}')">${patient.next_reserve_date || '<span style="color:var(--text-muted);font-size:0.85rem;">未定</span>'}</td>
             <td>
-                <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin: 0; background: #ffebee; color: #c62828;" onclick="event.stopPropagation(); deleteAdmissionPatient('${patient.id}')">削除</button>
+                <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin: 0; background: #ffebee; color: #c62828;" onclick="event.stopPropagation(); deleteAdmissionPatient('${patient.p_id}')">削除</button>
             </td>
         `;
         admissionTableBody.appendChild(tr);
@@ -64,7 +64,7 @@ async function deleteAdmissionPatient(dbId) {
         await supabase.from('patients').update({ 
             p_type: 'archived_admission',
             p_termination_date: dischargeDate 
-        }).eq('id', dbId);
+        }).eq('p_id', dbId);
         await renderAdmissionTable();
     }
 }
@@ -82,7 +82,7 @@ async function openPatientDetails(dbId) {
 
     currentPatientDbId = dbId;
 
-    const { data: patient, error } = await supabase.from('patients').select('*').eq('id', dbId).single();
+    const { data: patient, error } = await supabase.from('patients').select('*').eq('p_id', dbId).single();
     if (error || !patient) return;
 
     document.getElementById('details-patient-name').textContent = patient.p_name;
@@ -161,7 +161,7 @@ async function openPatientDetails(dbId) {
 async function saveNextVisit() {
     if (!currentPatientDbId) return;
     const nextDate = document.getElementById('next-visit-date').value;
-    await supabase.from('patients').update({ next_reserve_date: nextDate }).eq('id', currentPatientDbId);
+    await supabase.from('patients').update({ next_reserve_date: nextDate }).eq('p_id', currentPatientDbId);
     alert('次回リハ予約日を保存しました。');
     // Refresh relevant table
     await renderAdmissionTable();
@@ -190,15 +190,15 @@ async function renderOutpatientTable() {
         const tr = document.createElement('tr');
         tr.style.cursor = 'pointer';
         tr.innerHTML = `
-            <td onclick="openPatientDetails('${op.id}')"><strong>${op.p_id}</strong></td>
-            <td onclick="openPatientDetails('${op.id}')">${op.p_name}</td>
-            <td onclick="openPatientDetails('${op.id}')"><span class="tag-type-outpatient">外来</span></td>
-            <td onclick="openPatientDetails('${op.id}')"><span class="${categoryClass}">${op.p_category || '未設定'}</span></td>
-            <td onclick="openPatientDetails('${op.id}')"><span style="background: #e8f5e9; color: #2e7d32; padding: 4px 8px; border-radius: 12px; font-size: 0.85rem; display: inline-block;">${op.p_disease}</span></td>
-            <td onclick="openPatientDetails('${op.id}')">${op.p_diagnosis_date}</td>
-            <td onclick="openPatientDetails('${op.id}')">${op.next_reserve_date || '<span style="color:var(--text-muted);font-size:0.85rem;">未定</span>'}</td>
+            <td onclick="openPatientDetails('${op.p_id}')"><strong>${op.p_id}</strong></td>
+            <td onclick="openPatientDetails('${op.p_id}')">${op.p_name}</td>
+            <td onclick="openPatientDetails('${op.p_id}')"><span class="tag-type-outpatient">外来</span></td>
+            <td onclick="openPatientDetails('${op.p_id}')"><span class="${categoryClass}">${op.p_category || '未設定'}</span></td>
+            <td onclick="openPatientDetails('${op.p_id}')"><span style="background: #e8f5e9; color: #2e7d32; padding: 4px 8px; border-radius: 12px; font-size: 0.85rem; display: inline-block;">${op.p_disease}</span></td>
+            <td onclick="openPatientDetails('${op.p_id}')">${op.p_diagnosis_date}</td>
+            <td onclick="openPatientDetails('${op.p_id}')">${op.next_reserve_date || '<span style="color:var(--text-muted);font-size:0.85rem;">未定</span>'}</td>
             <td>
-                <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin: 0; background: #ffebee; color: #c62828;" onclick="event.stopPropagation(); deleteOutpatient('${op.id}')">削除</button>
+                <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin: 0; background: #ffebee; color: #c62828;" onclick="event.stopPropagation(); deleteOutpatient('${op.p_id}')">削除</button>
             </td>
         `;
         outpatientTableBody.appendChild(tr);
@@ -212,7 +212,7 @@ async function deleteOutpatient(dbId) {
         await supabase.from('patients').update({ 
             p_type: 'archived_outpatient',
             p_termination_date: terminationDate 
-        }).eq('id', dbId);
+        }).eq('p_id', dbId);
         await renderOutpatientTable();
     }
 }
@@ -301,7 +301,7 @@ async function renderDischargedTable() {
             <td>${p.p_diagnosis_date}</td>
             <td>${p.p_termination_date || '-'}</td>
             <td>
-                <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: #e0f2fe; color: #0369a1;" onclick="restoreAdmission('${p.id}')">復元</button>
+                <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: #e0f2fe; color: #0369a1;" onclick="restoreAdmission('${p.p_id}')">復元</button>
             </td>
         `;
         archivedAdmissionTableBody.appendChild(tr);
@@ -336,7 +336,7 @@ async function renderTerminatedTable() {
             <td>${p.p_diagnosis_date}</td>
             <td>${p.p_termination_date || '-'}</td>
             <td>
-                <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: #e0f2fe; color: #0369a1;" onclick="restoreOutpatient('${p.id}')">復元</button>
+                <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: #e0f2fe; color: #0369a1;" onclick="restoreOutpatient('${p.p_id}')">復元</button>
             </td>
         `;
         archivedOutpatientTableBody.appendChild(tr);
@@ -344,14 +344,14 @@ async function renderTerminatedTable() {
 }
 
 async function restoreAdmission(dbId) {
-    await supabase.from('patients').update({ p_type: 'admission', p_termination_date: null }).eq('id', dbId);
+    await supabase.from('patients').update({ p_type: 'admission', p_termination_date: null }).eq('p_id', dbId);
     await renderDischargedTable();
     await renderAdmissionTable();
     alert('入院患者リストに復元しました。');
 }
 
 async function restoreOutpatient(dbId) {
-    await supabase.from('patients').update({ p_type: 'outpatient', p_termination_date: null }).eq('id', dbId);
+    await supabase.from('patients').update({ p_type: 'outpatient', p_termination_date: null }).eq('p_id', dbId);
     await renderTerminatedTable();
     await renderOutpatientTable();
     alert('外来患者リストに復元しました。');
@@ -377,8 +377,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         const admission = JSON.parse(localStorage.getItem('admissionPatients')) || [];
         const outpatient = JSON.parse(localStorage.getItem('outpatientPatients')) || [];
         const allPatients = [...admission, ...outpatient];
+
+        // Remove duplicates by ID to avoid Postgres ON CONFLICT batch errors
+        const uniquePatientsMap = {};
+        for (const p of allPatients) {
+            if (p && p.id) {
+                uniquePatientsMap[p.id] = p;
+            }
+        }
         
-        const patientsToMigrate = allPatients.map(p => ({
+        const patientsToMigrate = Object.values(uniquePatientsMap).map(p => ({
             p_id: p.id,
             p_name: p.name,
             p_type: p.type || (admission.includes(p) ? 'admission' : 'outpatient'),
@@ -402,7 +410,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             } catch (e) {}
         }
         
-        localStorage.setItem('supabase_migrated_v2', 'true');
+        localStorage.setItem('supabase_migrated_v4', 'true');
     };
     
     await migrateDataToSupabase();

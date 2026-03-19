@@ -1187,8 +1187,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         const admission = JSON.parse(localStorage.getItem('admissionPatients')) || [];
         const outpatient = JSON.parse(localStorage.getItem('outpatientPatients')) || [];
         const allPatients = [...admission, ...outpatient];
+
+        // Remove duplicates by ID to avoid Postgres ON CONFLICT batch errors
+        const uniquePatientsMap = {};
+        for (const p of allPatients) {
+            if (p && p.id) {
+                uniquePatientsMap[p.id] = p;
+            }
+        }
         
-        const patientsToMigrate = allPatients.map(p => ({
+        const patientsToMigrate = Object.values(uniquePatientsMap).map(p => ({
             p_id: p.id,
             p_name: p.name,
             p_type: p.type || (admission.includes(p) ? 'admission' : 'outpatient'),
