@@ -369,6 +369,45 @@ window.onclick = function (event) {
 
 // Initial render
 document.addEventListener('DOMContentLoaded', async () => {
+    // --- Auto Migration if Opened from Patient DB ---
+    const migrateDataToSupabase = async () => {
+        const isMigrated = localStorage.getItem('supabase_migrated_v2');
+        if (isMigrated) return;
+
+        const admission = JSON.parse(localStorage.getItem('admissionPatients')) || [];
+        const outpatient = JSON.parse(localStorage.getItem('outpatientPatients')) || [];
+        const allPatients = [...admission, ...outpatient];
+        
+        const patientsToMigrate = allPatients.map(p => ({
+            p_id: p.id,
+            p_name: p.name,
+            p_type: p.type || (admission.includes(p) ? 'admission' : 'outpatient'),
+            p_disease: p.disease,
+            p_diagnosis_date: p.date ? p.date : null,
+            p_category: p.category,
+            next_reserve_date: p.next_reserve_date ? p.next_reserve_date : null,
+            history: p.history || []
+        }));
+
+        if (patientsToMigrate.length > 0) {
+            const { error } = await supabase.from('patients').upsert(patientsToMigrate);
+            if (error) console.error('Patient migration error:', error);
+        }
+
+        // Migrate Staff Names (Just in case)
+        const staffNames = JSON.parse(localStorage.getItem('staffNames'));
+        if (staffNames) {
+            try {
+                await supabase.from('staff_settings').upsert(staffNames.map((name, i) => ({ id: i + 1, name: name, attendance: 'work' })));
+            } catch (e) {}
+        }
+        
+        localStorage.setItem('supabase_migrated_v2', 'true');
+    };
+    
+    await migrateDataToSupabase();
+
+    // Render Tables
     await renderAdmissionTable();
     await renderOutpatientTable();
     await renderDischargedTable();
