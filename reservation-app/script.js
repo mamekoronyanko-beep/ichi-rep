@@ -94,6 +94,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             input.min = '0';
             input.value = '0';
             input.style.cssText = 'width:100%; font-size:0.85rem; font-weight:700; color:#15803d; text-align:center; border:1px solid #86efac; border-radius:4px; padding:0.2rem; background:#f0fdf4;';
+            
+            // 変更時に自動計算と永続化を行う
+            input.addEventListener('input', () => {
+                const selectedDate = targetDateInput.value;
+                localStorage.setItem(`manual_staff_units_${selectedDate}_${i}`, input.value);
+                updateManualTotalFromFields();
+            });
+
             td.appendChild(input);
             unitsRow.appendChild(td);
         }
@@ -107,6 +115,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         antiInput.min = '0';
         antiInput.value = '0';
         antiInput.style.cssText = 'width:100%; font-size:0.85rem; font-weight:700; color:#0369a1; text-align:center; border:1px solid #bae6fd; border-radius:4px; padding:0.2rem; background:#f0f9ff;';
+        
+        antiInput.addEventListener('input', () => {
+            const selectedDate = targetDateInput.value;
+            localStorage.setItem(`manual_anti_units_${selectedDate}_1`, antiInput.value);
+            // 消炎枠は合計には含めない仕様（現状維持）ならここは何もしない。
+            // もし含めるなら updateManualTotalFromFields() を呼ぶ。
+        });
+
         antiTd.appendChild(antiInput);
         unitsRow.appendChild(antiTd);
 
@@ -395,12 +411,39 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
 
-        for (let i = 1; i <= 6; i++) {
+        for (let i = 1; i <= STAFF_COUNT; i++) {
             const input = document.getElementById(`staff-units-${i}`);
-            if (input) input.value = staffTotals[i] || 0;
+            if (input) {
+                const selectedDate = targetDateInput.value;
+                const manualVal = localStorage.getItem(`manual_staff_units_${selectedDate}_${i}`);
+                input.value = manualVal !== null ? manualVal : (staffTotals[i] || 0);
+            }
         }
+
         const antiInput = document.getElementById('anti-units-1');
-        if (antiInput) antiInput.value = antiTotal;
+        if (antiInput) {
+            const selectedDate = targetDateInput.value;
+            const manualAnti = localStorage.getItem(`manual_anti_units_${selectedDate}_1`);
+            antiInput.value = manualAnti !== null ? manualAnti : antiTotal;
+        }
+
+        // スタッフ枠の合計値を「1日必要単位数」へ反映
+        updateManualTotalFromFields();
+    };
+
+    // 入力欄の値から合計を計算して「1日必要単位数」を更新する
+    const updateManualTotalFromFields = () => {
+        let total = 0;
+        for (let i = 1; i <= STAFF_COUNT; i++) {
+            const input = document.getElementById(`staff-units-${i}`);
+            if (input) {
+                total += parseInt(input.value) || 0;
+            }
+        }
+        const manualTotalInput = document.getElementById('manual-total-units');
+        if (manualTotalInput) {
+            manualTotalInput.value = total;
+        }
     };
 
     const updateDailyStats = async (dateStr) => {
@@ -469,11 +512,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         setVal('outpatient-planned-units', outpatientPlanned);
         setVal('outpatient-actual-units', outpatientActual);
 
-        // 1日必要単位数にスタッフ枠の合計を自動反映
-        const manualUnitsInput = document.getElementById('manual-total-units');
-        if (manualUnitsInput) {
-            manualUnitsInput.value = staffUnits;
-        }
+        // 1日必要単位数にスタッフ枠の合計を自動反映（手動入力がある場合はそれを優先）
+        updateManualTotalFromFields();
 
         // 自動入力ボタンの設定（1回だけイベントを付ける）
         const syncBtn = document.getElementById('sync-units-btn');
