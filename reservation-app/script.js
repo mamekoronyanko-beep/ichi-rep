@@ -204,19 +204,27 @@ document.addEventListener('DOMContentLoaded', async () => {
                             td.style.color = isStaffOff ? '#9ca3af' : '#0369a1';
                             td.style.border = isStaffOff ? '2px solid #e5e7eb' : '2px solid #38bdf8';
                         }
+                        const units = data.units || 1;
+                        const fullRemarks = data.remarks || '';
+                        const isWalkIn = fullRemarks.startsWith('[予約外]');
+                        const displayRemarks = isWalkIn ? fullRemarks.replace('[予約外]', '').trim() : fullRemarks;
+                        
+                        if (isWalkIn) {
+                            td.classList.add('is-walk-in');
+                        }
+
                         if (data.is_inpatient_block) {
-                            td.innerHTML = `<div class="status-text" style="font-size: 0.7rem;">🏥 入院患者介入枠<br><span style="font-size: 0.6rem;">${data.remarks || ''}</span></div>`;
+                            td.innerHTML = `<div class="status-text" style="font-size: 0.7rem;">${isWalkIn ? '<span class="walk-in-badge">予約外</span><br>' : ''}🏥 入院患者介入枠<br><span style="font-size: 0.6rem;">${displayRemarks}</span></div>`;
                             td.style.backgroundColor = isStaffOff ? '#fdf2f880' : '#fdf2f8';
                             td.style.color = isStaffOff ? '#be185d80' : '#be185d';
                         } else if (data.is_meeting) {
-                            td.innerHTML = `<div class="status-text" style="font-size: 0.7rem;">💬 面談: ${data.patient_name || '未指定'}<br><span style="font-size: 0.6rem;">${data.remarks || ''}</span></div>`;
+                            td.innerHTML = `<div class="status-text" style="font-size: 0.7rem;">${isWalkIn ? '<span class="walk-in-badge">予約外</span><br>' : ''}💬 面談: ${data.patient_name || '未指定'}<br><span style="font-size: 0.6rem;">${displayRemarks}</span></div>`;
                             td.style.backgroundColor = isStaffOff ? '#ecfdf580' : '#ecfdf5';
                             td.style.color = isStaffOff ? '#065f4680' : '#065f46';
                             td.style.border = isStaffOff ? '2px solid #d1fae580' : '2px solid #10b981';
                         } else {
-                            td.innerHTML = `<div class="status-text" style="font-size: 0.7rem;">${data.patient_name || '無名'}<br><span style="font-size: 0.6rem;">${data.remarks || ''}</span></div>`;
+                            td.innerHTML = `<div class="status-text" style="font-size: 0.7rem;">${isWalkIn ? '<span class="walk-in-badge">予約外</span><br>' : ''}${data.patient_name || '無名'}<br><span style="font-size: 0.6rem;">${displayRemarks}</span></div>`;
                         }
-                        const units = data.units || 1;
                         if (units > 1) { td.rowSpan = units; skipCells.staff[i] = units - 1; }
                     }
 
@@ -260,16 +268,25 @@ document.addEventListener('DOMContentLoaded', async () => {
                         if (data.status === 'arrived') td.classList.add('status-arrived');
                         else if (data.status === 'canceled') td.classList.add('status-canceled');
                         else { td.style.backgroundColor = '#e0f2fe'; td.style.color = '#0369a1'; td.style.border = '2px solid #38bdf8'; }
+
+                        const units = data.units || 1;
+                        const fullRemarks = data.remarks || '';
+                        const isWalkIn = fullRemarks.startsWith('[予約外]');
+                        const displayRemarks = isWalkIn ? fullRemarks.replace('[予約外]', '').trim() : fullRemarks;
+
+                        if (isWalkIn) {
+                            td.classList.add('is-walk-in');
+                        }
+
                         if (data.is_inpatient_block) {
                             td.style.backgroundColor = '#fdf2f8'; td.style.color = '#be185d'; td.style.border = '2px solid #f43f5e';
-                            td.innerHTML = `<div class="status-text" style="font-size: 0.7rem;">🏥 入院患者介入枠<br><span style="font-size: 0.6rem;">${data.remarks || ''}</span></div>`;
+                            td.innerHTML = `<div class="status-text" style="font-size: 0.7rem;">${isWalkIn ? '<span class="walk-in-badge">予約外</span><br>' : ''}🏥 入院患者介入枠<br><span style="font-size: 0.6rem;">${displayRemarks}</span></div>`;
                         } else if (data.is_meeting) {
                             td.style.backgroundColor = '#ecfdf5'; td.style.color = '#065f46'; td.style.border = '2px solid #10b981';
-                            td.innerHTML = `<div class="status-text" style="font-size: 0.7rem;">💬 面談: ${data.patient_name || '未指定'}<br><span style="font-size: 0.6rem;">${data.remarks || ''}</span></div>`;
+                            td.innerHTML = `<div class="status-text" style="font-size: 0.7rem;">${isWalkIn ? '<span class="walk-in-badge">予約外</span><br>' : ''}💬 面談: ${data.patient_name || '未指定'}<br><span style="font-size: 0.6rem;">${displayRemarks}</span></div>`;
                         } else {
-                            td.innerHTML = `<div class="status-text" style="font-size: 0.7rem;">${data.patient_name || '無名'}<br><span style="font-size: 0.6rem;">${data.remarks || ''}</span></div>`;
+                            td.innerHTML = `<div class="status-text" style="font-size: 0.7rem;">${isWalkIn ? '<span class="walk-in-badge">予約外</span><br>' : ''}${data.patient_name || '無名'}<br><span style="font-size: 0.6rem;">${displayRemarks}</span></div>`;
                         }
-                        const units = data.units || 1;
                         if (units > 1) { td.rowSpan = units; skipCells.anti[i] = units - 1; }
                     }
                     const antiKey = `reservation_${selectedDate}_${timeString}_anti_${i}`;
@@ -994,12 +1011,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             const isInpatientBlock = (bookingType === 'inpatient');
             const isMeeting = (bookingType === 'meeting');
 
-            let pId = document.getElementById('patient-id').value;
-            let pName = document.getElementById('patient-name').value;
-            const remarks = document.getElementById('remarks').value;
-
             const unitsChecked = document.querySelector('input[name="booking-units"]:checked');
             const units = unitsChecked ? parseInt(unitsChecked.value, 10) : 2;
+            const isWalkIn = document.getElementById('is-walk-in')?.checked || false;
+            let remarks = document.getElementById('remarks').value;
+
+            if (isWalkIn) {
+                remarks = `[予約外] ${remarks}`;
+            }
 
             if (isMeeting) {
                 const combinedVal = document.getElementById('inpatient-id').value;
