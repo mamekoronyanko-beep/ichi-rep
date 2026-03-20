@@ -216,7 +216,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (h === BREAK_START_HOUR && m === 0) {
                     const breakTd = document.createElement('td');
                     breakTd.classList.add('break-cell');
-                    breakTd.colSpan = STAFF_COUNT + ANTI_COUNT + 1;
+                    breakTd.colSpan = STAFF_COUNT + ANTI_COUNT;
                     breakTd.rowSpan = 60 / INTERVAL_MINUTES;
                     breakTd.textContent = '休憩時間';
                     tr.appendChild(breakTd);
@@ -368,19 +368,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     });
                     tr.appendChild(td);
                 }
-
-                // Cancel Column
-                const cancelTd = document.createElement('td');
-                cancelTd.style.backgroundColor = '#f9fafb';
-                cancelTd.style.borderLeft = '2px solid #e5e7eb';
-                timeData.cancel.forEach(d => {
-                    const div = document.createElement('div');
-                    div.style.cssText = 'background:#f3f4f6; color:#6b7280; border:1px solid #d1d5db; padding:4px; margin-bottom:4px; border-radius:4px; font-size:0.7rem; cursor:pointer; text-align:center;';
-                    div.innerHTML = `<strong>${d.patient_name || d.patientName || '無名'}</strong><br><span style="font-size:0.6rem;">${d.units || 1}枠 | ${d.cancelReason || d.cancel_reason || '理由なし'}</span>`;
-                    div.addEventListener('click', () => openCancelDetailsModal(d, timeString));
-                    cancelTd.appendChild(div);
-                });
-                tr.appendChild(cancelTd);
                 scheduleBody.appendChild(tr);
             }
             currentTime.setMinutes(currentTime.getMinutes() + INTERVAL_MINUTES);
@@ -642,13 +629,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             div.style.alignItems = 'center';
             div.style.marginBottom = '0.5rem';
             div.innerHTML = `
-                <div>
-                    <span style="font-weight: 600; color: #111827; margin-right: 1rem;">${item.time}</span>
-                    <span style="color: #4b5563; margin-right: 1rem;">${item.patientName}</span>
-                    <span style="font-size: 0.8rem; color: #6b7280;">(${item.type} / ${item.units}枠)</span>
+                <div style="display: flex; flex-direction: column; gap: 0.2rem;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <span style="font-size: 1.1rem; font-weight: 800; color: #ef4444; border: 1px solid #fee2e2; background: #fff1f2; padding: 2px 6px; border-radius: 4px;">${item.time}</span>
+                        <span style="font-weight: 700; color: #111827; font-size: 1rem;">${item.patientName || '無名'}</span>
+                    </div>
+                    <div style="font-size: 0.75rem; color: #6b7280; display: flex; gap: 0.5rem; align-items: center;">
+                        <span style="background: #f3f4f6; padding: 1px 6px; border-radius: 4px;">${item.type}</span>
+                        <span>/</span>
+                        <span>${item.units}枠分</span>
+                    </div>
                 </div>
-                <div>
-                    <span style="background: #fee2e2; color: #b91c1c; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem;">${item.reason}</span>
+                <div style="text-align: right;">
+                    <span style="background: #fee2e2; color: #b91c1c; padding: 4px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; border: 1px solid #fecaca;">${item.reason}</span>
                 </div>
             `;
             div.style.cursor = 'pointer';
