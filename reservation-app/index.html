@@ -48,7 +48,7 @@
         </header>
         <main class="schedule-wrapper" style="display: grid; grid-template-columns: 1fr 300px; gap: 1.5rem;">
             <div class="table-content-area" style="display: flex; flex-direction: column; gap: 1.5rem; height: 100%; overflow: hidden;">
-                <div class="table-container">
+                <div class="table-container" style="overflow-y: auto; max-height: calc(100vh - 200px);">
                 <table class="schedule-table">
                     <thead>
                         <tr>
@@ -67,6 +67,16 @@
                             <th>スタッフ 5</th>
                             <th>スタッフ 6</th>
                             <th>消炎 1</th>
+                        </tr>
+                        <tr id="staff-units-row" style="background: #f0fdf4; border-bottom: 2px solid #86efac;">
+                            <td style="font-size: 0.65rem; color: #15803d; font-weight: 700; text-align: center; padding: 0.3rem 0.2rem; white-space: nowrap;">単位数</td>
+                            <td><input type="number" id="staff-units-1" min="0" value="0" style="width:100%; font-size:0.85rem; font-weight:700; color:#15803d; text-align:center; border:1px solid #86efac; border-radius:4px; padding:0.2rem; background:#f0fdf4;"></td>
+                            <td><input type="number" id="staff-units-2" min="0" value="0" style="width:100%; font-size:0.85rem; font-weight:700; color:#15803d; text-align:center; border:1px solid #86efac; border-radius:4px; padding:0.2rem; background:#f0fdf4;"></td>
+                            <td><input type="number" id="staff-units-3" min="0" value="0" style="width:100%; font-size:0.85rem; font-weight:700; color:#15803d; text-align:center; border:1px solid #86efac; border-radius:4px; padding:0.2rem; background:#f0fdf4;"></td>
+                            <td><input type="number" id="staff-units-4" min="0" value="0" style="width:100%; font-size:0.85rem; font-weight:700; color:#15803d; text-align:center; border:1px solid #86efac; border-radius:4px; padding:0.2rem; background:#f0fdf4;"></td>
+                            <td><input type="number" id="staff-units-5" min="0" value="0" style="width:100%; font-size:0.85rem; font-weight:700; color:#15803d; text-align:center; border:1px solid #86efac; border-radius:4px; padding:0.2rem; background:#f0fdf4;"></td>
+                            <td><input type="number" id="staff-units-6" min="0" value="0" style="width:100%; font-size:0.85rem; font-weight:700; color:#15803d; text-align:center; border:1px solid #86efac; border-radius:4px; padding:0.2rem; background:#f0fdf4;"></td>
+                            <td><input type="number" id="anti-units-1" min="0" value="0" style="width:100%; font-size:0.85rem; font-weight:700; color:#0369a1; text-align:center; border:1px solid #bae6fd; border-radius:4px; padding:0.2rem; background:#f0f9ff;"></td>
                         </tr>
                     </thead>
                     <tbody id="schedule-body">

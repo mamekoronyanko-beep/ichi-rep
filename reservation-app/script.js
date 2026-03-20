@@ -332,6 +332,31 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderCanceledList(selectedDate);
         updateDailyStats(selectedDate);
         updateInpatientWeeklyUnits();
+        updateStaffUnitInputs(dbReservations || []);
+    };
+
+    // --- スタッフ別・消炎別の単位数を入力欄に自動セット ---
+    const updateStaffUnitInputs = (reservations) => {
+        const staffTotals = {};
+        let antiTotal = 0;
+
+        reservations.forEach(res => {
+            if (res.status === 'canceled') return;
+            const units = parseInt(res.units) || 1;
+            if (res.res_type === 'staff') {
+                const idx = res.res_index;
+                staffTotals[idx] = (staffTotals[idx] || 0) + units;
+            } else if (res.res_type === 'anti') {
+                antiTotal += units;
+            }
+        });
+
+        for (let i = 1; i <= 6; i++) {
+            const input = document.getElementById(`staff-units-${i}`);
+            if (input) input.value = staffTotals[i] || 0;
+        }
+        const antiInput = document.getElementById('anti-units-1');
+        if (antiInput) antiInput.value = antiTotal;
     };
 
     const updateDailyStats = async (dateStr) => {

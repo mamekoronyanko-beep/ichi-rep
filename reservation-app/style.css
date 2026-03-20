@@ -652,3 +652,19 @@ body {
         margin: 5mm;
     }
 }
+
+/* スクロール時にヘッダーを固定 */
+.schedule-table thead th,
+.schedule-table thead td {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: var(--bg-color, #fff);
+}
+.schedule-table thead tr:nth-child(2) th,
+.schedule-table thead tr:nth-child(2) td {
+    top: 40px; /* 1行目の分だけずらす */
+}
+.schedule-table thead tr:nth-child(3) td {
+    top: 80px; /* 2行目の分もずらす */
+}
