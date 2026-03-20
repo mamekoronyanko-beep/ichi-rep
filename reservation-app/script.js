@@ -1020,6 +1020,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 remarks = `[予約外] ${remarks}`;
             }
 
+            let pId = document.getElementById('patient-id').value;
+            let pName = document.getElementById('patient-name').value;
+
             if (isMeeting) {
                 const combinedVal = document.getElementById('inpatient-id').value;
                 if (combinedVal.includes(' : ')) {
