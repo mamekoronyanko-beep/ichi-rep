@@ -96,14 +96,31 @@
                     <div style="display: flex; flex-direction: column; gap: 1rem;">
                         <div style="background: #eff6ff; padding: 1rem; border-radius: 8px; border-left: 4px solid #3b82f6;">
                             <p style="font-size: 0.8rem; color: #1e40af; font-weight: 600; margin-bottom: 0.25rem;">合計予約単位数</p>
-                            <div style="display: flex; align-items: baseline; gap: 0.25rem;">
+                            <div style="display: flex; align-items: baseline; gap: 0.5rem;">
                                 <span id="total-units-count" style="font-size: 1.75rem; font-weight: 800; color: #1e3a8a;">0</span>
                                 <span style="font-size: 0.9rem; color: #1e3a8a; font-weight: 600;">単位</span>
+                                <span style="font-size: 0.85rem; color: #3b82f6; margin-left: 0.5rem;">(<span id="total-cases-count">0</span> 件)</span>
                             </div>
                             <div style="margin-top: 0.5rem; font-size: 0.75rem; color: #60a5fa; display: flex; gap: 1rem;">
-                                <span>スタッフ: <span id="staff-units-count">0</span></span>
-                                <span>消炎: <span id="anti-units-count">0</span></span>
+                                <span>スタッフ: <span id="staff-units-count">0</span>単位 (<span id="staff-cases-count">0</span>件)</span>
+                                <span>消炎: <span id="anti-units-count">0</span>単位 (<span id="anti-cases-count">0</span>件)</span>
                             </div>
+                        </div>
+
+                        <!-- 合計単位数 入力欄 -->
+                        <div style="background: #f0fdf4; padding: 1rem; border-radius: 8px; border-left: 4px solid #22c55e;">
+                            <p style="font-size: 0.8rem; color: #166534; font-weight: 600; margin-bottom: 0.5rem;">合計単位数（手帳記入用）</p>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <input type="number" id="manual-total-units" min="0" value="0"
+                                    style="width: 80px; font-size: 1.5rem; font-weight: 800; color: #15803d; text-align: center; border: 2px solid #86efac; border-radius: 6px; padding: 0.25rem;"
+                                />
+                                <span style="font-size: 0.9rem; color: #15803d; font-weight: 600;">単位</span>
+                                <button id="sync-units-btn" title="スタッフ単位数を自動入力"
+                                    style="margin-left: auto; font-size: 0.7rem; padding: 0.3rem 0.6rem; background: #22c55e; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                                    🔄 自動入力
+                                </button>
+                            </div>
+                            <p style="font-size: 0.7rem; color: #86efac; margin-top: 0.4rem;">※ スタッフ単位数を基に自動入力、手動変更も可</p>
                         </div>
 
                         <!-- Detailed Breakdown -->
@@ -150,6 +167,18 @@
                                 <span style="font-size: 0.9rem; color: #7f1d1d; font-weight: 600;">件</span>
                             </div>
                         </div>
+
+                        <!-- 入院週間予定単位数 -->
+                        <div style="background: #fdf4ff; padding: 1rem; border-radius: 8px; border-left: 4px solid #a855f7;">
+                            <p style="font-size: 0.8rem; color: #6b21a8; font-weight: 600; margin-bottom: 0.5rem;">🏥 入院週間予定単位数</p>
+                            <div style="display: flex; align-items: baseline; gap: 0.25rem; margin-bottom: 0.5rem;">
+                                <span id="inpatient-weekly-units" style="font-size: 1.75rem; font-weight: 800; color: #581c87;">0</span>
+                                <span style="font-size: 0.9rem; color: #581c87; font-weight: 600;">単位/週</span>
+                                <span style="font-size: 0.8rem; color: #a855f7; margin-left: 0.5rem;">(<span id="inpatient-weekly-count">0</span>名)</span>
+                            </div>
+                            <div id="inpatient-weekly-detail" style="font-size: 0.7rem; color: #9333ea; display: flex; flex-direction: column; gap: 0.2rem;"></div>
+                        </div>
+
                     </div>
                 </div>
             </aside>

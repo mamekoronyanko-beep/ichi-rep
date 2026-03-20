@@ -331,6 +331,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         renderCanceledList(selectedDate);
         updateDailyStats(selectedDate);
+        updateInpatientWeeklyUnits();
     };
 
     const updateDailyStats = async (dateStr) => {
@@ -342,7 +343,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (error || !data) return;
 
         let staffUnits = 0;
+        let staffCases = 0;
         let antiUnits = 0;
+        let antiCases = 0;
         let cancelCount = 0;
 
         let inpatientPlanned = 0;
@@ -360,8 +363,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else {
                 if (res.res_type === 'staff') {
                     staffUnits += units;
+                    staffCases += 1;
                 } else if (res.res_type === 'anti') {
                     antiUnits += units;
+                    antiCases += 1;
                 }
 
                 if (isInpatient || isMeeting) {
@@ -384,13 +389,96 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
 
         setVal('total-units-count', staffUnits + antiUnits);
+        setVal('total-cases-count', staffCases + antiCases);
         setVal('staff-units-count', staffUnits);
+        setVal('staff-cases-count', staffCases);
         setVal('anti-units-count', antiUnits);
+        setVal('anti-cases-count', antiCases);
         setVal('total-cancellations-count', cancelCount);
 
         setVal('inpatient-actual-units', inpatientActual);
         setVal('outpatient-planned-units', outpatientPlanned);
         setVal('outpatient-actual-units', outpatientActual);
+
+        // 自動入力ボタンの設定（1回だけイベントを付ける）
+        const syncBtn = document.getElementById('sync-units-btn');
+        if (syncBtn && !syncBtn._listenerAdded) {
+            syncBtn._listenerAdded = true;
+            syncBtn.addEventListener('click', () => {
+                const input = document.getElementById('manual-total-units');
+                if (input) {
+                    input.value = staffUnits;
+                    input.style.borderColor = '#22c55e';
+                    setTimeout(() => { input.style.borderColor = '#86efac'; }, 1000);
+                }
+            });
+        }
+    };
+
+    // --- 入院週間予定単位数の計算 ---
+    const updateInpatientWeeklyUnits = async () => {
+        const { data: patients, error } = await supabase
+            .from('patients')
+            .select('p_id, p_name, p_category, p_diagnosis_date, p_nursing_care')
+            .eq('p_type', 'admission');
+
+        if (error || !patients) return;
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        let totalWeeklyUnits = 0;
+        const details = [];
+
+        patients.forEach(p => {
+            if (!p.p_diagnosis_date || !p.p_category) return;
+
+            const diagDate = new Date(p.p_diagnosis_date);
+            diagDate.setHours(0, 0, 0, 0);
+            const elapsedDays = Math.floor((today - diagDate) / (1000 * 60 * 60 * 24));
+            const hasNursingCare = !!p.p_nursing_care;
+
+            let threshold = 0;
+            let weeklyUnits = 0;
+            let rule = '';
+
+            if (p.p_category === '運動器') {
+                threshold = 150;
+            } else if (p.p_category === '脳血管') {
+                threshold = 180;
+            } else {
+                return; // 廃用などは対象外
+            }
+
+            if (elapsedDays <= threshold) {
+                weeklyUnits = 3;
+                rule = `${threshold}日以内 → 週3単位`;
+            } else if (hasNursingCare) {
+                weeklyUnits = 1;
+                rule = `${threshold}日超 / 要介護あり → 週1単位`;
+            } else {
+                weeklyUnits = 2;
+                rule = `${threshold}日超 / 要介護なし → 週2単位`;
+            }
+
+            totalWeeklyUnits += weeklyUnits;
+            details.push({ name: p.p_name, category: p.p_category, weeklyUnits, rule, elapsedDays });
+        });
+
+        const weeklyEl = document.getElementById('inpatient-weekly-units');
+        const countEl = document.getElementById('inpatient-weekly-count');
+        const detailEl = document.getElementById('inpatient-weekly-detail');
+
+        if (weeklyEl) weeklyEl.textContent = totalWeeklyUnits;
+        if (countEl) countEl.textContent = details.length;
+        if (detailEl) {
+            detailEl.innerHTML = details.map(d =>
+                `<span style="display:flex; justify-content:space-between; gap:0.5rem;">
+                    <span><strong>${d.name}</strong> (${d.category}・${d.elapsedDays}日)</span>
+                    <span style="font-weight:700; color:#581c87;">週${d.weeklyUnits}</span>
+                </span>`
+            ).join('');
+        }
     };
 
     const renderCanceledList = async (dateStr) => {
