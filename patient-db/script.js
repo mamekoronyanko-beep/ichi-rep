@@ -813,7 +813,7 @@ async function renderMeetingCalendar() {
     });
 
     // Render Doctor Sidebar
-    await fetchDoctorAttendance();
+    await fetchDoctorHolidays();
     renderDoctorSidebar();
 }
 
@@ -911,6 +911,10 @@ async function renderDocSubmissionCalendar() {
             });
         }
     });
+
+    // Render Doctor Sidebar
+    await fetchDoctorHolidays();
+    renderDoctorSidebar();
 }
 
 function changeCalendarMonth(offset) {
@@ -1022,13 +1026,13 @@ window.handleNursingCareSubmit = async function (e) {
 
 
 
-// --- Doctor Attendance Logic ---
-let doctorAttendance = [];
+// --- Doctor Holiday Logic ---
+let doctorHolidays = [];
 
-async function fetchDoctorAttendance() {
+async function fetchDoctorHolidays() {
     try {
         const { data, error } = await supabaseClient
-            .from('doctor_attendance')
+            .from('doctor_attendance') // Keeping table name for simplicity, but treating as holidays
             .select('*');
         if (error) {
             if (error.message.includes('relation "doctor_attendance" does not exist')) {
@@ -1037,19 +1041,19 @@ async function fetchDoctorAttendance() {
             }
             throw error;
         }
-        doctorAttendance = data || [];
-        return doctorAttendance;
+        doctorHolidays = data || [];
+        return doctorHolidays;
     } catch (err) {
-        console.error("Error fetching doctor attendance:", err);
+        console.error("Error fetching doctor holidays:", err);
         return [];
     }
 }
 
-async function toggleDrAttendance(drId, dateStr) {
+async function toggleDrHoliday(drId, dateStr) {
     // drId is suzuki or tsukamoto
     try {
-        const existing = doctorAttendance.find(a => a.dr_name === drId && a.attendance_date === dateStr);
-        
+        const existing = doctorHolidays.find(a => a.dr_name === drId && a.attendance_date === dateStr);
+
         if (existing) {
             const { error } = await supabaseClient
                 .from('doctor_attendance')
@@ -1062,11 +1066,11 @@ async function toggleDrAttendance(drId, dateStr) {
                 .insert([{ dr_name: drId, attendance_date: dateStr }]);
             if (error) throw error;
         }
-        
-        await fetchDoctorAttendance();
+
+        await fetchDoctorHolidays();
         renderDoctorSidebar();
     } catch (err) {
-        console.error("Error toggling attendance:", err);
+        console.error("Error toggling holiday:", err);
         alert("操作に失敗しました: " + (err.message || err));
     }
 }
@@ -1074,59 +1078,60 @@ async function toggleDrAttendance(drId, dateStr) {
 async function renderDoctorSidebar() {
     const sidebar = document.getElementById('doctorSidebar');
     if (!sidebar) return;
-    
+
     sidebar.innerHTML = '';
-    
+
     const year = currentCalendarDate.getFullYear();
     const month = currentCalendarDate.getMonth();
-    
+
     const doctors = [
         { id: 'suzuki', name: '鈴木医師', role: '運動器' },
         { id: 'tsukamoto', name: '塚本医師', role: '脳・廃用' }
     ];
-    
+
     doctors.forEach(dr => {
         const container = document.createElement('div');
         container.className = 'dr-calendar-container';
-        
+
         const tagClass = dr.id === 'suzuki' ? 'dr-tag-suzuki' : 'dr-tag-tsukamoto';
-        const activeClass = dr.id === 'suzuki' ? 'active' : 'active-tsukamoto';
-        
+
         container.innerHTML = `
             <div class="dr-calendar-title">
                 <span class="${tagClass}">${dr.name}</span>
                 <span style="font-size:0.75rem; color:var(--text-muted); font-weight:normal; margin-left:4px;">(${dr.role})</span>
             </div>
+            <div style="font-size:0.6rem; color:#ef4444; margin-bottom:4px;">※クリックで休診日に設定</div>
             <div class="mini-calendar-grid" id="mini-calendar-${dr.id}"></div>
         `;
         sidebar.appendChild(container);
-        
+
         const grid = container.querySelector('.mini-calendar-grid');
-        
-        ['日','月','火','水','木','金','土'].forEach(d => {
+
+        ['日', '月', '火', '水', '木', '金', '土'].forEach(d => {
             const h = document.createElement('div');
             h.className = 'mini-day-header';
+            if (d === '日') h.style.color = '#ef4444';
             h.textContent = d;
             grid.appendChild(h);
         });
-        
+
         const firstDay = new Date(year, month, 1).getDay();
         const lastDate = new Date(year, month + 1, 0).getDate();
-        
+
         for (let i = 0; i < firstDay; i++) {
             const empty = document.createElement('div');
             empty.className = 'mini-day other-month';
             grid.appendChild(empty);
         }
-        
+
         for (let d = 1; d <= lastDate; d++) {
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-            const isAttending = doctorAttendance.some(a => a.dr_name === dr.id && a.attendance_date === dateStr);
-            
+            const isHoliday = doctorHolidays.some(a => a.dr_name === dr.id && a.attendance_date === dateStr);
+
             const dayDiv = document.createElement('div');
-            dayDiv.className = `mini-day ${isAttending ? activeClass : ''}`;
+            dayDiv.className = `mini-day ${isHoliday ? 'holiday-off' : 'attendance-on'}`;
             dayDiv.textContent = d;
-            dayDiv.onclick = () => toggleDrAttendance(dr.id, dateStr);
+            dayDiv.onclick = () => toggleDrHoliday(dr.id, dateStr);
             grid.appendChild(dayDiv);
         }
     });
