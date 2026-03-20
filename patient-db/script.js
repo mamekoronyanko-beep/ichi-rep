@@ -127,6 +127,7 @@ async function renderNursingCareTable() {
             <td onclick="openPatientDetails('${patient.p_id}')">${patient.p_diagnosis_date}</td>
             <td onclick="openPatientDetails('${patient.p_id}')">${remainingHtml}</td>
             <td onclick="openPatientDetails('${patient.p_id}')">${patient.next_reserve_date || '<span style="color:var(--text-muted);font-size:0.85rem;">未定</span>'}</td>
+            <td onclick="openPatientDetails('${patient.p_id}')">${patient.p_doc_submission_date || '<span style="color:var(--text-muted);font-size:0.85rem;">未定</span>'}</td>
             <td onclick="openPatientDetails('${patient.p_id}')">${patient.p_nursing_care ? '<span class="tag-nursing-care">あり</span>' : '<span style="color:var(--text-muted);">-</span>'}</td>
             <td>
                 <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin: 0; background: #ffebee; color: #c62828;" onclick="event.stopPropagation(); deleteNursingCarePatient('${patient.p_id}')">削除</button>
@@ -339,6 +340,7 @@ async function renderOutpatientTable() {
             <td onclick="openPatientDetails('${op.p_id}')">${op.p_diagnosis_date}</td>
             <td onclick="openPatientDetails('${op.p_id}')">${remainingHtml}</td>
             <td onclick="openPatientDetails('${op.p_id}')">${op.next_reserve_date || '<span style="color:var(--text-muted);font-size:0.85rem;">未定</span>'}</td>
+            <td onclick="openPatientDetails('${op.p_id}')">${op.p_doc_submission_date || '<span style="color:var(--text-muted);font-size:0.85rem;">未定</span>'}</td>
             <td onclick="openPatientDetails('${op.p_id}')">${op.p_nursing_care ? '<span class="tag-nursing-care">あり</span>' : '<span style="color:var(--text-muted);">-</span>'}</td>
             <td>
                 <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin: 0; background: #ffebee; color: #c62828;" onclick="event.stopPropagation(); deleteOutpatient('${op.p_id}')">削除</button>
@@ -746,7 +748,6 @@ async function renderMeetingCalendar() {
     const { data: patients, error } = await supabaseClient
         .from('patients')
         .select('p_name, next_reserve_date')
-        .in('p_type', ['admission', 'nursing_care'])
         .not('next_reserve_date', 'is', null);
 
     if (error) {
@@ -757,8 +758,8 @@ async function renderMeetingCalendar() {
     const meetingsByDate = {};
     if (patients) {
         patients.forEach(p => {
-            if (p.next_reserve_date) {
-                const d = p.next_reserve_date;
+            if (p.next_reserve_date && p.next_reserve_date.length >= 10) {
+                const d = p.next_reserve_date.substring(0, 10);
                 if (!meetingsByDate[d]) meetingsByDate[d] = [];
                 meetingsByDate[d].push(p.p_name);
             }
@@ -842,7 +843,6 @@ async function renderDocSubmissionCalendar() {
     const { data: patients, error } = await supabaseClient
         .from('patients')
         .select('p_name, p_doc_submission_date')
-        .in('p_type', ['admission', 'nursing_care'])
         .not('p_doc_submission_date', 'is', null);
 
     if (error) {
@@ -853,8 +853,8 @@ async function renderDocSubmissionCalendar() {
     const docsByDate = {};
     if (patients) {
         patients.forEach(p => {
-            if (p.p_doc_submission_date) {
-                const d = p.p_doc_submission_date;
+            if (p.p_doc_submission_date && p.p_doc_submission_date.length >= 10) {
+                const d = p.p_doc_submission_date.substring(0, 10);
                 if (!docsByDate[d]) docsByDate[d] = [];
                 docsByDate[d].push(p.p_name);
             }
