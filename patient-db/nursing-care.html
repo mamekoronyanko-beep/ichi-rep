@@ -176,7 +176,7 @@
 
     <!-- Meeting Calendar Modal -->
     <div id="calendarModal" class="modal">
-        <div class="modal-content" style="max-width: 800px; width: 95%;">
+        <div class="modal-content" style="max-width: 1100px; width: 95%;">
             <span class="close-btn"
                 onclick="document.getElementById('calendarModal').style.display='none'">&times;</span>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
@@ -190,10 +190,17 @@
                         ▶</button>
                 </div>
             </div>
-            <div id="calendarGrid" class="calendar-grid">
-                <!-- JavaScriptで生成 -->
+            <div class="calendar-layout">
+                <div class="doctor-sidebar" id="doctorSidebar">
+                    <!-- Doctor Mini Calendars will be rendered here -->
+                </div>
+                <div class="calendar-main">
+                    <div id="calendarGrid" class="calendar-grid"></div>
+                </div>
             </div>
+            <!-- JavaScriptで生成 -->
         </div>
+    </div>
     </div>
 
     <script src="script.js"></script>
