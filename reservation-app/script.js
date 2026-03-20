@@ -186,12 +186,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     staffThs[i].textContent = staffNames[i];
                     const attendanceMode = staffAttendance[i];
                     if (attendanceMode !== 'work') {
-                        staffThs[i].style.backgroundColor = '#f3f4f6';
-                        staffThs[i].style.color = '#9ca3af';
-                        let label = '(休み)';
-                        if (attendanceMode === 'morning_off') label = '(午前休)';
-                        if (attendanceMode === 'afternoon_off') label = '(午後休)';
-                        staffThs[i].innerHTML = `${staffNames[i]}<br><span style="font-size: 0.6rem; color: #ef4444;">${label}</span>`;
+                        staffThs[i].style.backgroundColor = '#94a3b8'; // より濃いグレー
+                        staffThs[i].style.color = '#ffffff';
+                        staffThs[i].textContent = staffNames[i];
                     } else {
                         staffThs[i].style.backgroundColor = '';
                         staffThs[i].style.color = '';
@@ -250,8 +247,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     if (isStaffOff) {
                         td.classList.add('staff-off-cell');
-                        td.style.backgroundColor = '#f9fafb';
-                        td.innerHTML = `<div style="color: #d1d5db; font-size: 0.65rem;">${offLabel}</div>`;
+                        td.style.backgroundColor = '#e2e8f0'; // より濃いグレー
+                        td.innerHTML = ''; // テキスト表示を削除
                     }
 
                     const data = timeData.staff[i];
