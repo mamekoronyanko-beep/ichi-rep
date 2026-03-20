@@ -658,13 +658,16 @@ body {
 .schedule-table thead td {
     position: sticky;
     top: 0;
-    z-index: 10;
-    background-color: var(--bg-color, #fff);
+    z-index: 20;
+    background-color: var(--th-bg, #f9fafb);
 }
-.schedule-table thead tr:nth-child(2) th,
-.schedule-table thead tr:nth-child(2) td {
-    top: 40px; /* 1行目の分だけずらす */
+.schedule-table thead tr:nth-child(2) th {
+    top: 40px;
 }
-.schedule-table thead tr:nth-child(3) td {
-    top: 80px; /* 2行目の分もずらす */
+
+/* 単位数行をスクロール時に固定（tbody内） */
+#staff-units-row td {
+    position: sticky;
+    top: 0;
+    z-index: 5;
 }

@@ -73,6 +73,50 @@ document.addEventListener('DOMContentLoaded', async () => {
         scheduleBody.innerHTML = '';
         const selectedDate = targetDateInput.value;
 
+        // --- 単位数表示行（スタッフ名の下）を動的に追加 ---
+        const unitsRow = document.createElement('tr');
+        unitsRow.id = 'staff-units-row';
+        unitsRow.style.cssText = 'background: #f0fdf4; border-bottom: 2px solid #86efac; position: sticky; top: 0; z-index: 5;';
+        
+        // 時間列のプレースホルダ
+        const timeHeaderTd = document.createElement('td');
+        timeHeaderTd.style.cssText = 'font-size: 0.65rem; color: #15803d; font-weight: 700; text-align: center; padding: 0.3rem 0.2rem; white-space: nowrap; background:#dcfce7;';
+        timeHeaderTd.textContent = '単位数';
+        unitsRow.appendChild(timeHeaderTd);
+
+        // スタッフ枠用の入力欄
+        for (let i = 1; i <= STAFF_COUNT; i++) {
+            const td = document.createElement('td');
+            td.style.cssText = 'background:#f0fdf4; padding:0.2rem;';
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.id = `staff-units-${i}`;
+            input.min = '0';
+            input.value = '0';
+            input.style.cssText = 'width:100%; font-size:0.85rem; font-weight:700; color:#15803d; text-align:center; border:1px solid #86efac; border-radius:4px; padding:0.2rem; background:#f0fdf4;';
+            td.appendChild(input);
+            unitsRow.appendChild(td);
+        }
+
+        // 消炎枠用の入力欄
+        const antiTd = document.createElement('td');
+        antiTd.style.cssText = 'background:#f0f9ff; padding:0.2rem;';
+        const antiInput = document.createElement('input');
+        antiInput.type = 'number';
+        antiInput.id = 'anti-units-1';
+        antiInput.min = '0';
+        antiInput.value = '0';
+        antiInput.style.cssText = 'width:100%; font-size:0.85rem; font-weight:700; color:#0369a1; text-align:center; border:1px solid #bae6fd; border-radius:4px; padding:0.2rem; background:#f0f9ff;';
+        antiTd.appendChild(antiInput);
+        unitsRow.appendChild(antiTd);
+
+        // キャンセル枠用のプレースホルダ
+        const cancelTd = document.createElement('td');
+        cancelTd.style.cssText = 'background:#f0fdf4;';
+        unitsRow.appendChild(cancelTd);
+
+        scheduleBody.appendChild(unitsRow);
+
         // --- Fetch from Supabase ---
         const { data: dbReservations, error } = await supabase
             .from('reservations')
