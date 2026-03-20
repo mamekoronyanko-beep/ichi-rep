@@ -60,7 +60,8 @@ body {
 }
 
 .container {
-    max-width: 1000px;
+    max-width: 1200px;
+    width: 95%;
     margin: 2rem auto;
     padding: 0 1rem;
 }
@@ -159,15 +160,17 @@ h1 {
 }
 
 table {
-    width: 100%;
+    width: auto;
+    min-width: 100%;
     border-collapse: collapse;
 }
 
 th,
 td {
-    padding: 1rem;
+    padding: 0.75rem 1rem;
     text-align: center;
     border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
 }
 
 th {
