@@ -500,8 +500,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (el) el.textContent = val;
         };
 
-        setVal('total-units-count', staffUnits + antiUnits);
-        setVal('total-cases-count', staffCases + antiCases);
+        setVal('total-units-count', staffUnits);
+        setVal('total-cases-count', staffCases);
         setVal('staff-units-count', staffUnits);
         setVal('staff-cases-count', staffCases);
         setVal('anti-units-count', antiUnits);
