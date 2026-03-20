@@ -78,6 +78,7 @@ async function renderAdmissionTable() {
             <td onclick="openPatientDetails('${patient.p_id}')">${patient.p_diagnosis_date}</td>
             <td onclick="openPatientDetails('${patient.p_id}')">${remainingHtml}</td>
             <td onclick="openPatientDetails('${patient.p_id}')">${patient.next_reserve_date || '<span style="color:var(--text-muted);font-size:0.85rem;">未定</span>'}</td>
+            <td onclick="openPatientDetails('${patient.p_id}')">${patient.p_doc_submission_date || '<span style="color:var(--text-muted);font-size:0.85rem;">未定</span>'}</td>
             <td onclick="openPatientDetails('${patient.p_id}')">${patient.p_nursing_care ? '<span class="tag-nursing-care">あり</span>' : '<span style="color:var(--text-muted);">-</span>'}</td>
             <td>
                 <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin: 0; background: #ffebee; color: #c62828;" onclick="event.stopPropagation(); deleteAdmissionPatient('${patient.p_id}')">削除</button>
@@ -266,11 +267,21 @@ async function saveNextVisit() {
     const docDate = document.getElementById('doc-submission-date')?.value || null;
     const label = document.getElementById('next-visit-label')?.textContent || '次回予定日';
 
-    await supabaseClient.from('patients').update({
+    const { data, error } = await supabaseClient.from('patients').update({
         next_reserve_date: nextDate,
         p_nursing_care: nursingCare,
         p_doc_submission_date: docDate
     }).eq('p_id', currentPatientDbId);
+
+    if (error) {
+        console.error('Save error:', error);
+        if (error.message.includes('column') && (error.message.includes('not found') || error.message.includes('does not exist'))) {
+            alert(`保存に失敗しました。Supabaseに新しいカラム（p_doc_submission_date）を追加してください。\nエラー内容: ${error.message}`);
+        } else {
+            alert(`保存に失敗しました: ${error.message || JSON.stringify(error)}`);
+        }
+        return;
+    }
 
     alert(`${label}および設定を保存しました。`);
     // Refresh relevant table
