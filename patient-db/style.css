@@ -291,6 +291,16 @@ tr:hover {
     border: 1px solid #fce7f3;
 }
 
+.tag-anti {
+    background: #f0f9ff;
+    color: #0369a1;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    display: inline-block;
+    border: 1px solid #bae6fd;
+}
+
 .tag-unknown {
     background: #f3f4f6;
     color: #4b5563;

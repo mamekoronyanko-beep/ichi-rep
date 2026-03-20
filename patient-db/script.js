@@ -58,6 +58,7 @@ async function renderAdmissionTable() {
         if (patient.p_category === '運動器') categoryClass = 'tag-locomotor';
         else if (patient.p_category === '脳血管') categoryClass = 'tag-cerebro';
         else if (patient.p_category === '廃用') categoryClass = 'tag-disuse';
+        else if (patient.p_category === '消炎') categoryClass = 'tag-anti';
 
         const remainingDays = calculateRemainingDays(patient.p_diagnosis_date, patient.p_category);
         let remainingHtml = '<span style="color:var(--text-muted);">-</span>';
@@ -170,6 +171,7 @@ async function openPatientDetails(dbId) {
         if (patient.p_category === '運動器') categoryClass = 'tag-locomotor';
         else if (patient.p_category === '脳血管') categoryClass = 'tag-cerebro';
         else if (patient.p_category === '廃用') categoryClass = 'tag-disuse';
+        else if (patient.p_category === '消炎') categoryClass = 'tag-anti';
         categoryEl.innerHTML = `<span class="${categoryClass}">${patient.p_category || '未設定'}</span>`;
     }
 
@@ -333,6 +335,7 @@ async function renderOutpatientTable() {
         if (op.p_category === '運動器') categoryClass = 'tag-locomotor';
         else if (op.p_category === '脳血管') categoryClass = 'tag-cerebro';
         else if (op.p_category === '廃用') categoryClass = 'tag-disuse';
+        else if (op.p_category === '消炎') categoryClass = 'tag-anti';
 
         const remainingDays = calculateRemainingDays(op.p_diagnosis_date, op.p_category);
         let remainingHtml = '<span style="color:var(--text-muted);">-</span>';
@@ -396,6 +399,7 @@ async function renderDischargedTable() {
         if (p.p_category === '運動器') categoryClass = 'tag-locomotor';
         else if (p.p_category === '脳血管') categoryClass = 'tag-cerebro';
         else if (p.p_category === '廃用') categoryClass = 'tag-disuse';
+        else if (p.p_category === '消炎') categoryClass = 'tag-anti';
 
         const remainingDays = calculateRemainingDays(p.p_diagnosis_date, p.p_category);
         let remainingHtml = '<span style="color:var(--text-muted);">-</span>';
@@ -442,6 +446,7 @@ async function renderTerminatedTable() {
         if (p.p_category === '運動器') categoryClass = 'tag-locomotor';
         else if (p.p_category === '脳血管') categoryClass = 'tag-cerebro';
         else if (p.p_category === '廃用') categoryClass = 'tag-disuse';
+        else if (p.p_category === '消炎') categoryClass = 'tag-anti';
 
         const remainingDays = calculateRemainingDays(p.p_diagnosis_date, p.p_category);
         let remainingHtml = '<span style="color:var(--text-muted);">-</span>';
