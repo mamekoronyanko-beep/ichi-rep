@@ -126,11 +126,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         antiTd.appendChild(antiInput);
         unitsRow.appendChild(antiTd);
 
-        // キャンセル枠用のプレースホルダ
-        const cancelTd = document.createElement('td');
-        cancelTd.style.cssText = 'background:#f0fdf4;';
-        unitsRow.appendChild(cancelTd);
-
         scheduleBody.appendChild(unitsRow);
 
         // --- Fetch from Supabase ---
@@ -1322,6 +1317,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (prevDateBtn) prevDateBtn.addEventListener('click', () => updateDateByDays(-1));
     if (nextDateBtn) nextDateBtn.addEventListener('click', () => updateDateByDays(1));
+    const refreshBtn = document.getElementById('refresh-btn');
+    if (refreshBtn) refreshBtn.addEventListener('click', async () => {
+        refreshBtn.classList.add('rotating'); // オプション：回転アニメーション
+        await createSchedule();
+        setTimeout(() => refreshBtn.classList.remove('rotating'), 500);
+        console.log('Schedule refreshed.');
+    });
 
     // Excel Import Logic
     const excelImportInput = document.getElementById('excel-import');
