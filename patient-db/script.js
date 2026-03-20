@@ -1,7 +1,7 @@
 // --- Supabase Configuration ---
 const SUPABASE_URL = 'https://dhazmbhvztzbrzyyiojw.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_lVw1SMjIgL4m9KovI09CKg_hl0WycWS';
-let supabase;
+let supabaseClient;
 
 // Utility to convert full-width alphanumeric to half-width
 const toHalfWidth = (str) => {
@@ -14,7 +14,7 @@ const toHalfWidth = (str) => {
 // Function to calculate remaining days based on category and diagnosis date
 function calculateRemainingDays(diagDate, category) {
     if (!diagDate || !category) return null;
-    
+
     let limit = 0;
     if (category === '脳血管') limit = 180;
     else if (category === '運動器') limit = 150;
@@ -28,11 +28,11 @@ function calculateRemainingDays(diagDate, category) {
 
     const diffTime = today.getTime() - diag.getTime();
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    
+
     // Day 1 is the diagnosis date itself.
     const elapsed = diffDays + 1;
     const remaining = limit - elapsed;
-    
+
     return remaining;
 }
 
@@ -45,7 +45,7 @@ async function renderAdmissionTable() {
     if (!admissionTableBody) return;
     admissionTableBody.innerHTML = '';
 
-    const { data: dbPatients, error } = await supabase
+    const { data: dbPatients, error } = await supabaseClient
         .from('patients')
         .select('*')
         .eq('p_type', 'admission')
@@ -93,7 +93,7 @@ async function renderNursingCareTable() {
     if (!nursingCareTableBody) return;
     nursingCareTableBody.innerHTML = '';
 
-    const { data: dbPatients, error } = await supabase
+    const { data: dbPatients, error } = await supabaseClient
         .from('patients')
         .select('*')
         .eq('p_type', 'nursing_care')
@@ -139,9 +139,9 @@ async function renderNursingCareTable() {
 async function deleteAdmissionPatient(dbId) {
     if (confirm('この患者データを「退院者」としてアーカイブへ移動しますか？')) {
         const dischargeDate = new Date().toLocaleDateString('ja-JP');
-        await supabase.from('patients').update({ 
+        await supabaseClient.from('patients').update({
             p_type: 'archived_admission',
-            p_termination_date: dischargeDate 
+            p_termination_date: dischargeDate
         }).eq('p_id', dbId);
         await renderAdmissionTable();
     }
@@ -151,9 +151,9 @@ async function deleteAdmissionPatient(dbId) {
 async function deleteNursingCarePatient(dbId) {
     if (confirm('この利用者を「介護医療院修了者」としてアーカイブへ移動しますか？')) {
         const terminationDate = new Date().toLocaleDateString('ja-JP');
-        await supabase.from('patients').update({ 
+        await supabaseClient.from('patients').update({
             p_type: 'archived_nursing_care',
-            p_termination_date: terminationDate 
+            p_termination_date: terminationDate
         }).eq('p_id', dbId);
         await renderNursingCareTable();
     }
@@ -172,11 +172,11 @@ async function openPatientDetails(dbId) {
 
     currentPatientDbId = dbId;
 
-    const { data: patient, error } = await supabase.from('patients').select('*').eq('p_id', dbId).single();
+    const { data: patient, error } = await supabaseClient.from('patients').select('*').eq('p_id', dbId).single();
     if (error || !patient) return;
 
     document.getElementById('details-patient-name').textContent = patient.p_name;
-    
+
     const categoryEl = document.getElementById('details-patient-category');
     if (categoryEl) {
         let categoryClass = 'tag-unknown';
@@ -185,7 +185,7 @@ async function openPatientDetails(dbId) {
         else if (patient.p_category === '廃用') categoryClass = 'tag-disuse';
         categoryEl.innerHTML = `<span class="${categoryClass}">${patient.p_category || '未設定'}</span>`;
     }
-    
+
     document.getElementById('details-patient-id').textContent = `ID: ${patient.p_id}`;
 
     // Parse history
@@ -265,13 +265,13 @@ async function saveNextVisit() {
     const nursingCare = document.getElementById('details-nursing-care')?.checked || false;
     const docDate = document.getElementById('doc-submission-date')?.value || null;
     const label = document.getElementById('next-visit-label')?.textContent || '次回予定日';
-    
-    await supabase.from('patients').update({ 
+
+    await supabaseClient.from('patients').update({
         next_reserve_date: nextDate,
         p_nursing_care: nursingCare,
         p_doc_submission_date: docDate
     }).eq('p_id', currentPatientDbId);
-    
+
     alert(`${label}および設定を保存しました。`);
     // Refresh relevant table
     await renderAdmissionTable();
@@ -295,7 +295,7 @@ async function renderOutpatientTable() {
     if (!outpatientTableBody) return;
     outpatientTableBody.innerHTML = '';
 
-    const { data: dbPatients, error } = await supabase
+    const { data: dbPatients, error } = await supabaseClient
         .from('patients')
         .select('*')
         .eq('p_type', 'outpatient')
@@ -341,9 +341,9 @@ async function renderOutpatientTable() {
 async function deleteOutpatient(dbId) {
     if (confirm('この外来データを「外来終了」としてアーカイブへ移動しますか？')) {
         const terminationDate = new Date().toLocaleDateString('ja-JP');
-        await supabase.from('patients').update({ 
+        await supabaseClient.from('patients').update({
             p_type: 'archived_outpatient',
-            p_termination_date: terminationDate 
+            p_termination_date: terminationDate
         }).eq('p_id', dbId);
         await renderOutpatientTable();
     }
@@ -357,7 +357,7 @@ async function renderDischargedTable() {
     if (!archivedAdmissionTableBody) return;
     archivedAdmissionTableBody.innerHTML = '';
 
-    const { data: dbPatients } = await supabase
+    const { data: dbPatients } = await supabaseClient
         .from('patients')
         .select('*')
         .eq('p_type', 'archived_admission')
@@ -403,7 +403,7 @@ async function renderTerminatedTable() {
     if (!archivedOutpatientTableBody) return;
     archivedOutpatientTableBody.innerHTML = '';
 
-    const { data: dbPatients } = await supabase
+    const { data: dbPatients } = await supabaseClient
         .from('patients')
         .select('*')
         .eq('p_type', 'archived_outpatient')
@@ -449,7 +449,7 @@ async function renderNursingCareArchivedTable() {
     if (!archivedNursingCareTableBody) return;
     archivedNursingCareTableBody.innerHTML = '';
 
-    const { data: dbPatients } = await supabase
+    const { data: dbPatients } = await supabaseClient
         .from('patients')
         .select('*')
         .eq('p_type', 'archived_nursing_care')
@@ -491,21 +491,21 @@ async function renderNursingCareArchivedTable() {
 }
 
 async function restoreNursingCare(dbId) {
-    await supabase.from('patients').update({ p_type: 'nursing_care', p_termination_date: null }).eq('p_id', dbId);
+    await supabaseClient.from('patients').update({ p_type: 'nursing_care', p_termination_date: null }).eq('p_id', dbId);
     await renderNursingCareArchivedTable();
     await renderNursingCareTable();
     alert('介護医療院リストに復元しました。');
 }
 
 async function restoreAdmission(dbId) {
-    await supabase.from('patients').update({ p_type: 'admission', p_termination_date: null }).eq('p_id', dbId);
+    await supabaseClient.from('patients').update({ p_type: 'admission', p_termination_date: null }).eq('p_id', dbId);
     await renderDischargedTable();
     await renderAdmissionTable();
     alert('入院患者リストに復元しました。');
 }
 
 async function restoreOutpatient(dbId) {
-    await supabase.from('patients').update({ p_type: 'outpatient', p_termination_date: null }).eq('p_id', dbId);
+    await supabaseClient.from('patients').update({ p_type: 'outpatient', p_termination_date: null }).eq('p_id', dbId);
     await renderTerminatedTable();
     await renderOutpatientTable();
     alert('外来患者リストに復元しました。');
@@ -526,9 +526,11 @@ window.onclick = function (event) {
 
 // Main Initialization Function
 async function initApp() {
+    console.log(">>> initApp started");
     // Initialize Supabase Client safely
     if (window.supabase) {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        console.log("Supabase library found.");
+        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     } else {
         console.error("Supabase library not loaded!");
         alert("システムの初期化に失敗しました。ページを再読み込みしてください。");
@@ -542,78 +544,14 @@ async function initApp() {
     addNursingCareModal = document.getElementById('addNursingCareModal');
     addNursingCareForm = document.getElementById('addNursingCareForm');
 
+    console.log("Form elements retrieved:", {
+        addAdmissionForm: !!addAdmissionForm,
+        addOutpatientForm: !!addOutpatientForm,
+        addNursingCareForm: !!addNursingCareForm
+    });
+
     // --- Form Submission Listeners ---
-    if (addAdmissionForm) {
-        addAdmissionForm.addEventListener('submit', async function (e) {
-            e.preventDefault();
-            const newPatient = {
-                p_id: toHalfWidth(document.getElementById('patientId').value),
-                p_name: document.getElementById('patientName').value,
-                p_type: 'admission',
-                p_category: document.getElementById('patientCategory').value,
-                p_disease: document.getElementById('diseaseName').value,
-                p_diagnosis_date: document.getElementById('diagnosisDate').value,
-                p_nursing_care: document.getElementById('patientNursingCare')?.checked || false
-            };
-            const { error } = await supabase.from('patients').insert([newPatient]);
-            if (error) {
-                console.error(error);
-                alert("保存に失敗しました。");
-                return;
-            }
-            await renderAdmissionTable();
-            addAdmissionForm.reset();
-            addAdmissionModal.style.display = 'none';
-        });
-    }
-
-    if (addOutpatientForm) {
-        addOutpatientForm.addEventListener('submit', async function (e) {
-            e.preventDefault();
-            const newOp = {
-                p_id: toHalfWidth(document.getElementById('opPatientId').value),
-                p_name: document.getElementById('opPatientName').value,
-                p_type: 'outpatient',
-                p_category: document.getElementById('opPatientCategory').value,
-                p_disease: document.getElementById('opDiseaseName').value,
-                p_diagnosis_date: document.getElementById('opVisitDate').value,
-                p_nursing_care: document.getElementById('opPatientNursingCare')?.checked || false
-            };
-            const { error } = await supabase.from('patients').insert([newOp]);
-            if (error) {
-                console.error(error);
-                alert("保存に失敗しました。");
-                return;
-            }
-            await renderOutpatientTable();
-            addOutpatientForm.reset();
-            addOutpatientModal.style.display = 'none';
-        });
-    }
-
-    if (addNursingCareForm) {
-        addNursingCareForm.addEventListener('submit', async function (e) {
-            e.preventDefault();
-            const newNc = {
-                p_id: toHalfWidth(document.getElementById('ncPatientId').value),
-                p_name: document.getElementById('ncPatientName').value,
-                p_type: 'nursing_care',
-                p_category: document.getElementById('ncPatientCategory').value,
-                p_disease: document.getElementById('ncDiseaseName').value,
-                p_diagnosis_date: document.getElementById('ncDiagnosisDate').value,
-                p_nursing_care: document.getElementById('ncPatientNursingCare')?.checked || false
-            };
-            const { error } = await supabase.from('patients').insert([newNc]);
-            if (error) {
-                console.error(error);
-                alert("保存に失敗しました。");
-                return;
-            }
-            await renderNursingCareTable();
-            addNursingCareForm.reset();
-            addNursingCareModal.style.display = 'none';
-        });
-    }
+    // Extracted to global inline handlers to ensure reliable execution!
 
     // --- Auto Migration if Opened from Patient DB ---
     const migrateDataToSupabase = async () => {
@@ -631,7 +569,7 @@ async function initApp() {
                 uniquePatientsMap[p.id] = p;
             }
         }
-        
+
         const patientsToMigrate = Object.values(uniquePatientsMap).map(p => ({
             p_id: p.id,
             p_name: p.name,
@@ -644,7 +582,7 @@ async function initApp() {
         }));
 
         if (patientsToMigrate.length > 0) {
-            const { error } = await supabase.from('patients').upsert(patientsToMigrate);
+            const { error } = await supabaseClient.from('patients').upsert(patientsToMigrate);
             if (error) console.error('Patient migration error:', error);
         }
 
@@ -652,13 +590,13 @@ async function initApp() {
         const staffNames = JSON.parse(localStorage.getItem('staffNames'));
         if (staffNames) {
             try {
-                await supabase.from('staff_settings').upsert(staffNames.map((name, i) => ({ id: i + 1, name: name, attendance: 'work' })));
-            } catch (e) {}
+                await supabaseClient.from('staff_settings').upsert(staffNames.map((name, i) => ({ id: i + 1, name: name, attendance: 'work' })));
+            } catch (e) { }
         }
-        
+
         localStorage.setItem('supabase_migrated_v6', 'true');
     };
-    
+
     await migrateDataToSupabase();
 
     await renderAdmissionTable();
@@ -706,10 +644,14 @@ async function initApp() {
     }
 } // End of initApp()
 
+console.log("script.js loaded. readyState:", document.readyState);
+
 // Run initialization immediately if DOM is ready, otherwise wait for it
 if (document.readyState === 'loading') {
+    console.log("Waiting for DOMContentLoaded...");
     document.addEventListener('DOMContentLoaded', initApp);
 } else {
+    console.log("Running initApp immediately...");
     initApp();
 }
 
@@ -738,7 +680,7 @@ function openDocSubmissionCalendar() {
 async function renderMeetingCalendar() {
     const grid = document.getElementById('calendarGrid');
     if (!grid) return;
-    
+
     // Render basic grid structure FIRST for immediate feedback
     grid.innerHTML = '';
     document.getElementById('calendarMonthTitle').textContent = `🗓️ 面談予定 (${currentCalendarDate.getFullYear()}年${currentCalendarDate.getMonth() + 1}月)`;
@@ -790,7 +732,7 @@ async function renderMeetingCalendar() {
     }
 
     // Now Fetch data
-    const { data: patients, error } = await supabase
+    const { data: patients, error } = await supabaseClient
         .from('patients')
         .select('p_name, next_reserve_date')
         .in('p_type', ['admission', 'nursing_care'])
@@ -834,7 +776,7 @@ async function renderMeetingCalendar() {
 async function renderDocSubmissionCalendar() {
     const grid = document.getElementById('calendarGrid');
     if (!grid) return;
-    
+
     // Render basic grid structure FIRST
     grid.innerHTML = '';
     document.getElementById('calendarMonthTitle').textContent = `📄 書類提出 (${currentCalendarDate.getFullYear()}年${currentCalendarDate.getMonth() + 1}月)`;
@@ -886,7 +828,7 @@ async function renderDocSubmissionCalendar() {
     }
 
     // Now Fetch data
-    const { data: patients, error } = await supabase
+    const { data: patients, error } = await supabaseClient
         .from('patients')
         .select('p_name, p_doc_submission_date')
         .in('p_type', ['admission', 'nursing_care'])
@@ -946,3 +888,92 @@ window.onclick = function (event) {
         calendarModal.style.display = "none";
     }
 }
+
+// Global Submit Handlers
+window.handleAdmissionSubmit = async function (e) {
+    if (e) e.preventDefault();
+    try {
+        if (!supabaseClient) throw new Error("Supabase is not initialized. Check your network.");
+        const newPatient = {
+            p_id: toHalfWidth(document.getElementById('patientId').value),
+            p_name: document.getElementById('patientName').value,
+            p_type: 'admission',
+            p_category: document.getElementById('patientCategory').value,
+            p_disease: document.getElementById('diseaseName').value,
+            p_diagnosis_date: document.getElementById('diagnosisDate').value,
+            p_nursing_care: document.getElementById('patientNursingCare')?.checked || false
+        };
+        const { error } = await supabaseClient.from('patients').insert([newPatient]);
+        if (error) {
+            console.error(error);
+            alert("保存に失敗しました: " + error.message);
+            return;
+        }
+        await renderAdmissionTable();
+        document.getElementById('addPatientForm')?.reset();
+        if (document.getElementById('addModal')) document.getElementById('addModal').style.display = 'none';
+        alert('新規患者を登録しました。');
+    } catch (err) {
+        console.error(err);
+        alert("エラーが発生しました: " + (err.message || err));
+    }
+};
+
+window.handleOutpatientSubmit = async function (e) {
+    if (e) e.preventDefault();
+    try {
+        if (!supabaseClient) throw new Error("Supabase is not initialized.");
+        const newOp = {
+            p_id: toHalfWidth(document.getElementById('opPatientId').value),
+            p_name: document.getElementById('opPatientName').value,
+            p_type: 'outpatient',
+            p_category: document.getElementById('opPatientCategory').value,
+            p_disease: document.getElementById('opDiseaseName').value,
+            p_diagnosis_date: document.getElementById('opVisitDate').value,
+            p_nursing_care: document.getElementById('opPatientNursingCare')?.checked || false
+        };
+        const { error } = await supabaseClient.from('patients').insert([newOp]);
+        if (error) {
+            console.error(error);
+            alert("保存に失敗しました: " + error.message);
+            return;
+        }
+        await renderOutpatientTable();
+        document.getElementById('addOutpatientForm')?.reset();
+        if (document.getElementById('addOutpatientModal')) document.getElementById('addOutpatientModal').style.display = 'none';
+        alert('新規外来患者を登録しました。');
+    } catch (err) {
+        console.error(err);
+        alert("エラーが発生しました: " + (err.message || err));
+    }
+};
+
+window.handleNursingCareSubmit = async function (e) {
+    if (e) e.preventDefault();
+    try {
+        if (!supabaseClient) throw new Error("Supabase is not initialized.");
+        const newNc = {
+            p_id: toHalfWidth(document.getElementById('ncPatientId').value),
+            p_name: document.getElementById('ncPatientName').value,
+            p_type: 'nursing_care',
+            p_category: document.getElementById('ncPatientCategory').value,
+            p_disease: document.getElementById('ncDiseaseName').value,
+            p_diagnosis_date: document.getElementById('ncDiagnosisDate').value,
+            p_nursing_care: document.getElementById('ncPatientNursingCare')?.checked || false
+        };
+        const { error } = await supabaseClient.from('patients').insert([newNc]);
+        if (error) {
+            console.error(error);
+            alert("保存に失敗しました: " + error.message);
+            return;
+        }
+        await renderNursingCareTable();
+        document.getElementById('addNursingCareForm')?.reset();
+        if (document.getElementById('addNursingCareModal')) document.getElementById('addNursingCareModal').style.display = 'none';
+        alert('新規利用者を登録しました。');
+    } catch (err) {
+        console.error(err);
+        alert("エラーが発生しました: " + (err.message || err));
+    }
+};
+

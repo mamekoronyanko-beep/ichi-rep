@@ -25,10 +25,14 @@
         <div class="header-actions">
             <h1>🏥 介護医療院管理</h1>
             <div style="display: flex; gap: 0.5rem; align-items: flex-end;">
-                <button class="btn" onclick="openMeetingCalendar()" style="background-color: #3b82f6; color: white;">🗓️ 面談予定</button>
-                <button class="btn" onclick="openDocSubmissionCalendar()" style="background-color: #10b981; color: white;">📄 書類提出</button>
-                <button class="btn print-btn" onclick="window.print()" style="background-color: #64748b; color: white;">印刷する</button>
-                <button class="btn primary" onclick="document.getElementById('addNursingCareModal').style.display='flex'">新規入所者追加</button>
+                <button class="btn" onclick="openMeetingCalendar()" style="background-color: #3b82f6; color: white;">🗓️
+                    面談予定</button>
+                <button class="btn" onclick="openDocSubmissionCalendar()"
+                    style="background-color: #10b981; color: white;">📄 書類提出</button>
+                <button class="btn print-btn" onclick="window.print()"
+                    style="background-color: #64748b; color: white;">印刷する</button>
+                <button class="btn primary"
+                    onclick="document.getElementById('addNursingCareModal').style.display='flex'">新規入所者追加</button>
             </div>
         </div>
 
@@ -58,9 +62,10 @@
     <!-- Modal for adding new patient -->
     <div id="addNursingCareModal" class="modal">
         <div class="modal-content">
-            <span class="close" onclick="document.getElementById('addNursingCareModal').style.display='none'">&times;</span>
+            <span class="close"
+                onclick="document.getElementById('addNursingCareModal').style.display='none'">&times;</span>
             <h2>新規介護医療院利用者登録</h2>
-            <form id="addNursingCareForm">
+            <form id="addNursingCareForm" onsubmit="handleNursingCareSubmit(event)">
                 <div class="form-group">
                     <label for="ncPatientId">利用者ID</label>
                     <input type="text" id="ncPatientId" required placeholder="例: NC-3001">
@@ -104,20 +109,23 @@
             <div id="details-patient-category" style="margin-bottom: 0.5rem;"></div>
             <p id="details-patient-id" style="color: var(--text-muted); margin-bottom: 1.5rem;"></p>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2rem;" id="details-grid-container">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2rem;"
+                id="details-grid-container">
                 <div style="background: var(--bg-color); padding: 1rem; border-radius: 8px;">
                     <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.25rem;">キャンセル率</p>
                     <p id="details-cancel-rate" style="font-size: 1.5rem; font-weight: bold; color: #ef4444;">--%</p>
                     <p id="details-cancel-count" style="font-size: 0.8rem; color: var(--text-muted);">0 / 0 回</p>
                 </div>
                 <div style="background: var(--bg-color); padding: 1rem; border-radius: 8px;">
-                    <p id="next-visit-label" style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.25rem;">次回面談予定日</p>
+                    <p id="next-visit-label"
+                        style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.25rem;">次回面談予定日</p>
                     <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem;">
                         <input type="date" id="next-visit-date"
                             style="padding: 0.25rem; border: 1px solid #ccc; border-radius: 4px; width: 100%;">
                         <div style="display: flex; align-items: center; gap: 0.5rem;">
                             <input type="checkbox" id="details-nursing-care" style="width: auto;">
-                            <label for="details-nursing-care" style="font-size: 0.85rem; cursor: pointer; margin: 0;">要介護認定あり</label>
+                            <label for="details-nursing-care"
+                                style="font-size: 0.85rem; cursor: pointer; margin: 0;">要介護認定あり</label>
                         </div>
                         <button onclick="saveNextVisit()" class="btn primary"
                             style="padding: 0.25rem 0.5rem; margin: 0; width: 100%;">修正を保存</button>
@@ -168,12 +176,17 @@
     <!-- Meeting Calendar Modal -->
     <div id="calendarModal" class="modal">
         <div class="modal-content" style="max-width: 800px; width: 95%;">
-            <span class="close-btn" onclick="document.getElementById('calendarModal').style.display='none'">&times;</span>
+            <span class="close-btn"
+                onclick="document.getElementById('calendarModal').style.display='none'">&times;</span>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                 <h2 id="calendarMonthTitle" style="margin: 0;">面談予定</h2>
                 <div style="display: flex; gap: 0.5rem;">
-                    <button class="btn" onclick="changeCalendarMonth(-1)" style="padding: 5px 10px; background-color: #f1f5f9; color: #1e293b; border: 1px solid #cbd5e1;">◀ 前月</button>
-                    <button class="btn" onclick="changeCalendarMonth(1)" style="padding: 5px 10px; background-color: #f1f5f9; color: #1e293b; border: 1px solid #cbd5e1;">次月 ▶</button>
+                    <button class="btn" onclick="changeCalendarMonth(-1)"
+                        style="padding: 5px 10px; background-color: #f1f5f9; color: #1e293b; border: 1px solid #cbd5e1;">◀
+                        前月</button>
+                    <button class="btn" onclick="changeCalendarMonth(1)"
+                        style="padding: 5px 10px; background-color: #f1f5f9; color: #1e293b; border: 1px solid #cbd5e1;">次月
+                        ▶</button>
                 </div>
             </div>
             <div id="calendarGrid" class="calendar-grid">
