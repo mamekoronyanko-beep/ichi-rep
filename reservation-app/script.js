@@ -204,17 +204,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                             td.style.color = isStaffOff ? '#9ca3af' : '#0369a1';
                             td.style.border = isStaffOff ? '2px solid #e5e7eb' : '2px solid #38bdf8';
                         }
-                        if (data.isInpatientBlock) {
+                        if (data.is_inpatient_block) {
                             td.innerHTML = `<div class="status-text" style="font-size: 0.7rem;">🏥 入院患者介入枠<br><span style="font-size: 0.6rem;">${data.remarks || ''}</span></div>`;
                             td.style.backgroundColor = isStaffOff ? '#fdf2f880' : '#fdf2f8';
                             td.style.color = isStaffOff ? '#be185d80' : '#be185d';
-                        } else if (data.isMeeting) {
-                            td.innerHTML = `<div class="status-text" style="font-size: 0.7rem;">💬 面談: ${data.patientName || '未指定'}<br><span style="font-size: 0.6rem;">${data.remarks || ''}</span></div>`;
+                        } else if (data.is_meeting) {
+                            td.innerHTML = `<div class="status-text" style="font-size: 0.7rem;">💬 面談: ${data.patient_name || '未指定'}<br><span style="font-size: 0.6rem;">${data.remarks || ''}</span></div>`;
                             td.style.backgroundColor = isStaffOff ? '#ecfdf580' : '#ecfdf5';
                             td.style.color = isStaffOff ? '#065f4680' : '#065f46';
                             td.style.border = isStaffOff ? '2px solid #d1fae580' : '2px solid #10b981';
                         } else {
-                            td.innerHTML = `<div class="status-text" style="font-size: 0.7rem;">${data.patientName || '無名'}<br><span style="font-size: 0.6rem;">${data.remarks || ''}</span></div>`;
+                            td.innerHTML = `<div class="status-text" style="font-size: 0.7rem;">${data.patient_name || '無名'}<br><span style="font-size: 0.6rem;">${data.remarks || ''}</span></div>`;
                         }
                         const units = data.units || 1;
                         if (units > 1) { td.rowSpan = units; skipCells.staff[i] = units - 1; }
@@ -228,21 +228,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     if (td.classList.contains('booked')) {
                         td.draggable = true;
-                        td.addEventListener('dragstart', (e) => { 
+                        td.addEventListener('dragstart', (e) => {
                             draggedSourceKey = data.id; // Use DB ID
-                            td.classList.add('dragging'); 
-                            e.dataTransfer.setData('text/plain', data.id); 
+                            td.classList.add('dragging');
+                            e.dataTransfer.setData('text/plain', data.id);
                         });
                         td.addEventListener('dragend', () => { td.classList.remove('dragging'); draggedSourceKey = null; });
                     }
                     td.addEventListener('dragover', (e) => { if (td.classList.contains('booked') && data && data.id !== draggedSourceKey) return; if (isStaffOff) return; e.preventDefault(); td.classList.add('drag-over'); });
                     td.addEventListener('dragleave', () => td.classList.remove('drag-over'));
-                    td.addEventListener('drop', (e) => { 
-                        e.preventDefault(); 
-                        td.classList.remove('drag-over'); 
-                        const sid = draggedSourceKey || e.dataTransfer.getData('text/plain'); 
-                        if (!sid || sid === (data ? data.id : null)) return; 
-                        handleDrop(sid, selectedDate, timeString, 'staff', i); 
+                    td.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        td.classList.remove('drag-over');
+                        const sid = draggedSourceKey || e.dataTransfer.getData('text/plain');
+                        if (!sid || sid === (data ? data.id : null)) return;
+                        handleDrop(sid, selectedDate, timeString, 'staff', i);
                     });
                     tr.appendChild(td);
                 }
@@ -260,14 +260,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                         if (data.status === 'arrived') td.classList.add('status-arrived');
                         else if (data.status === 'canceled') td.classList.add('status-canceled');
                         else { td.style.backgroundColor = '#e0f2fe'; td.style.color = '#0369a1'; td.style.border = '2px solid #38bdf8'; }
-                        if (data.isInpatientBlock) {
+                        if (data.is_inpatient_block) {
                             td.style.backgroundColor = '#fdf2f8'; td.style.color = '#be185d'; td.style.border = '2px solid #f43f5e';
                             td.innerHTML = `<div class="status-text" style="font-size: 0.7rem;">🏥 入院患者介入枠<br><span style="font-size: 0.6rem;">${data.remarks || ''}</span></div>`;
-                        } else if (data.isMeeting) {
+                        } else if (data.is_meeting) {
                             td.style.backgroundColor = '#ecfdf5'; td.style.color = '#065f46'; td.style.border = '2px solid #10b981';
-                            td.innerHTML = `<div class="status-text" style="font-size: 0.7rem;">💬 面談: ${data.patientName || '未指定'}<br><span style="font-size: 0.6rem;">${data.remarks || ''}</span></div>`;
+                            td.innerHTML = `<div class="status-text" style="font-size: 0.7rem;">💬 面談: ${data.patient_name || '未指定'}<br><span style="font-size: 0.6rem;">${data.remarks || ''}</span></div>`;
                         } else {
-                            td.innerHTML = `<div class="status-text" style="font-size: 0.7rem;">${data.patientName || '無名'}<br><span style="font-size: 0.6rem;">${data.remarks || ''}</span></div>`;
+                            td.innerHTML = `<div class="status-text" style="font-size: 0.7rem;">${data.patient_name || '無名'}<br><span style="font-size: 0.6rem;">${data.remarks || ''}</span></div>`;
                         }
                         const units = data.units || 1;
                         if (units > 1) { td.rowSpan = units; skipCells.anti[i] = units - 1; }
@@ -276,21 +276,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                     td.addEventListener('click', () => handleCellClick('消炎', i, timeString, td));
                     if (td.classList.contains('booked')) {
                         td.draggable = true;
-                        td.addEventListener('dragstart', (e) => { 
-                            draggedSourceKey = data.id; 
-                            td.classList.add('dragging'); 
-                            e.dataTransfer.setData('text/plain', data.id); 
+                        td.addEventListener('dragstart', (e) => {
+                            draggedSourceKey = data.id;
+                            td.classList.add('dragging');
+                            e.dataTransfer.setData('text/plain', data.id);
                         });
                         td.addEventListener('dragend', () => { td.classList.remove('dragging'); draggedSourceKey = null; });
                     }
                     td.addEventListener('dragover', (e) => { if (td.classList.contains('booked') && data && data.id !== draggedSourceKey) return; e.preventDefault(); td.classList.add('drag-over', 'anti-cell'); });
                     td.addEventListener('dragleave', () => td.classList.remove('drag-over', 'anti-cell'));
-                    td.addEventListener('drop', (e) => { 
-                        e.preventDefault(); 
-                        td.classList.remove('drag-over', 'anti-cell'); 
-                        const sid = draggedSourceKey || e.dataTransfer.getData('text/plain'); 
-                        if (!sid || sid === (data ? data.id : null)) return; 
-                        handleDrop(sid, selectedDate, timeString, 'anti', i); 
+                    td.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        td.classList.remove('drag-over', 'anti-cell');
+                        const sid = draggedSourceKey || e.dataTransfer.getData('text/plain');
+                        if (!sid || sid === (data ? data.id : null)) return;
+                        handleDrop(sid, selectedDate, timeString, 'anti', i);
                     });
                     tr.appendChild(td);
                 }
@@ -302,7 +302,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 timeData.cancel.forEach(d => {
                     const div = document.createElement('div');
                     div.style.cssText = 'background:#f3f4f6; color:#6b7280; border:1px solid #d1d5db; padding:4px; margin-bottom:4px; border-radius:4px; font-size:0.7rem; cursor:pointer; text-align:center;';
-                    div.innerHTML = `<strong>${d.patientName || '無名'}</strong><br><span style="font-size:0.6rem;">${d.units || 1}枠 | ${d.cancelReason || '理由なし'}</span>`;
+                    div.innerHTML = `<strong>${d.patient_name || d.patientName || '無名'}</strong><br><span style="font-size:0.6rem;">${d.units || 1}枠 | ${d.cancelReason || d.cancel_reason || '理由なし'}</span>`;
                     div.addEventListener('click', () => openCancelDetailsModal(d, timeString));
                     cancelTd.appendChild(div);
                 });
@@ -496,8 +496,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Auto-fill when ID is entered
         patientIdInput.addEventListener('change', async (e) => {
             const val = toHalfWidth(e.target.value);
-            e.target.value = val; 
-            
+            e.target.value = val;
+
             if (!val) return;
             const { data: found } = await supabase.from('patients').select('p_name, p_disease').eq('p_id', val).eq('p_type', 'outpatient').single();
             if (found) {
@@ -642,9 +642,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         const { data: patient } = await supabase.from('patients').select('p_diagnosis_date').eq('p_id', data.patient_id).single();
         const diagnosisDate = patient ? (patient.p_diagnosis_date || '未登録') : '未登録';
 
+        const pName = data.patient_name || data.patientName || '無名';
+        const pId = data.patient_id || data.patientId || '不明';
+        const cancelReason = data.cancel_reason || data.cancelReason || '理由なし';
+
         cancelDetailsContent.innerHTML = `
             <div style="padding: 0.5rem; background: #f9fafb; border-radius: 6px; border: 1px solid #e5e7eb; margin-bottom: 0.5rem;">
-                <p style="margin: 0.25rem 0;"><strong>患者名:</strong> ${data.patientName} (${data.patientId})</p>
+                <p style="margin: 0.25rem 0;"><strong>患者名:</strong> ${pName} (${pId})</p>
                 <p style="margin: 0.25rem 0;"><strong>診断日:</strong> ${diagnosisDate}</p>
                 <p style="margin: 0.25rem 0;"><strong>日時:</strong> ${currentDate} ${timeStr}</p>
                 <p style="margin: 0.25rem 0;"><strong>元の予約:</strong> ${originalTypeStr}</p>
@@ -652,7 +656,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <p style="margin: 0.25rem 0;"><strong>備考:</strong> ${data.remarks || 'なし'}</p>
             </div>
             <div style="padding: 0.5rem; background: #fef2f2; border-radius: 6px; border: 1px solid #fecaca; color: #b91c1c;">
-                <p style="margin: 0.25rem 0;"><strong>キャンセル理由:</strong> ${data.cancelReason || '理由なし'}</p>
+                <p style="margin: 0.25rem 0;"><strong>キャンセル理由:</strong> ${cancelReason}</p>
             </div>
         `;
 
@@ -677,7 +681,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 // Remove from schedule DB
                 await supabase.from('reservations').delete().eq('id', currentCanceledData.id);
-                
+
                 await createSchedule();
                 closeCancelDetailsModal();
             }
@@ -703,7 +707,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         for (let u = 0; u < units; u++) {
             const checkTime = formatTime(currentTime);
-            
+
             // Check in DB if occupied
             const { data: existing } = await supabase
                 .from('reservations')
@@ -719,7 +723,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 alert('移動先に他の予約が入っています。');
                 return;
             }
-            
+
             // Check break time
             const checkH = currentTime.getHours();
             if (checkH >= BREAK_START_HOUR && checkH < BREAK_END_HOUR) {
@@ -768,10 +772,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const openStaffSettingsModal = async () => {
         const selectedDate = targetDateInput.value;
         staffSettingsDateLabel.textContent = `対象日: ${selectedDate}`;
-        
+
         const names = await getStaffData();
         const attendance = await getStaffAttendance(selectedDate);
-        
+
         staffInputsContainer.innerHTML = '';
         names.forEach((name, i) => {
             const div = document.createElement('div');
@@ -783,7 +787,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             div.style.background = '#f9fafb';
             div.style.borderRadius = '6px';
             div.style.border = '1px solid #e5e7eb';
-            
+
             div.innerHTML = `
                 <div>
                     <label style="display: block; font-size: 0.75rem; color: #64748b; margin-bottom: 0.25rem;">スタッフ ${i + 1} の名前</label>
@@ -801,7 +805,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             `;
             staffInputsContainer.appendChild(div);
         });
-        
+
         staffSettingsModal.classList.add('show');
     };
 
@@ -821,24 +825,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         staffSettingsForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const selectedDate = targetDateInput.value;
-            
+
             const nameInputs = document.querySelectorAll('.staff-name-input');
             const attendanceSelects = document.querySelectorAll('.staff-attendance-select');
-            
+
             const newNames = [];
             const newAttendance = [];
-            
+
             nameInputs.forEach((input, i) => {
                 newNames.push(input.value || `スタッフ ${i + 1}`);
             });
-            
+
             attendanceSelects.forEach((select) => {
                 newAttendance.push(select.value);
             });
-            
+
             await saveStaffData(newNames);
             await saveStaffAttendance(selectedDate, newAttendance);
-            
+
             await createSchedule();
             closeStaffSettingsModal();
             alert('スタッフ設定を保存しました。');
@@ -986,14 +990,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const bookingTypeRadio = document.querySelector('input[name="booking-type"]:checked');
             const bookingType = bookingTypeRadio ? bookingTypeRadio.value : 'outpatient';
-            
+
             const isInpatientBlock = (bookingType === 'inpatient');
             const isMeeting = (bookingType === 'meeting');
 
             let pId = document.getElementById('patient-id').value;
             let pName = document.getElementById('patient-name').value;
             const remarks = document.getElementById('remarks').value;
-            
+
             const unitsChecked = document.querySelector('input[name="booking-units"]:checked');
             const units = unitsChecked ? parseInt(unitsChecked.value, 10) : 2;
 
@@ -1021,11 +1025,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const [hStr, mStr] = selectedTime.split(':');
                 let h = parseInt(hStr, 10);
                 let m = parseInt(mStr, 10);
-                
+
                 // End of day check (18:00 is the hard limit)
                 if (h === 17 && m >= 40) {
-                     alert('17:40以降の予約は18:00の診療終了時間を超えるため、1枠(20分)しか予約できません。');
-                     return;
+                    alert('17:40以降の予約は18:00の診療終了時間を超えるため、1枠(20分)しか予約できません。');
+                    return;
                 }
 
                 m += 20;
@@ -1162,8 +1166,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 try {
                     const data = JSON.parse(localStorage.getItem(key));
                     const parts = key.split('_');
-                    if (parts.length < 5) continue; 
-                    
+                    if (parts.length < 5) continue;
+
                     reservationsToMigrate.push({
                         res_date: parts[1],
                         res_time: parts[2],
@@ -1198,7 +1202,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 uniquePatientsMap[p.id] = p;
             }
         }
-        
+
         const patientsToMigrate = Object.values(uniquePatientsMap).map(p => ({
             p_id: p.id,
             p_name: p.name,
