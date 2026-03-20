@@ -469,6 +469,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         setVal('outpatient-planned-units', outpatientPlanned);
         setVal('outpatient-actual-units', outpatientActual);
 
+        // 1日必要単位数にスタッフ枠の合計を自動反映
+        const manualUnitsInput = document.getElementById('manual-total-units');
+        if (manualUnitsInput) {
+            manualUnitsInput.value = staffUnits;
+        }
+
         // 自動入力ボタンの設定（1回だけイベントを付ける）
         const syncBtn = document.getElementById('sync-units-btn');
         if (syncBtn && !syncBtn._listenerAdded) {
@@ -515,8 +521,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 threshold = 150;
             } else if (p.p_category === '脳血管') {
                 threshold = 180;
+            } else if (p.p_category === '廃用') {
+                threshold = 120;
             } else {
-                return; // 廃用などは対象外
+                return; // その他は対象外
             }
 
             if (elapsedDays <= threshold) {
