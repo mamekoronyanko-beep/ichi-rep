@@ -268,6 +268,18 @@ async function saveNextVisit() {
     const docDate = document.getElementById('doc-submission-date')?.value || null;
     const label = document.getElementById('next-visit-label')?.textContent || '次回予定日';
 
+    // Validation: Check for invalid years (e.g., 202604)
+    const validateDate = (dateStr) => {
+        if (!dateStr) return true;
+        const year = parseInt(dateStr.split('-')[0]);
+        return year >= 1900 && year <= 2100;
+    };
+
+    if (!validateDate(nextDate) || (docDate && !validateDate(docDate))) {
+        alert('入力された日付の年が正しくありません（例: 2026）。正しく修正してください。');
+        return;
+    }
+
     const { data, error } = await supabaseClient.from('patients').update({
         next_reserve_date: nextDate,
         p_nursing_care: nursingCare,
