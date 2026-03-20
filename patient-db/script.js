@@ -103,29 +103,14 @@ async function renderNursingCareTable() {
     if (error || !dbPatients) return;
 
     dbPatients.forEach((patient) => {
-        let categoryClass = 'tag-unknown';
-        if (patient.p_category === '運動器') categoryClass = 'tag-locomotor';
-        else if (patient.p_category === '脳血管') categoryClass = 'tag-cerebro';
-        else if (patient.p_category === '廃用') categoryClass = 'tag-disuse';
-
-        const remainingDays = calculateRemainingDays(patient.p_diagnosis_date, patient.p_category);
-        let remainingHtml = '<span style="color:var(--text-muted);">-</span>';
-        if (remainingDays !== null) {
-            const color = remainingDays <= 10 ? '#ef4444' : 'inherit';
-            const weight = remainingDays <= 10 ? 'bold' : 'normal';
-            remainingHtml = `<span style="color: ${color}; font-weight: ${weight};">${remainingDays}日</span>`;
-        }
-
         const tr = document.createElement('tr');
         tr.style.cursor = 'pointer';
         tr.innerHTML = `
             <td onclick="openPatientDetails('${patient.p_id}')"><strong>${patient.p_id}</strong></td>
             <td onclick="openPatientDetails('${patient.p_id}')">${patient.p_name}</td>
             <td onclick="openPatientDetails('${patient.p_id}')"><span class="tag-type-admission" style="background:#ede9fe; color:#6d28d9;">介護医療院</span></td>
-            <td onclick="openPatientDetails('${patient.p_id}')"><span class="${categoryClass}">${patient.p_category || '未設定'}</span></td>
             <td onclick="openPatientDetails('${patient.p_id}')"><span style="background: #f3f4f6; color: #374151; padding: 4px 8px; border-radius: 12px; font-size: 0.85rem; display: inline-block;">${patient.p_disease}</span></td>
             <td onclick="openPatientDetails('${patient.p_id}')">${patient.p_diagnosis_date}</td>
-            <td onclick="openPatientDetails('${patient.p_id}')">${remainingHtml}</td>
             <td onclick="openPatientDetails('${patient.p_id}')">${patient.next_reserve_date || '<span style="color:var(--text-muted);font-size:0.85rem;">未定</span>'}</td>
             <td onclick="openPatientDetails('${patient.p_id}')">${patient.p_doc_submission_date || '<span style="color:var(--text-muted);font-size:0.85rem;">未定</span>'}</td>
             <td onclick="openPatientDetails('${patient.p_id}')">${patient.p_nursing_care ? '<span class="tag-nursing-care">あり</span>' : '<span style="color:var(--text-muted);">-</span>'}</td>
@@ -499,28 +484,13 @@ async function renderNursingCareArchivedTable() {
     if (!dbPatients) return;
 
     dbPatients.forEach((p) => {
-        let categoryClass = 'tag-unknown';
-        if (p.p_category === '運動器') categoryClass = 'tag-locomotor';
-        else if (p.p_category === '脳血管') categoryClass = 'tag-cerebro';
-        else if (p.p_category === '廃用') categoryClass = 'tag-disuse';
-
-        const remainingDays = calculateRemainingDays(p.p_diagnosis_date, p.p_category);
-        let remainingHtml = '<span style="color:var(--text-muted);">-</span>';
-        if (remainingDays !== null) {
-            const color = remainingDays <= 10 ? '#ef4444' : 'inherit';
-            const weight = remainingDays <= 10 ? 'bold' : 'normal';
-            remainingHtml = `<span style="color: ${color}; font-weight: ${weight};">${remainingDays}日</span>`;
-        }
-
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td><strong>${p.p_id}</strong></td>
             <td>${p.p_name}</td>
             <td><span class="tag-type-admission" style="background:#ede9fe; color:#6d28d9;">介護医療院</span></td>
-            <td><span class="${categoryClass}">${p.p_category || '未設定'}</span></td>
             <td>${p.p_disease}</td>
             <td>${p.p_diagnosis_date}</td>
-            <td>${remainingHtml}</td>
             <td>${p.p_nursing_care ? '<span class="tag-nursing-care">あり</span>' : '<span style="color:var(--text-muted);">-</span>'}</td>
             <td>${p.p_termination_date || '-'}</td>
             <td>
@@ -1003,7 +973,7 @@ window.handleNursingCareSubmit = async function (e) {
             p_id: toHalfWidth(document.getElementById('ncPatientId').value),
             p_name: document.getElementById('ncPatientName').value,
             p_type: 'nursing_care',
-            p_category: document.getElementById('ncPatientCategory').value,
+            p_category: null,
             p_disease: document.getElementById('ncDiseaseName').value,
             p_diagnosis_date: document.getElementById('ncDiagnosisDate').value,
             p_nursing_care: document.getElementById('ncPatientNursingCare')?.checked || false
