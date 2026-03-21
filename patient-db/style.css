@@ -531,3 +531,13 @@ tr:hover {
     font-weight: 600;
     border: 1px solid #fecaca;
 }
+
+/* 更新ボタンの回転アニメーション */
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.rotating {
+    animation: rotate 0.5s ease-in-out;
+}

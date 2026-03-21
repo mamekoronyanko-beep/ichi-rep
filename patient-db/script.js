@@ -617,10 +617,23 @@ async function initApp() {
 
     await renderAdmissionTable();
     await renderOutpatientTable();
-    await renderNursingCareTable();
-    await renderDischargedTable();
-    await renderTerminatedTable();
     await renderNursingCareArchivedTable();
+    
+    // Refresh Button Logic
+    const refreshBtn = document.getElementById('refresh-btn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', async () => {
+            refreshBtn.classList.add('rotating');
+            await renderAdmissionTable();
+            await renderOutpatientTable();
+            await renderNursingCareTable();
+            await renderDischargedTable();
+            await renderTerminatedTable();
+            await renderNursingCareArchivedTable();
+            setTimeout(() => refreshBtn.classList.remove('rotating'), 500);
+            console.log('Patient records refreshed.');
+        });
+    }
 
     // Excel Import Logic
     const excelImportInput = document.getElementById('excel-import');
