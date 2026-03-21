@@ -1497,6 +1497,180 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log("Migration complete.");
     };
 
+    // --- Monthly Performance Statistics Logic ---
+    let performanceDate = new Date();
+
+    const openPerformanceModal = async () => {
+        const modal = document.getElementById('performance-modal');
+        if (modal) {
+            modal.style.display = 'flex';
+            await updatePerformanceStats();
+        }
+    };
+
+    const closePerformanceModal = () => {
+        const modal = document.getElementById('performance-modal');
+        if (modal) modal.style.display = 'none';
+    };
+
+    const updatePerformanceStats = async () => {
+        const year = performanceDate.getFullYear();
+        const month = performanceDate.getMonth();
+        const currentMonthEl = document.getElementById('perf-current-month');
+        if (currentMonthEl) currentMonthEl.textContent = `${year}年${month + 1}月`;
+
+        // Calculate start and end of month
+        const startOfMonth = new Date(year, month, 1).toISOString().split('T')[0];
+        const endOfMonth = new Date(year, month + 1, 0).toISOString().split('T')[0];
+
+        const { data: reservations, error } = await supabase
+            .from('reservations')
+            .select('*')
+            .gte('res_date', startOfMonth)
+            .lte('res_date', endOfMonth);
+
+        if (error) {
+            console.error("Error fetching monthly reservations:", error);
+            return;
+        }
+
+        // Stats calculation
+        const stats = {
+            inpatient: { patients: new Set(), cases: 0, units: 0 },
+            outpatient: { patients: new Set(), cases: 0, units: 0 },
+            nursing: { patients: new Set() }
+        };
+
+        const cancellations = [];
+        const cancelReasons = {};
+
+        reservations.forEach(res => {
+            const isCanceled = res.status === 'canceled';
+            const isArrived = res.status === 'arrived';
+            const units = parseInt(res.units) || 1;
+            const pId = res.patient_id;
+
+            if (res.is_inpatient_block) {
+                if (!isCanceled) {
+                    stats.inpatient.patients.add(pId);
+                }
+            } else if (res.is_meeting) {
+                stats.nursing.patients.add(pId);
+            } else {
+                // Outpatient
+                if (isCanceled) {
+                    cancellations.push(res);
+                    const reason = res.remarks || '理由なし';
+                    cancelReasons[reason] = (cancelReasons[reason] || 0) + 1;
+                } else {
+                    stats.outpatient.patients.add(pId);
+                    if (isArrived) {
+                        stats.outpatient.cases += 1;
+                        stats.outpatient.units += units;
+                    }
+                }
+            }
+        });
+
+        // Add manual Inpatient Intervention stats from localStorage
+        let manualInpatientUnits = 0;
+        let manualInpatientCases = 0;
+        const lastDay = new Date(year, month + 1, 0).getDate();
+        for (let d = 1; d <= lastDay; d++) {
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            ['locomotor', 'cerebro', 'disuse'].forEach(cat => {
+                const c = parseInt(localStorage.getItem(`manual_inpatient_${cat}_cases_${dateStr}`)) || 0;
+                const u = parseFloat(localStorage.getItem(`manual_inpatient_${cat}_units_${dateStr}`)) || 0;
+                manualInpatientCases += c;
+                manualInpatientUnits += u;
+            });
+        }
+
+        // Render Summary Table
+        const summaryBody = document.getElementById('performance-summary-body');
+        if (summaryBody) {
+            summaryBody.innerHTML = `
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 1rem; font-weight: 600; color: #1e293b;">🏥 入院患者 (介入実績)</td>
+                    <td style="padding: 1rem; text-align: right;">${stats.inpatient.patients.size} 名</td>
+                    <td style="padding: 1rem; text-align: right;">${manualInpatientCases} 件</td>
+                    <td style="padding: 1rem; text-align: right; font-weight: 700; color: #0f172a;">${manualInpatientUnits} 単位</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 1rem; font-weight: 600; color: #1e293b;">🏥 外来患者（実来院）</td>
+                    <td style="padding: 1rem; text-align: right;">${stats.outpatient.patients.size} 名</td>
+                    <td style="padding: 1rem; text-align: right;">${stats.outpatient.cases} 件</td>
+                    <td style="padding: 1rem; text-align: right; font-weight: 700; color: #0f172a;">${stats.outpatient.units} 単位</td>
+                </tr>
+                <tr>
+                    <td style="padding: 1rem; font-weight: 600; color: #1e293b;">🏢 介護医療院 (面談・入所者)</td>
+                    <td style="padding: 1rem; text-align: right;">${stats.nursing.patients.size} 名</td>
+                    <td style="padding: 1rem; text-align: right;">-</td>
+                    <td style="padding: 1rem; text-align: right; font-weight: 700; color: #0f172a;">-</td>
+                </tr>
+            `;
+        }
+
+        // Cancellation stats
+        const totalOutpatient = stats.outpatient.cases + cancellations.length;
+        const cancelRate = totalOutpatient > 0 ? Math.round((cancellations.length / totalOutpatient) * 100) : 0;
+        const rateEl = document.getElementById('perf-outpatient-cancel-rate');
+        const countEl = document.getElementById('perf-outpatient-cancel-count');
+        const totalEl = document.getElementById('perf-outpatient-total-res');
+        if (rateEl) rateEl.textContent = `${cancelRate}%`;
+        if (countEl) countEl.textContent = cancellations.length;
+        if (totalEl) totalEl.textContent = totalOutpatient;
+
+        // Cancel reasons list
+        const reasonChart = document.getElementById('perf-cancel-reason-chart');
+        if (reasonChart) {
+            reasonChart.innerHTML = Object.entries(cancelReasons)
+                .sort((a, b) => b[1] - a[1])
+                .map(([reason, count]) => `
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #e2e8f0; padding: 0.25rem 0;">
+                        <span>${reason}</span>
+                        <span style="background: #e2e8f0; padding: 2px 8px; border-radius: 12px; font-weight: 600;">${count}</span>
+                    </div>
+                `).join('') || '<p style="color: #94a3b8; text-align: center;">キャンセル記録なし</p>';
+        }
+
+        // Detailed Cancellation List
+        const detailList = document.getElementById('perf-cancel-details-list');
+        if (detailList) {
+            detailList.innerHTML = cancellations
+                .sort((a, b) => b.res_date.localeCompare(a.res_date))
+                .map(c => `
+                    <div style="padding: 0.75rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div>
+                            <div style="font-weight: 700; color: #1e293b;">${c.patient_name}</div>
+                            <div style="font-size: 0.75rem; color: #64748b;">${c.res_date} ${c.res_time}</div>
+                        </div>
+                        <div style="font-size: 0.75rem; background: #fee2e2; color: #991b1b; padding: 2px 6px; border-radius: 4px;">
+                            ${c.remarks || '理由未選択'}
+                        </div>
+                    </div>
+                `).join('') || '<p style="color: #94a3b8; text-align: center; margin-top: 2rem;">該当データなし</p>';
+        }
+    };
+
+    // Performance Listeners
+    document.getElementById('performance-btn')?.addEventListener('click', openPerformanceModal);
+    document.getElementById('close-performance-modal-btn')?.addEventListener('click', closePerformanceModal);
+    document.getElementById('perf-prev-month')?.addEventListener('click', async () => {
+        performanceDate.setMonth(performanceDate.getMonth() - 1);
+        await updatePerformanceStats();
+    });
+    document.getElementById('perf-next-month')?.addEventListener('click', async () => {
+        performanceDate.setMonth(performanceDate.getMonth() + 1);
+        await updatePerformanceStats();
+    });
+
+    // Close performance modal on outside click
+    window.addEventListener('click', (e) => {
+        const modal = document.getElementById('performance-modal');
+        if (e.target === modal) closePerformanceModal();
+    });
+
     // Initialization sequence
     await migrateDataToSupabase();
     initializeDate();
