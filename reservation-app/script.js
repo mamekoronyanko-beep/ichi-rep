@@ -1132,44 +1132,61 @@ document.addEventListener('DOMContentLoaded', async () => {
     const recordHistoryToDB = async (patientId, date, time, typeName, status, cancelReason = '', isWalkIn = false) => {
         if (!patientId) return;
 
-        // Fetch current patient record
-        const { data: patient, error } = await supabase.from('patients').select('history').eq('p_id', patientId).single();
-        if (error || !patient) return;
-
-        let history = [];
         try {
-            history = typeof patient.history === 'string' ? JSON.parse(patient.history) : (patient.history || []);
-        } catch (e) { }
-
-        // Check if history already exists
-        const existingIndex = history.findIndex(h => h.date === date && h.time === time);
-
-        if (existingIndex >= 0) {
-            if (status === 'delete_history') {
-                history.splice(existingIndex, 1);
-            } else {
-                history[existingIndex].status = status;
-                if (status === 'canceled' && cancelReason) {
-                    history[existingIndex].cancelReason = cancelReason;
-                }
+            // Fetch current patient record
+            const { data: patient, error } = await supabase.from('patients').select('history').eq('p_id', patientId.trim()).single();
+            if (error || !patient) {
+                console.warn(`Patient ${patientId} not found in database. History not recorded.`);
+                return;
             }
-        } else if (status !== 'delete_history' && status !== 'deleted') {
-            history.push({
-                date,
-                time,
-                type: typeName,
-                status,
-                cancelReason: status === 'canceled' ? cancelReason : '',
-                isWalkIn: isWalkIn
+
+            let history = [];
+            try {
+                history = typeof patient.history === 'string' ? JSON.parse(patient.history) : (patient.history || []);
+            } catch (e) {
+                console.error("Error parsing history JSON:", e);
+                history = [];
+            }
+
+            // Check if history already exists
+            const existingIndex = history.findIndex(h => h.date === date && h.time === time);
+
+            if (existingIndex >= 0) {
+                if (status === 'delete_history') {
+                    history.splice(existingIndex, 1);
+                } else if (status === 'deleted') {
+                    history[existingIndex].status = 'deleted';
+                } else {
+                    history[existingIndex].status = status;
+                    // Preserve or update isWalkIn
+                    if (isWalkIn) {
+                        history[existingIndex].isWalkIn = true;
+                    }
+                    if (status === 'canceled' && cancelReason) {
+                        history[existingIndex].cancelReason = cancelReason;
+                    }
+                }
+            } else if (status !== 'delete_history' && status !== 'deleted') {
+                history.push({
+                    date,
+                    time,
+                    type: typeName,
+                    status,
+                    cancelReason: status === 'canceled' ? cancelReason : '',
+                    isWalkIn: isWalkIn
+                });
+            }
+
+            // Sort by date and time descending
+            history.sort((a, b) => {
+                if (a.date !== b.date) return b.date.localeCompare(a.date);
+                return b.time.localeCompare(a.time);
             });
+
+            await supabase.from('patients').update({ history: JSON.stringify(history) }).eq('p_id', patientId.trim());
+        } catch (err) {
+            console.error("Critical error in recordHistoryToDB:", err);
         }
-
-        history.sort((a, b) => {
-            if (a.date !== b.date) return a.date > b.date ? -1 : 1;
-            return a.time > b.time ? -1 : 1;
-        });
-
-        await supabase.from('patients').update({ history: JSON.stringify(history) }).eq('p_id', patientId);
     };
 
     const updateReservationStatus = async (status, cancelReason = '') => {
