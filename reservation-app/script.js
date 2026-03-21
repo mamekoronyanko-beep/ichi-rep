@@ -1665,6 +1665,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 total: { patients: new Set(), cases: 0, units: 0 },
                 locomotor: { patients: new Set(), cases: 0, units: 0 },
                 cerebro: { patients: new Set(), cases: 0, units: 0 },
+                anti: { patients: new Set(), cases: 0, units: 0 },
                 other: { patients: new Set(), cases: 0, units: 0 }
             },
             nursing: { patients: new Set() }
@@ -1706,6 +1707,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                             stats.outpatient.cerebro.patients.add(pId);
                             stats.outpatient.cerebro.cases += 1;
                             stats.outpatient.cerebro.units += units;
+                        } else if (cat === '消炎') {
+                            stats.outpatient.anti.patients.add(pId);
+                            stats.outpatient.anti.cases += 1;
+                            stats.outpatient.anti.units += units;
                         } else {
                             stats.outpatient.other.patients.add(pId);
                             stats.outpatient.other.cases += 1;
@@ -1761,6 +1766,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 ${createRow('🏥 外来実績（来院合計）', stats.outpatient.total.patients.size, stats.outpatient.total.cases, stats.outpatient.total.units)}
                 ${createRow('運動器', stats.outpatient.locomotor.patients.size, stats.outpatient.locomotor.cases, stats.outpatient.locomotor.units, true)}
                 ${createRow('脳血管', stats.outpatient.cerebro.patients.size, stats.outpatient.cerebro.cases, stats.outpatient.cerebro.units, true)}
+                ${createRow('消炎', stats.outpatient.anti.patients.size, stats.outpatient.anti.cases, stats.outpatient.anti.units, true)}
                 ${stats.outpatient.other.cases > 0 ? createRow('その他', stats.outpatient.other.patients.size, stats.outpatient.other.cases, stats.outpatient.other.units, true) : ''}
 
                 ${createRow('🏢 介護医療院', stats.nursing.patients.size, '-', '-')}
