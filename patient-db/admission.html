@@ -129,8 +129,10 @@
                     <p id="details-cancel-count" style="font-size: 0.8rem; color: var(--text-muted);">0 / 0 回</p>
                 </div>
                 <div style="background: var(--bg-color); padding: 1rem; border-radius: 8px;">
-                    <p id="next-visit-label"
-                        style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.25rem;">次回面談予定日</p>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                        <p id="next-visit-label" style="font-size: 0.9rem; color: var(--text-muted); margin: 0;">次回予約日</p>
+                        <button onclick="fetchLatestReserveDate()" style="font-size: 0.75rem; padding: 2px 8px; cursor: pointer; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; color: #475569;">🔄 予約表から取得</button>
+                    </div>
                     <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem;">
                         <input type="date" id="next-visit-date"
                             style="padding: 0.25rem; border: 1px solid #ccc; border-radius: 4px; width: 100%;">

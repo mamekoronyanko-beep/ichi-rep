@@ -1128,6 +1128,31 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
+    const updateNextReserveDate = async (patientId) => {
+        if (!patientId || patientId === 'INPATIENT') return;
+
+        const today = new Date().toISOString().split('T')[0];
+
+        // Fetch the earliest future reservation that is 'booked' (not arrived, not canceled)
+        const { data: nextRes, error } = await supabase
+            .from('reservations')
+            .select('res_date')
+            .eq('patient_id', patientId.trim())
+            .eq('status', 'booked')
+            .gte('res_date', today)
+            .order('res_date', { ascending: true })
+            .order('res_time', { ascending: true })
+            .limit(1);
+
+        let nextDate = null;
+        if (nextRes && nextRes.length > 0) {
+            nextDate = nextRes[0].res_date;
+        }
+
+        // Update the patient record
+        await supabase.from('patients').update({ next_reserve_date: nextDate }).eq('p_id', patientId.trim());
+    };
+
     // --- Status Update Handlers ---
     const recordHistoryToDB = async (patientId, date, time, typeName, status, cancelReason = '', isWalkIn = false) => {
         if (!patientId) return;
@@ -1184,6 +1209,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
 
             await supabase.from('patients').update({ history: JSON.stringify(history) }).eq('p_id', patientId.trim());
+
+            // --- Auto-sync Next Reserve Date ---
+            await updateNextReserveDate(patientId);
+
         } catch (err) {
             console.error("Critical error in recordHistoryToDB:", err);
         }
@@ -1246,12 +1275,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (confirm('この予約枠を完全に削除して空き枠に戻しますか？')) {
                 // Fetch to get patient info
                 const { data: resData } = await supabase.from('reservations').select('*').eq('id', currentReservationId).single();
-                if (resData) {
+                if (resData && resData.patient_id) {
                     const typeNameStr = resData.res_type === 'staff' ? 'スタッフ' : '消炎';
                     await recordHistoryToDB(resData.patient_id, resData.res_date, resData.res_time, typeNameStr, 'deleted');
+                    
+                    await supabase.from('reservations').delete().eq('id', currentReservationId);
+                    
+                    // Recalculate after deletion is complete
+                    await updateNextReserveDate(resData.patient_id);
+                } else {
+                    await supabase.from('reservations').delete().eq('id', currentReservationId);
                 }
 
-                await supabase.from('reservations').delete().eq('id', currentReservationId);
                 await createSchedule();
                 closeStatusModal();
             }

@@ -248,6 +248,37 @@ async function openPatientDetails(dbId) {
     modal.style.display = 'flex';
 }
 
+async function fetchLatestReserveDate() {
+    if (!currentPatientDbId) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Fetch the earliest future reservation that is 'booked'
+    const { data: nextRes, error } = await supabaseClient
+        .from('reservations')
+        .select('res_date')
+        .eq('patient_id', currentPatientDbId)
+        .eq('status', 'booked')
+        .gte('res_date', today)
+        .order('res_date', { ascending: true })
+        .order('res_time', { ascending: true })
+        .limit(1);
+
+    if (error) {
+        console.error('Error fetching latest reservation:', error);
+        alert('予約情報の取得に失敗しました。');
+        return;
+    }
+
+    if (nextRes && nextRes.length > 0) {
+        const nextDate = nextRes[0].res_date;
+        document.getElementById('next-visit-date').value = nextDate;
+        alert(`最新の予約日 (${nextDate}) を反映しました。「修正を保存」を押すと確定します。`);
+    } else {
+        alert('本日以降の有効な予約は見つかりませんでした。');
+    }
+}
+
 async function saveNextVisit() {
     if (!currentPatientDbId) return;
     const nextDate = document.getElementById('next-visit-date').value;
