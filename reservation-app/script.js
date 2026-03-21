@@ -1764,7 +1764,35 @@ document.addEventListener('DOMContentLoaded', async () => {
                 ${stats.outpatient.other.cases > 0 ? createRow('その他', stats.outpatient.other.patients.size, stats.outpatient.other.cases, stats.outpatient.other.units, true) : ''}
 
                 ${createRow('🏢 介護医療院', stats.nursing.patients.size, '-', '-')}
+                ${(() => {
+                    const isAfterJune2026 = (year > 2026) || (year === 2026 && month >= 5);
+                    const labels = isAfterJune2026 
+                        ? ['計画評価1(初回)', '計画評価1(2回目以降)', '計画評価2(初回)', '計画評価2(2回目以降)']
+                        : ['計画評価1', '計画評価2', '目標1', '目標2'];
+                    
+                    return labels.map(label => {
+                        const storageKey = `manual_nursing_${year}_${month}_${label}`;
+                        const val = localStorage.getItem(storageKey) || 0;
+                        return `
+                            <tr style="border-bottom: 1px dashed #f1f5f9; background: #fffcf0;">
+                                <td style="padding: 0.5rem 1rem 0.5rem 2rem; color: #b45309; font-size: 0.85rem;">└ ${label}</td>
+                                <td colspan="3" style="padding: 0.5rem 1rem; text-align: right;">
+                                    <input type="number" class="perf-nursing-input" data-key="${storageKey}" value="${val}" 
+                                           style="width: 70px; text-align: right; border: 1px solid #fbbf24; border-radius: 4px; padding: 2px 5px; font-size: 0.85rem;">
+                                    <span style="font-size: 0.8rem; color: #b45309; margin-left: 0.4rem;">件</span>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                })()}
             `;
+
+            // Add input listeners for nursing stats
+            document.querySelectorAll('.perf-nursing-input').forEach(input => {
+                input.addEventListener('change', (e) => {
+                    localStorage.setItem(e.target.dataset.key, e.target.value);
+                });
+            });
         }
 
         // Cancellation stats
