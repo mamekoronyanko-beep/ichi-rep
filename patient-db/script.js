@@ -248,6 +248,36 @@ async function openPatientDetails(dbId) {
     modal.style.display = 'flex';
 }
 
+function calculateDocSubmissionDate(category, nextDate, holidays) {
+    if (!nextDate) return null;
+    
+    const d = new Date(nextDate);
+    d.setDate(d.getDate() - 2); // Base: 2 days before
+    
+    let targetDr = null;
+    if (category.includes('運動器')) targetDr = 'suzuki';
+    else if (category.includes('脳血管') || category.includes('廃用')) targetDr = 'tsukamoto';
+    
+    // If no target doctor or category doesn't match, return base calculation (or null if preferred)
+    if (!targetDr) return d.toISOString().split('T')[0];
+
+    // Check holidays (including Sundays)
+    // Go back until we find a work day
+    let safetyCounter = 0;
+    while (safetyCounter < 30) {
+        const dateStr = d.toISOString().split('T')[0];
+        const isSunday = d.getDay() === 0;
+        const isHoliday = holidays.some(h => h.dr_name === targetDr && h.attendance_date === dateStr);
+        
+        if (!isSunday && !isHoliday) break;
+        
+        d.setDate(d.getDate() - 1);
+        safetyCounter++;
+    }
+    
+    return d.toISOString().split('T')[0];
+}
+
 async function fetchLatestReserveDate() {
     if (!currentPatientDbId) return;
 
@@ -299,16 +329,16 @@ async function saveNextVisit() {
         return;
     }
 
-    // Auto-calculate Doc Submission Date if category is '運動器' and Suzuki is attending
-    // (Actually simpler per user request: if category is '運動器', set to 2 days before nextDate)
+    // Auto-calculate Doc Submission Date if category matches doctor rules
     const categoryContent = document.getElementById('details-patient-category')?.textContent || '';
-    if (categoryContent.includes('運動器') && nextDate && !docDate) {
-        const d = new Date(nextDate);
-        d.setDate(d.getDate() - 2);
-        const autoDate = d.toISOString().split('T')[0];
-        if (confirm(`カテゴリーが運動器のため、書類提出予定日を2日前の ${autoDate} に自動設定しますか？`)) {
+    const isMatchingCategory = categoryContent.includes('運動器') || categoryContent.includes('脳血管') || categoryContent.includes('廃用');
+
+    if (isMatchingCategory && nextDate && !docDate) {
+        await fetchDoctorHolidays();
+        const autoDate = calculateDocSubmissionDate(categoryContent, nextDate, doctorHolidays);
+        
+        if (autoDate && confirm(`カテゴリーに合わせて、書類提出予定日を ${autoDate} に自動設定しますか？`)) {
             document.getElementById('doc-submission-date').value = autoDate;
-            // Recursively call saveNextVisit or just continue with the new value
             saveNextVisit();
             return;
         }
@@ -1148,8 +1178,33 @@ async function toggleDrHoliday(drId, dateStr) {
             if (error) throw error;
         }
 
+        // Fetch refreshed holidays
         await fetchDoctorHolidays();
         renderDoctorSidebar();
+
+        // --- Auto-sync affected patients' doc submission dates ---
+        const affectedCategories = drId === 'suzuki' ? ['運動器'] : ['脳血管', '廃用'];
+        
+        // Fetch all patients in affected categories with a next_reserve_date
+        const { data: patients, error: pError } = await supabaseClient
+            .from('patients')
+            .select('p_id, p_category, next_reserve_date, p_doc_submission_date')
+            .in('p_category', affectedCategories)
+            .not('next_reserve_date', 'is', null);
+            
+        if (!pError && patients) {
+            for (const p of patients) {
+                const newDocDate = calculateDocSubmissionDate(p.p_category, p.next_reserve_date, doctorHolidays);
+                if (newDocDate !== p.p_doc_submission_date) {
+                    await supabaseClient.from('patients').update({ p_doc_submission_date: newDocDate }).eq('p_id', p.p_id);
+                }
+            }
+            // Refresh tables to show updated dates
+            await renderAdmissionTable();
+            await renderOutpatientTable();
+            await renderNursingCareTable();
+        }
+
     } catch (err) {
         console.error("Error toggling holiday:", err);
         alert("操作に失敗しました: " + (err.message || err));

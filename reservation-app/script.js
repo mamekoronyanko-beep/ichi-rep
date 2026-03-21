@@ -1128,13 +1128,36 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
+    const calculateDocSubmissionDate = (category, nextDate, holidays) => {
+        if (!nextDate) return null;
+        const d = new Date(nextDate);
+        d.setDate(d.getDate() - 2);
+
+        let targetDr = null;
+        if (category.includes('運動器')) targetDr = 'suzuki';
+        else if (category.includes('脳血管') || category.includes('廃用')) targetDr = 'tsukamoto';
+
+        if (!targetDr) return d.toISOString().split('T')[0];
+
+        let safetyCounter = 0;
+        while (safetyCounter < 30) {
+            const dateStr = d.toISOString().split('T')[0];
+            const isSunday = d.getDay() === 0;
+            const isHoliday = holidays.some(h => h.dr_name === targetDr && h.attendance_date === dateStr);
+            if (!isSunday && !isHoliday) break;
+            d.setDate(d.getDate() - 1);
+            safetyCounter++;
+        }
+        return d.toISOString().split('T')[0];
+    };
+
     const updateNextReserveDate = async (patientId) => {
         if (!patientId || patientId === 'INPATIENT') return;
 
         const today = new Date().toISOString().split('T')[0];
 
         // Fetch the earliest future reservation that is 'booked' (not arrived, not canceled)
-        const { data: nextRes, error } = await supabase
+        const { data: nextRes } = await supabase
             .from('reservations')
             .select('res_date')
             .eq('patient_id', patientId.trim())
@@ -1149,8 +1172,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             nextDate = nextRes[0].res_date;
         }
 
+        // Fetch patient category to calculate doc submission date
+        const { data: patient } = await supabase.from('patients').select('p_category').eq('p_id', patientId.trim()).single();
+        
+        let updateData = { next_reserve_date: nextDate };
+
+        if (nextDate && patient && patient.p_category) {
+            // Fetch doctor holidays
+            const { data: holidays } = await supabase.from('doctor_attendance').select('*');
+            const docDate = calculateDocSubmissionDate(patient.p_category, nextDate, holidays || []);
+            updateData.p_doc_submission_date = docDate;
+        }
+
         // Update the patient record
-        await supabase.from('patients').update({ next_reserve_date: nextDate }).eq('p_id', patientId.trim());
+        await supabase.from('patients').update(updateData).eq('p_id', patientId.trim());
     };
 
     // --- Status Update Handlers ---
