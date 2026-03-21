@@ -32,6 +32,9 @@
                 <button class="btn print-btn" onclick="window.print()"
                     style="background-color: #64748b; color: white; margin-top: 0;">印刷する</button>
                 <button id="refresh-btn" class="btn" style="background-color: #0ea5e9; color: white; border: none; margin-top: 0;" title="最新情報に更新">🔄 更新</button>
+                <button class="btn" style="background-color: #10b981; color: white; border: none; margin-top: 0;"
+                    onclick="document.getElementById('excel-import').click()">📄 Excelから読込</button>
+                <input type="file" id="excel-import" accept=".xlsx, .xls" style="display: none;">
                 <button class="btn primary" style="margin-top: 0;"
                     onclick="document.getElementById('addNursingCareModal').style.display='flex'">新規利用者追加</button>
             </div>

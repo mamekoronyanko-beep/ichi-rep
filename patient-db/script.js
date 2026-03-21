@@ -639,8 +639,6 @@ async function initApp() {
     }
 
     // Excel Import Logic
-    const excelImportInput = document.getElementById('excel-import');
-
     if (excelImportInput) {
         excelImportInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
@@ -648,17 +646,77 @@ async function initApp() {
 
             const reader = new FileReader();
 
-            reader.onload = (event) => {
+            reader.onload = async (event) => {
                 try {
                     const data = new Uint8Array(event.target.result);
                     const workbook = XLSX.read(data, { type: 'array' });
 
                     const firstSheetName = workbook.SheetNames[0];
                     const worksheet = workbook.Sheets[firstSheetName];
-                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-                    console.log('Imported Excel Data:', jsonData);
-                    alert(`Excelファイルの読み込みに成功しました。\n${jsonData.length} 行のデータを取得しました。\n※ここのデータを使って患者DBに反映させる処理を今後実装します。`);
+                    if (jsonData.length === 0) {
+                        alert('読み込めるデータが見つかりませんでした。');
+                        return;
+                    }
+
+                    // Determine current page type
+                    let currentPageType = 'admission';
+                    if (document.getElementById('outpatientTableBody')) currentPageType = 'outpatient';
+                    else if (document.getElementById('nursingCareTableBody')) currentPageType = 'nursing_care';
+
+                    const patientsToUpsert = jsonData.map(row => {
+                        // Find keys by keywords (flexible matching)
+                        const findKey = (keywords) => Object.keys(row).find(k => 
+                            keywords.some(kw => String(k).includes(kw))
+                        );
+                        
+                        const idKey = findKey(['ID', '患者ID', '利用者ID']) || 'p_id';
+                        const nameKey = findKey(['名前', '氏名', '患者名', '利用者名']) || 'p_name';
+                        const diseaseKey = findKey(['疾患', '病名', '疾患名']) || 'p_disease';
+                        const categoryKey = findKey(['カテゴリ', '種別', '疾患種別']) || 'p_category';
+                        const diagDateKey = findKey(['診断日', '発症日']) || 'p_diagnosis_date';
+                        const nursingCareKey = findKey(['要介護', '介護']) || 'p_nursing_care';
+
+                        // Format date if it's a serial number from Excel
+                        let diagDate = row[diagDateKey];
+                        if (typeof diagDate === 'number') {
+                            diagDate = XLSX.SSF.format('yyyy-mm-dd', diagDate);
+                        }
+
+                        // Nursing Care boolean check
+                        const ncVal = row[nursingCareKey];
+                        const isNursingCare = ncVal === 'あり' || ncVal === '有り' || ncVal === true || ncVal === 1 || ncVal === '1';
+
+                        return {
+                            p_id: toHalfWidth(String(row[idKey] || '')).trim(),
+                            p_name: String(row[nameKey] || '').trim(),
+                            p_type: currentPageType,
+                            p_category: row[categoryKey] || null,
+                            p_disease: row[diseaseKey] || '',
+                            p_diagnosis_date: diagDate || null,
+                            p_nursing_care: isNursingCare
+                        };
+                    }).filter(p => p.p_id && p.p_name);
+
+                    if (patientsToUpsert.length === 0) {
+                        alert('有効な形式のデータが見つかりませんでした（IDと名前が必須です）。');
+                        return;
+                    }
+
+                    if (confirm(`${patientsToUpsert.length} 件のデータをインポート（新規登録・上書き）しますか？`)) {
+                        const { error } = await supabaseClient.from('patients').upsert(patientsToUpsert, { onConflict: 'p_id' });
+                        if (error) {
+                            console.error('Import error:', error);
+                            alert('インポートに失敗しました: ' + error.message);
+                        } else {
+                            alert('インポートが完了しました。');
+                            // Refresh tables
+                            if (currentPageType === 'admission') await renderAdmissionTable();
+                            else if (currentPageType === 'outpatient') await renderOutpatientTable();
+                            else if (currentPageType === 'nursing_care') await renderNursingCareTable();
+                        }
+                    }
 
                     excelImportInput.value = '';
                 } catch (error) {
