@@ -1861,12 +1861,44 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (e.target === modal) closePerformanceModal();
     });
 
+    // --- Realtime Sync Logic ---
+    const setupRealtimeSubscription = () => {
+        console.log("Setting up Realtime Subscription for reservations...");
+        const reservationsChannel = supabase
+            .channel('public:reservations-changes')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'reservations' },
+                (payload) => {
+                    console.log('Realtime change detected:', payload);
+                    const currentDate = targetDateInput.value;
+                    const newRes = payload.new;
+                    const oldRes = payload.old;
+
+                    // Refresh if change is relevant to the current date
+                    const isRelevant = (newRes && newRes.res_date === currentDate) || 
+                                       (oldRes && oldRes.res_date === currentDate);
+                    
+                    if (isRelevant) {
+                        console.log('Current date matches. Refreshing schedule...');
+                        createSchedule();
+                    }
+                }
+            )
+            .subscribe((status) => {
+                console.log("Realtime subscription status:", status);
+            });
+            
+        return reservationsChannel;
+    };
+
     // Initialization sequence
     await migrateDataToSupabase();
     initializeDate();
     await createSchedule();
+    setupRealtimeSubscription();
 
-    // Optional: Re-render or handle date change if needed in the future
+    // Re-render schedule if user changes the date manually
     targetDateInput.addEventListener('change', async (e) => {
         console.log('Selected date changed to:', e.target.value);
         await createSchedule();
