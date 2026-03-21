@@ -617,6 +617,9 @@ async function initApp() {
 
     await renderAdmissionTable();
     await renderOutpatientTable();
+    await renderNursingCareTable();
+    await renderDischargedTable();
+    await renderTerminatedTable();
     await renderNursingCareArchivedTable();
     
     // Refresh Button Logic
