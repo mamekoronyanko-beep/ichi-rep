@@ -1523,6 +1523,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const startOfMonth = new Date(year, month, 1).toISOString().split('T')[0];
         const endOfMonth = new Date(year, month + 1, 0).toISOString().split('T')[0];
 
+        // Fetch reservations for the month
         const { data: reservations, error } = await supabase
             .from('reservations')
             .select('*')
@@ -1534,10 +1535,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
+        // Fetch patient categories to map outpatient stats
+        const { data: patients, error: pError } = await supabase
+            .from('patients')
+            .select('p_id, p_category');
+        const patientCategoryMap = {};
+        if (patients) {
+            patients.forEach(p => patientCategoryMap[p.p_id] = p.p_category);
+        }
+
         // Stats calculation
         const stats = {
             inpatient: { patients: new Set(), cases: 0, units: 0 },
-            outpatient: { patients: new Set(), cases: 0, units: 0 },
+            outpatient: { 
+                total: { patients: new Set(), cases: 0, units: 0 },
+                locomotor: { patients: new Set(), cases: 0, units: 0 },
+                cerebro: { patients: new Set(), cases: 0, units: 0 },
+                other: { patients: new Set(), cases: 0, units: 0 }
+            },
             nursing: { patients: new Set() }
         };
 
@@ -1563,51 +1578,78 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const reason = res.remarks || '理由なし';
                     cancelReasons[reason] = (cancelReasons[reason] || 0) + 1;
                 } else {
-                    stats.outpatient.patients.add(pId);
+                    stats.outpatient.total.patients.add(pId);
                     if (isArrived) {
-                        stats.outpatient.cases += 1;
-                        stats.outpatient.units += units;
+                        stats.outpatient.total.cases += 1;
+                        stats.outpatient.total.units += units;
+
+                        const cat = patientCategoryMap[pId];
+                        if (cat === '運動器') {
+                            stats.outpatient.locomotor.patients.add(pId);
+                            stats.outpatient.locomotor.cases += 1;
+                            stats.outpatient.locomotor.units += units;
+                        } else if (cat === '脳血管') {
+                            stats.outpatient.cerebro.patients.add(pId);
+                            stats.outpatient.cerebro.cases += 1;
+                            stats.outpatient.cerebro.units += units;
+                        } else {
+                            stats.outpatient.other.patients.add(pId);
+                            stats.outpatient.other.cases += 1;
+                            stats.outpatient.other.units += units;
+                        }
                     }
                 }
             }
         });
 
-        // Add manual Inpatient Intervention stats from localStorage
-        let manualInpatientUnits = 0;
-        let manualInpatientCases = 0;
+        // Add manual Inpatient Intervention stats from localStorage with categories
+        const manualInpatient = {
+            total: { cases: 0, units: 0 },
+            locomotor: { cases: 0, units: 0 },
+            cerebro: { cases: 0, units: 0 },
+            disuse: { cases: 0, units: 0 }
+        };
+
         const lastDay = new Date(year, month + 1, 0).getDate();
         for (let d = 1; d <= lastDay; d++) {
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
             ['locomotor', 'cerebro', 'disuse'].forEach(cat => {
                 const c = parseInt(localStorage.getItem(`manual_inpatient_${cat}_cases_${dateStr}`)) || 0;
                 const u = parseFloat(localStorage.getItem(`manual_inpatient_${cat}_units_${dateStr}`)) || 0;
-                manualInpatientCases += c;
-                manualInpatientUnits += u;
+                manualInpatient[cat].cases += c;
+                manualInpatient[cat].units += u;
+                manualInpatient.total.cases += c;
+                manualInpatient.total.units += u;
             });
         }
+
+        // Helper to format rows
+        const createRow = (label, patients, cases, units, isSub = false) => `
+            <tr style="border-bottom: 1px solid #f1f5f9; ${isSub ? 'background: #fbfcfe;' : ''}">
+                <td style="padding: ${isSub ? '0.5rem 1rem 0.5rem 2rem' : '1rem'}; font-weight: ${isSub ? 'normal' : '600'}; color: ${isSub ? '#64748b' : '#1e293b'};">
+                    ${isSub ? '└ ' : ''}${label}
+                </td>
+                <td style="padding: 0.5rem 1rem; text-align: right; font-size: ${isSub ? '0.85rem' : '1rem'};">${patients !== null ? patients + ' 名' : '-'}</td>
+                <td style="padding: 0.5rem 1rem; text-align: right; font-size: ${isSub ? '0.85rem' : '1rem'};">${cases} 件</td>
+                <td style="padding: 0.5rem 1rem; text-align: right; font-weight: ${isSub ? '600' : '700'}; color: ${isSub ? '#475569' : '#0f172a'}; font-size: ${isSub ? '0.85rem' : '1rem'};">${units} 単位</td>
+            </tr>
+        `;
 
         // Render Summary Table
         const summaryBody = document.getElementById('performance-summary-body');
         if (summaryBody) {
             summaryBody.innerHTML = `
-                <tr style="border-bottom: 1px solid #f1f5f9;">
-                    <td style="padding: 1rem; font-weight: 600; color: #1e293b;">🏥 入院患者 (介入実績)</td>
-                    <td style="padding: 1rem; text-align: right;">${stats.inpatient.patients.size} 名</td>
-                    <td style="padding: 1rem; text-align: right;">${manualInpatientCases} 件</td>
-                    <td style="padding: 1rem; text-align: right; font-weight: 700; color: #0f172a;">${manualInpatientUnits} 単位</td>
-                </tr>
-                <tr style="border-bottom: 1px solid #f1f5f9;">
-                    <td style="padding: 1rem; font-weight: 600; color: #1e293b;">🏥 外来患者（実来院）</td>
-                    <td style="padding: 1rem; text-align: right;">${stats.outpatient.patients.size} 名</td>
-                    <td style="padding: 1rem; text-align: right;">${stats.outpatient.cases} 件</td>
-                    <td style="padding: 1rem; text-align: right; font-weight: 700; color: #0f172a;">${stats.outpatient.units} 単位</td>
-                </tr>
-                <tr>
-                    <td style="padding: 1rem; font-weight: 600; color: #1e293b;">🏢 介護医療院 (面談・入所者)</td>
-                    <td style="padding: 1rem; text-align: right;">${stats.nursing.patients.size} 名</td>
-                    <td style="padding: 1rem; text-align: right;">-</td>
-                    <td style="padding: 1rem; text-align: right; font-weight: 700; color: #0f172a;">-</td>
-                </tr>
+                ${createRow('🏥 入院実績（介入合計）', stats.inpatient.patients.size, manualInpatient.total.cases, manualInpatient.total.units)}
+                ${createRow('運動器', null, manualInpatient.locomotor.cases, manualInpatient.locomotor.units, true)}
+                ${createRow('脳血管', null, manualInpatient.cerebro.cases, manualInpatient.cerebro.units, true)}
+                ${createRow('廃用', null, manualInpatient.disuse.cases, manualInpatient.disuse.units, true)}
+
+                ${createRow('🏥 外来実績（来院合計）', stats.outpatient.total.patients.size, stats.outpatient.total.cases, stats.outpatient.total.units)}
+                ${createRow('運動器', stats.outpatient.locomotor.patients.size, stats.outpatient.locomotor.cases, stats.outpatient.locomotor.units, true)}
+                ${createRow('脳血管', stats.outpatient.cerebro.patients.size, stats.outpatient.cerebro.cases, stats.outpatient.cerebro.units, true)}
+                ${stats.outpatient.other.cases > 0 ? createRow('その他', stats.outpatient.other.patients.size, stats.outpatient.other.cases, stats.outpatient.other.units, true) : ''}
+
+                ${createRow('🏢 介護医療院', stats.nursing.patients.size, '-', '-')}
             `;
         }
 
