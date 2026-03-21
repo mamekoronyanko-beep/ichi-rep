@@ -639,6 +639,7 @@ async function initApp() {
     }
 
     // Excel Import Logic
+    const excelImportInput = document.getElementById('excel-import');
     if (excelImportInput) {
         excelImportInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
