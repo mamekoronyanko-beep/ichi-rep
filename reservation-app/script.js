@@ -713,27 +713,39 @@ document.addEventListener('DOMContentLoaded', async () => {
         const nameList = document.getElementById('patient-name-list');
         const inpatientDatalist = document.getElementById('inpatient-list');
 
+        // Helper to normalize strings for comparison
+        const normalize = (str) => {
+            if (!str) return '';
+            return str.replace(/[Ａ-Ｚａ-ｚ０-９－]/g, (s) => {
+                return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
+            }).replace(/ー/g, '-').trim();
+        };
+
         if (idList && nameList) {
             idList.innerHTML = '';
             nameList.innerHTML = '';
             const { data: outpatients } = await supabase.from('patients').select('p_id, p_name').eq('p_type', 'outpatient');
+            
             if (outpatients) {
                 const uniqueIds = new Set();
                 const uniqueNames = new Set();
                 
                 outpatients.forEach(patient => {
-                    if (patient.p_id && !uniqueIds.has(patient.p_id)) {
+                    const normId = normalize(patient.p_id);
+                    const normName = patient.p_name ? patient.p_name.trim() : '';
+
+                    if (normId && !uniqueIds.has(normId)) {
                         const idOption = document.createElement('option');
-                        idOption.value = patient.p_id;
+                        idOption.value = normId; // Store normalized ID
                         idList.appendChild(idOption);
-                        uniqueIds.add(patient.p_id);
+                        uniqueIds.add(normId);
                     }
 
-                    if (patient.p_name && !uniqueNames.has(patient.p_name)) {
+                    if (normName && !uniqueNames.has(normName)) {
                         const nameOption = document.createElement('option');
-                        nameOption.value = patient.p_name;
+                        nameOption.value = normName;
                         nameList.appendChild(nameOption);
-                        uniqueNames.add(patient.p_name);
+                        uniqueNames.add(normName);
                     }
                 });
             }
@@ -745,7 +757,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (admissions) {
                 const uniqueInpatientEntries = new Set();
                 admissions.forEach(p => {
-                    const entryValue = `${p.p_id} : ${p.p_name}`;
+                    const normId = normalize(p.p_id);
+                    const normName = p.p_name ? p.p_name.trim() : '';
+                    const entryValue = `${normId} : ${normName}`;
+                    
                     if (!uniqueInpatientEntries.has(entryValue)) {
                         const opt = document.createElement('option');
                         opt.value = entryValue;
@@ -868,9 +883,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Setup modal text for new booking
         modalSubtitle.textContent = `予約日時: ${targetDateInput.value} ${time} | ${typeName}枠 ${index}`;
-
-        // Populate autocomplete options
-        populateDatalists();
 
         // Reset booking type to default (outpatient)
         const defaultRadio = document.querySelector('input[name="booking-type"][value="outpatient"]');
