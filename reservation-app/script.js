@@ -374,6 +374,55 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateStaffUnitInputs(dbReservations || []);
     };
 
+    // 🏥 入院介入実施（内訳入力）の永続化と連動
+    const INPATIENT_CATEGORIES = ['locomotor', 'cerebro', 'disuse'];
+
+    const updateInpatientManualStats = () => {
+        const selectedDate = targetDateInput.value;
+        let totalUnits = 0;
+
+        INPATIENT_CATEGORIES.forEach(cat => {
+            const casesInput = document.getElementById(`inpatient-${cat}-cases`);
+            const unitsInput = document.getElementById(`inpatient-${cat}-units`);
+
+            if (casesInput && unitsInput) {
+                const savedCases = localStorage.getItem(`manual_inpatient_${cat}_cases_${selectedDate}`);
+                const savedUnits = localStorage.getItem(`manual_inpatient_${cat}_units_${selectedDate}`);
+
+                // 初期ロード時などの復元（値が保存されていれば適用、なければ現状維持）
+                if (savedCases !== null && !casesInput._manuallyUpdated) {
+                    casesInput.value = savedCases;
+                }
+                if (savedUnits !== null && !unitsInput._manuallyUpdated) {
+                    unitsInput.value = savedUnits;
+                }
+
+                totalUnits += parseFloat(unitsInput.value) || 0;
+            }
+        });
+
+        const actualUnitsEl = document.getElementById('inpatient-actual-units');
+        if (actualUnitsEl) {
+            actualUnitsEl.textContent = totalUnits;
+        }
+    };
+
+    // リスナーの登録（一度だけ実行）
+    INPATIENT_CATEGORIES.forEach(cat => {
+        ['cases', 'units'].forEach(type => {
+            const input = document.getElementById(`inpatient-${cat}-${type}`);
+            if (input) {
+                input.addEventListener('input', () => {
+                    const selectedDate = targetDateInput.value;
+                    input._manuallyUpdated = true;
+                    localStorage.setItem(`manual_inpatient_${cat}_${type}_${selectedDate}`, input.value);
+                    updateInpatientManualStats();
+                    setTimeout(() => { input._manuallyUpdated = false; }, 100);
+                });
+            }
+        });
+    });
+
     // --- スタッフ別・消炎別の単位数を入力欄に自動セット ---
     const updateStaffUnitInputs = (reservations) => {
         const staffTotals = {};
@@ -405,6 +454,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             const manualAnti = localStorage.getItem(`manual_anti_units_${selectedDate}_1`);
             antiInput.value = manualAnti !== null ? manualAnti : antiTotal;
         }
+
+        // 入院介入の入力値を復元
+        updateInpatientManualStats();
 
         // スタッフ枠の合計値を「1日必要単位数」へ反映
         updateManualTotalFromFields();
@@ -490,6 +542,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         setVal('inpatient-actual-units', inpatientActual);
         setVal('outpatient-planned-units', outpatientPlanned);
         setVal('outpatient-actual-units', outpatientActual);
+
+        // 入院介入の内訳入力がある場合は、その合計値で上書きする
+        updateInpatientManualStats();
 
         // 1日必要単位数にスタッフ枠の合計を自動反映（手動入力がある場合はそれを優先）
         updateManualTotalFromFields();
