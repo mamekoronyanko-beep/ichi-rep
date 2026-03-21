@@ -1129,7 +1129,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // --- Status Update Handlers ---
-    const recordHistoryToDB = async (patientId, date, time, typeName, status, cancelReason = '') => {
+    const recordHistoryToDB = async (patientId, date, time, typeName, status, cancelReason = '', isWalkIn = false) => {
         if (!patientId) return;
 
         // Fetch current patient record
@@ -1159,7 +1159,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 time,
                 type: typeName,
                 status,
-                cancelReason: status === 'canceled' ? cancelReason : ''
+                cancelReason: status === 'canceled' ? cancelReason : '',
+                isWalkIn: isWalkIn
             });
         }
 
@@ -1178,25 +1179,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         const { data: resData, error: fetchError } = await supabase.from('reservations').select('*').eq('id', currentReservationId).single();
         if (fetchError || !resData) return;
 
+        const isWalkIn = resData.remarks?.includes('[予約外]') || false;
+        const typeNameStr = resData.res_type === 'staff' ? 'スタッフ' : '消炎';
+
         if (status === 'canceled') {
             // Update status and store cancel reason in remarks or a dedicated field
-            // To keep simple, we update existing row. (Original code moved it to a new key, but DB is better as a status change)
             await supabase.from('reservations').update({
                 status: 'canceled',
                 remarks: cancelReason || resData.remarks
             }).eq('id', currentReservationId);
 
             // Record history
-            const typeNameStr = resData.res_type === 'staff' ? 'スタッフ' : '消炎';
-            await recordHistoryToDB(resData.patient_id, resData.res_date, resData.res_time, typeNameStr, status, cancelReason);
+            await recordHistoryToDB(resData.patient_id, resData.res_date, resData.res_time, typeNameStr, status, cancelReason, isWalkIn);
 
         } else {
             // Normal update (e.g. arrived)
             await supabase.from('reservations').update({ status: status }).eq('id', currentReservationId);
 
             // Record history
-            const typeNameStr = resData.res_type === 'staff' ? 'スタッフ' : '消炎';
-            await recordHistoryToDB(resData.patient_id, resData.res_date, resData.res_time, typeNameStr, status, cancelReason);
+            await recordHistoryToDB(resData.patient_id, resData.res_date, resData.res_time, typeNameStr, status, cancelReason, isWalkIn);
         }
 
         await createSchedule();
@@ -1342,7 +1343,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Record to DB history if patient info is available
             if (pId && pId !== 'INPATIENT') {
                 const typeName = selectedType === 'staff' ? `スタッフ枠 ${selectedIndex}` : `消炎枠 ${selectedIndex}`;
-                await recordHistoryToDB(pId, selectedDate, selectedTime, typeName, 'booked');
+                await recordHistoryToDB(pId, selectedDate, selectedTime, typeName, 'booked', '', isWalkIn);
             }
 
             await createSchedule();

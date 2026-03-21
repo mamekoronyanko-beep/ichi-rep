@@ -225,7 +225,7 @@ async function openPatientDetails(dbId) {
             tr.innerHTML = `
                 <td style="padding: 0.75rem; border-bottom: 1px solid var(--border-color);">${h.date}</td>
                 <td style="padding: 0.75rem; border-bottom: 1px solid var(--border-color);">${h.time}</td>
-                <td style="padding: 0.75rem; border-bottom: 1px solid var(--border-color);">${h.type}</td>
+                <td style="padding: 0.75rem; border-bottom: 1px solid var(--border-color);">${h.type}${h.isWalkIn ? ' <span style="color:#f59e0b; font-weight:bold; font-size:0.75rem;">[予約外]</span>' : ''}</td>
                 <td style="padding: 0.75rem; border-bottom: 1px solid var(--border-color);">${h.cancelReason || '-'}</td>
                 <td style="padding: 0.75rem; border-bottom: 1px solid var(--border-color); text-align: center;">${statusHtml}</td>
             `;
