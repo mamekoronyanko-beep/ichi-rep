@@ -718,14 +718,23 @@ document.addEventListener('DOMContentLoaded', async () => {
             nameList.innerHTML = '';
             const { data: outpatients } = await supabase.from('patients').select('p_id, p_name').eq('p_type', 'outpatient');
             if (outpatients) {
+                const uniqueIds = new Set();
+                const uniqueNames = new Set();
+                
                 outpatients.forEach(patient => {
-                    const idOption = document.createElement('option');
-                    idOption.value = patient.p_id;
-                    idList.appendChild(idOption);
+                    if (patient.p_id && !uniqueIds.has(patient.p_id)) {
+                        const idOption = document.createElement('option');
+                        idOption.value = patient.p_id;
+                        idList.appendChild(idOption);
+                        uniqueIds.add(patient.p_id);
+                    }
 
-                    const nameOption = document.createElement('option');
-                    nameOption.value = patient.p_name;
-                    nameList.appendChild(nameOption);
+                    if (patient.p_name && !uniqueNames.has(patient.p_name)) {
+                        const nameOption = document.createElement('option');
+                        nameOption.value = patient.p_name;
+                        nameList.appendChild(nameOption);
+                        uniqueNames.add(patient.p_name);
+                    }
                 });
             }
         }
@@ -734,10 +743,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             inpatientDatalist.innerHTML = '';
             const { data: admissions } = await supabase.from('patients').select('p_id, p_name').eq('p_type', 'admission');
             if (admissions) {
+                const uniqueInpatientEntries = new Set();
                 admissions.forEach(p => {
-                    const opt = document.createElement('option');
-                    opt.value = `${p.p_id} : ${p.p_name}`;
-                    inpatientDatalist.appendChild(opt);
+                    const entryValue = `${p.p_id} : ${p.p_name}`;
+                    if (!uniqueInpatientEntries.has(entryValue)) {
+                        const opt = document.createElement('option');
+                        opt.value = entryValue;
+                        inpatientDatalist.appendChild(opt);
+                        uniqueInpatientEntries.add(entryValue);
+                    }
                 });
             }
         }
