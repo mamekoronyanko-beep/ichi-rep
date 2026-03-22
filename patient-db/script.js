@@ -913,7 +913,7 @@ async function renderMeetingCalendar() {
     // Now Fetch data
     const { data: patients, error } = await supabaseClient
         .from('patients')
-        .select('p_name, next_reserve_date, p_category, p_type')
+        .select('p_id, p_name, next_reserve_date, p_category, p_type, history')
         .not('next_reserve_date', 'is', null)
         .neq('p_type', 'outpatient');
 
@@ -928,7 +928,13 @@ async function renderMeetingCalendar() {
             if (p.next_reserve_date && p.next_reserve_date.length >= 10) {
                 const d = p.next_reserve_date.substring(0, 10);
                 if (!meetingsByDate[d]) meetingsByDate[d] = [];
-                meetingsByDate[d].push({ name: p.p_name, category: p.p_category, type: p.p_type });
+                meetingsByDate[d].push({ 
+                    id: p.p_id, 
+                    name: p.p_name, 
+                    category: p.p_category, 
+                    type: p.p_type,
+                    date: d
+                });
             }
         });
     }
@@ -957,7 +963,25 @@ async function renderMeetingCalendar() {
                     event.classList.add('event-disuse');
                 }
                 
-                event.textContent = info.name;
+                // 名前部分
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = info.name;
+                nameSpan.style.flex = "1";
+                nameSpan.style.overflow = "hidden";
+                nameSpan.style.textOverflow = "ellipsis";
+                event.appendChild(nameSpan);
+
+                // 「済」ボタン
+                const doneBtn = document.createElement('button');
+                doneBtn.className = 'event-complete-btn';
+                doneBtn.textContent = '済';
+                doneBtn.title = '面談を終了して履歴に追加';
+                doneBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    completeMeeting(info.id, info.date);
+                };
+                event.appendChild(doneBtn);
+
                 dayDiv.appendChild(event);
             });
         }
@@ -966,6 +990,58 @@ async function renderMeetingCalendar() {
     // Render Doctor Sidebar
     await fetchDoctorHolidays();
     renderDoctorSidebar();
+}
+
+/**
+ * 面談を終了し、履歴に追加する
+ */
+async function completeMeeting(patientId, date) {
+    if (!confirm('面談を終了し、履歴に追加しますか？')) return;
+    
+    try {
+        // 現在の履歴を取得
+        const { data: patient, error: fetchError } = await supabaseClient
+            .from('patients')
+            .select('p_name, history')
+            .eq('p_id', patientId)
+            .single();
+            
+        if (fetchError) throw fetchError;
+        
+        let history = [];
+        if (patient.history) {
+            history = typeof patient.history === 'string' ? JSON.parse(patient.history) : patient.history;
+        }
+        
+        // 新しい履歴エントリを追加
+        const newEntry = {
+            date: date,
+            time: "面談",
+            type: "面談",
+            status: "completed",
+            note: "面談終了"
+        };
+        history.push(newEntry);
+        
+        // 患者データを更新（履歴追加と面談予定日のクリア）
+        const { error: updateError } = await supabaseClient
+            .from('patients')
+            .update({ 
+                history: history,
+                next_reserve_date: null
+            })
+            .eq('p_id', patientId);
+            
+        if (updateError) throw updateError;
+        
+        alert(`${patient.p_name}様の面談を終了し、履歴に追加しました。`);
+        
+        // カレンダーを再描画
+        await renderMeetingCalendar();
+    } catch (err) {
+        console.error('Error completing meeting:', err);
+        alert('エラーが発生しました: ' + err.message);
+    }
 }
 
 async function renderDocSubmissionCalendar() {

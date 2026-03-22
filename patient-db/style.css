@@ -519,7 +519,33 @@ tr:hover {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    font-weight: 500;
+    font-weight: 540;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 4px;
+}
+
+.event-complete-btn {
+    background: white;
+    border: 1px solid currentColor;
+    border-radius: 3px;
+    padding: 0 4px;
+    font-size: 0.65rem;
+    cursor: pointer;
+    opacity: 0.8;
+    flex-shrink: 0;
+    line-height: 1.2;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.event-complete-btn:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.9);
+    transform: scale(1.1);
 }
 
 .event-locomotor {
