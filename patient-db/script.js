@@ -914,7 +914,8 @@ async function renderMeetingCalendar() {
     const { data: patients, error } = await supabaseClient
         .from('patients')
         .select('p_name, next_reserve_date, p_category, p_type')
-        .not('next_reserve_date', 'is', null);
+        .not('next_reserve_date', 'is', null)
+        .neq('p_type', 'outpatient');
 
     if (error) {
         console.error("Calendar fetch error:", error);
@@ -1031,7 +1032,8 @@ async function renderDocSubmissionCalendar() {
     const { data: patients, error } = await supabaseClient
         .from('patients')
         .select('p_name, p_doc_submission_date, p_category, p_type')
-        .not('p_doc_submission_date', 'is', null);
+        .not('p_doc_submission_date', 'is', null)
+        .neq('p_type', 'outpatient');
 
     if (error) {
         console.error("Calendar fetch error:", error);
