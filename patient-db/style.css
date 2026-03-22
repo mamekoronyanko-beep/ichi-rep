@@ -541,3 +541,23 @@ tr:hover {
 .rotating {
     animation: rotate 0.5s ease-in-out;
 }
+
+/* Holiday Support in Month Calendars */
+.calendar-day.is-non-working-day {
+    background-color: #fff1f2 !important;
+    position: relative;
+}
+
+.calendar-day.is-non-working-day::after {
+    content: "休診日";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-30deg);
+    font-size: 1.5rem;
+    color: rgba(220, 38, 38, 0.1);
+    font-weight: 900;
+    pointer-events: none;
+    z-index: 1;
+    white-space: nowrap;
+}

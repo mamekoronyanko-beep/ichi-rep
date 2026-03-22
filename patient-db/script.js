@@ -11,6 +11,26 @@ const toHalfWidth = (str) => {
     }).replace(/ー/g, '-');
 };
 
+// --- Holiday Support ---
+let holidaysData = {};
+
+async function fetchHolidays() {
+    try {
+        const response = await fetch('https://holidays-jp.github.io/api/v1/date.json');
+        holidaysData = await response.json();
+        console.log("Japanese holidays fetched:", Object.keys(holidaysData).length);
+    } catch (err) {
+        console.error("Failed to fetch holidays:", err);
+    }
+}
+
+function isNonWorkingDay(dateStr) {
+    const date = new Date(dateStr);
+    if (date.getDay() === 0) return true; // Sunday
+    if (holidaysData[dateStr]) return true; // Japanese Holiday
+    return false;
+}
+
 // Function to calculate remaining days based on category and diagnosis date
 function calculateRemainingDays(diagDate, category) {
     if (!diagDate || !category) return null;
@@ -261,15 +281,15 @@ function calculateDocSubmissionDate(category, nextDate, holidays) {
     // If no target doctor or category doesn't match, return base calculation (or null if preferred)
     if (!targetDr) return d.toISOString().split('T')[0];
 
-    // Check holidays (including Sundays)
+    // Check holidays (including Sundays and Japanese Holidays)
     // Go back until we find a work day
     let safetyCounter = 0;
     while (safetyCounter < 30) {
         const dateStr = d.toISOString().split('T')[0];
-        const isSunday = d.getDay() === 0;
-        const isHoliday = holidays.some(h => h.dr_name === targetDr && h.attendance_date === dateStr);
+        const isClosed = isNonWorkingDay(dateStr);
+        const isDrHoliday = holidays.some(h => h.dr_name === targetDr && h.attendance_date === dateStr);
         
-        if (!isSunday && !isHoliday) break;
+        if (!isClosed && !isDrHoliday) break;
         
         d.setDate(d.getDate() - 1);
         safetyCounter++;
@@ -604,6 +624,7 @@ window.onclick = function (event) {
 // Main Initialization Function
 async function initApp() {
     console.log(">>> initApp started");
+    await fetchHolidays();
     // Initialize Supabase Client safely
     if (window.supabase) {
         console.log("Supabase library found.");
@@ -861,7 +882,7 @@ async function renderMeetingCalendar() {
         grid.appendChild(dayDiv);
     }
 
-    // Fill current month's days (empty for now)
+    // Fill current month's days
     const currentMonthDays = [];
     for (let d = 1; d <= lastDay.getDate(); d++) {
         const dayDiv = document.createElement('div');
@@ -869,6 +890,12 @@ async function renderMeetingCalendar() {
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         dayDiv.innerHTML = `<span class="day-number">${d}</span>`;
         dayDiv.dataset.date = dateStr;
+        
+        // --- Apply holiday marking ---
+        if (isNonWorkingDay(dateStr)) {
+            dayDiv.classList.add('is-non-working-day');
+        }
+        
         grid.appendChild(dayDiv);
         currentMonthDays.push(dayDiv);
     }
@@ -968,6 +995,12 @@ async function renderDocSubmissionCalendar() {
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         dayDiv.innerHTML = `<span class="day-number">${d}</span>`;
         dayDiv.dataset.date = dateStr;
+        
+        // --- Apply holiday marking ---
+        if (isNonWorkingDay(dateStr)) {
+            dayDiv.classList.add('is-non-working-day');
+        }
+        
         grid.appendChild(dayDiv);
         currentMonthDays.push(dayDiv);
     }
