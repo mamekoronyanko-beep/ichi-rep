@@ -429,12 +429,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const savedCases = localStorage.getItem(`manual_inpatient_${cat}_cases_${selectedDate}`);
                 const savedUnits = localStorage.getItem(`manual_inpatient_${cat}_units_${selectedDate}`);
 
-                // 初期ロード時などの復元（値が保存されていれば適用、なければ現状維持）
-                if (savedCases !== null && !casesInput._manuallyUpdated) {
-                    casesInput.value = savedCases;
+                // 初期ロード時などの復元（値が保存されていなければ0をセット）
+                if (!casesInput._manuallyUpdated) {
+                    casesInput.value = savedCases !== null ? savedCases : 0;
                 }
-                if (savedUnits !== null && !unitsInput._manuallyUpdated) {
-                    unitsInput.value = savedUnits;
+                if (!unitsInput._manuallyUpdated) {
+                    unitsInput.value = savedUnits !== null ? savedUnits : 0;
                 }
 
                 totalUnits += parseFloat(unitsInput.value) || 0;
@@ -449,18 +449,35 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // リスナーの登録（一度だけ実行）
     INPATIENT_CATEGORIES.forEach(cat => {
-        ['cases', 'units'].forEach(type => {
-            const input = document.getElementById(`inpatient-${cat}-${type}`);
-            if (input) {
-                input.addEventListener('input', () => {
-                    const selectedDate = targetDateInput.value;
-                    input._manuallyUpdated = true;
-                    localStorage.setItem(`manual_inpatient_${cat}_${type}_${selectedDate}`, input.value);
-                    updateInpatientManualStats();
-                    setTimeout(() => { input._manuallyUpdated = false; }, 100);
-                });
-            }
-        });
+        const casesInput = document.getElementById(`inpatient-${cat}-cases`);
+        const unitsInput = document.getElementById(`inpatient-${cat}-units`);
+
+        if (casesInput) {
+            casesInput.addEventListener('input', () => {
+                const selectedDate = targetDateInput.value;
+                casesInput._manuallyUpdated = true;
+                localStorage.setItem(`manual_inpatient_${cat}_cases_${selectedDate}`, casesInput.value);
+                updateInpatientManualStats();
+                setTimeout(() => { casesInput._manuallyUpdated = false; }, 100);
+            });
+        }
+
+        if (unitsInput) {
+            unitsInput.addEventListener('input', () => {
+                const selectedDate = targetDateInput.value;
+                unitsInput._manuallyUpdated = true;
+                localStorage.setItem(`manual_inpatient_${cat}_units_${selectedDate}`, unitsInput.value);
+                
+                // 「件数は残して単位数で設定」の連動ロジック
+                if (casesInput) {
+                    casesInput.value = unitsInput.value;
+                    localStorage.setItem(`manual_inpatient_${cat}_cases_${selectedDate}`, unitsInput.value);
+                }
+
+                updateInpatientManualStats();
+                setTimeout(() => { unitsInput._manuallyUpdated = false; }, 100);
+            });
+        }
     });
 
     // --- スタッフ別・消炎別の単位数を入力欄に自動セット ---
