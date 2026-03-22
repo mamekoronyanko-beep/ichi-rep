@@ -913,7 +913,7 @@ async function renderMeetingCalendar() {
     // Now Fetch data
     const { data: patients, error } = await supabaseClient
         .from('patients')
-        .select('p_name, next_reserve_date')
+        .select('p_name, next_reserve_date, p_category, p_type')
         .not('next_reserve_date', 'is', null);
 
     if (error) {
@@ -927,7 +927,7 @@ async function renderMeetingCalendar() {
             if (p.next_reserve_date && p.next_reserve_date.length >= 10) {
                 const d = p.next_reserve_date.substring(0, 10);
                 if (!meetingsByDate[d]) meetingsByDate[d] = [];
-                meetingsByDate[d].push(p.p_name);
+                meetingsByDate[d].push({ name: p.p_name, category: p.p_category, type: p.p_type });
             }
         });
     }
@@ -941,10 +941,22 @@ async function renderMeetingCalendar() {
             dayDiv.classList.add('today');
         }
         if (meetingsByDate[dateStr]) {
-            meetingsByDate[dateStr].forEach(name => {
+            meetingsByDate[dateStr].forEach(info => {
                 const event = document.createElement('div');
                 event.className = 'calendar-event';
-                event.textContent = name;
+                
+                // 色分けクラスの付与
+                if (info.type === 'nursing_care') {
+                    event.classList.add('event-nursing');
+                } else if (info.category === '運動器') {
+                    event.classList.add('event-locomotor');
+                } else if (info.category === '脳血管') {
+                    event.classList.add('event-cerebro');
+                } else if (info.category === '廃用') {
+                    event.classList.add('event-disuse');
+                }
+                
+                event.textContent = info.name;
                 dayDiv.appendChild(event);
             });
         }
@@ -1018,7 +1030,7 @@ async function renderDocSubmissionCalendar() {
     // Now Fetch data
     const { data: patients, error } = await supabaseClient
         .from('patients')
-        .select('p_name, p_doc_submission_date')
+        .select('p_name, p_doc_submission_date, p_category, p_type')
         .not('p_doc_submission_date', 'is', null);
 
     if (error) {
@@ -1032,7 +1044,7 @@ async function renderDocSubmissionCalendar() {
             if (p.p_doc_submission_date && p.p_doc_submission_date.length >= 10) {
                 const d = p.p_doc_submission_date.substring(0, 10);
                 if (!docsByDate[d]) docsByDate[d] = [];
-                docsByDate[d].push(p.p_name);
+                docsByDate[d].push({ name: p.p_name, category: p.p_category, type: p.p_type });
             }
         });
     }
@@ -1046,11 +1058,22 @@ async function renderDocSubmissionCalendar() {
             dayDiv.classList.add('today');
         }
         if (docsByDate[dateStr]) {
-            docsByDate[dateStr].forEach(name => {
+            docsByDate[dateStr].forEach(info => {
                 const event = document.createElement('div');
                 event.className = 'calendar-event';
-                event.style.backgroundColor = '#10b981'; // Green for document
-                event.textContent = name;
+                
+                // 色分けクラスの付与
+                if (info.type === 'nursing_care') {
+                    event.classList.add('event-nursing');
+                } else if (info.category === '運動器') {
+                    event.classList.add('event-locomotor');
+                } else if (info.category === '脳血管') {
+                    event.classList.add('event-cerebro');
+                } else if (info.category === '廃用') {
+                    event.classList.add('event-disuse');
+                }
+                
+                event.textContent = info.name;
                 dayDiv.appendChild(event);
             });
         }
