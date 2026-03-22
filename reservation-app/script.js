@@ -15,6 +15,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     const BREAK_END_HOUR = 13;
     const STAFF_COUNT = 6;
     const ANTI_COUNT = 1;
+    const TIME_SLOTS = [];
+
+    // Global holidays state
+    let holidaysData = {};
+
+    /**
+     * Fetch Japanese holidays from external API
+     */
+    async function fetchHolidays() {
+        try {
+            const response = await fetch('https://holidays-jp.github.io/api/v1/date.json');
+            if (response.ok) {
+                holidaysData = await response.json();
+                console.log('Holidays loaded:', Object.keys(holidaysData).length);
+            }
+        } catch (error) {
+            console.error('Failed to fetch holidays:', error);
+        }
+    }
+
+    /**
+     * Check if a date is a non-working day (Sunday or Holiday)
+     */
+    function isNonWorkingDay(dateStr) {
+        if (!dateStr) return false;
+        const date = new Date(dateStr);
+        // Sunday is 0
+        if (date.getDay() === 0) return true;
+        // Check if dateStr exists in holidaysData (format YYYY-MM-DD)
+        return !!holidaysData[dateStr];
+    }
 
     let draggedSourceKey = null; // Global to store key during drag
 
@@ -70,8 +101,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ----------------------------
 
     const createSchedule = async () => {
-        scheduleBody.innerHTML = '';
         const selectedDate = targetDateInput.value;
+        const date = new Date(selectedDate);
+        const dayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][date.getDay()];
+        const isHoliday = isNonWorkingDay(selectedDate);
+        
+        // Add holiday class if needed
+        const container = document.querySelector('.table-container');
+        if (isHoliday) {
+            container.classList.add('is-non-working-day');
+        } else {
+            container.classList.remove('is-non-working-day');
+        }
+
+        scheduleBody.innerHTML = '';
 
         // --- 単位数表示行（スタッフ名の下）を動的に追加 ---
         const unitsRow = document.createElement('tr');
@@ -281,10 +324,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
 
                     const staffKey = `reservation_${selectedDate}_${timeString}_staff_${i}`;
-                    td.addEventListener('click', () => {
-                        if (isStaffOff && !td.classList.contains('booked')) { alert('お休みです'); return; }
-                        handleCellClick(staffNames[i - 1], i, timeString, td);
-                    });
+                    td.addEventListener('click', (e) => handleCellClick(e, staffNames[i - 1], i, timeString, td));
 
                     if (td.classList.contains('booked')) {
                         td.draggable = true;
@@ -342,7 +382,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         if (units > 1) { td.rowSpan = units; skipCells.anti[i] = units - 1; }
                     }
                     const antiKey = `reservation_${selectedDate}_${timeString}_anti_${i}`;
-                    td.addEventListener('click', () => handleCellClick('消炎', i, timeString, td));
+                    td.addEventListener('click', (e) => handleCellClick(e, '消炎', i, timeString, td));
                     if (td.classList.contains('booked')) {
                         td.draggable = true;
                         td.addEventListener('dragstart', (e) => {
@@ -354,7 +394,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                     td.addEventListener('dragover', (e) => { if (td.classList.contains('booked') && data && data.id !== draggedSourceKey) return; e.preventDefault(); td.classList.add('drag-over', 'anti-cell'); });
                     td.addEventListener('dragleave', () => td.classList.remove('drag-over', 'anti-cell'));
-                    td.addEventListener('drop', (e) => {
+                    td.addEventListener('drop', async (e) => {
                         e.preventDefault();
                         td.classList.remove('drag-over', 'anti-cell');
                         const sid = draggedSourceKey || e.dataTransfer.getData('text/plain');
@@ -853,7 +893,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     let currentReservationKey = null;
 
-    const handleCellClick = async (typeName, index, time, tdElement) => {
+    const handleCellClick = async (e, typeName, index, time, tdElement) => {
+        const dateStr = targetDateInput.value;
+        if (isNonWorkingDay(dateStr)) {
+            console.log('Action blocked: Non-working day');
+            alert('休診日のため、予約の追加・変更はできません。');
+            return;
+        }
+
         currentSelectedCell = tdElement;
 
         const selectedDate = targetDateInput.value;
@@ -980,8 +1027,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         closeModalBtn.addEventListener('click', closeBookingModal);
     }
 
+    // Close when clicking outside of modal content
+    window.addEventListener('click', (e) => {
+        if (e.target === bookingModal) {
+            closeBookingModal();
+        }
+        if (e.target === statusModal) {
+            closeStatusModal();
+        }
+        if (e.target === cancelDetailsModal) {
+            closeCancelDetailsModal();
+        }
+    });
+
     // --- Drag and Drop handleDrop Implementation (Supabase) ---
     const handleDrop = async (sourceId, targetDate, targetTime, targetType, targetIndex) => {
+        if (isNonWorkingDay(targetDate)) {
+            alert('休診日のため、予約の移動はできません。');
+            return;
+        }
+
         // sourceId is now the DB ID
         const { data: sourceData, error: fetchError } = await supabase.from('reservations').select('*').eq('id', sourceId).single();
         if (fetchError || !sourceData) return;
@@ -1168,9 +1233,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         let safetyCounter = 0;
         while (safetyCounter < 30) {
             const dateStr = d.toISOString().split('T')[0];
-            const isSunday = d.getDay() === 0;
-            const isHoliday = holidays.some(h => h.dr_name === targetDr && h.attendance_date === dateStr);
-            if (!isSunday && !isHoliday) break;
+            // 日本の祝日と日曜日の判定を追加
+            const isGeneralHoliday = isNonWorkingDay(dateStr);
+            const isDoctorHoliday = holidays.some(h => h.dr_name === targetDr && h.attendance_date === dateStr);
+
+            if (!isGeneralHoliday && !isDoctorHoliday) break;
             d.setDate(d.getDate() - 1);
             safetyCounter++;
         }
@@ -1893,10 +1960,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     // Initialization sequence
-    await migrateDataToSupabase();
-    initializeDate();
-    await createSchedule();
-    setupRealtimeSubscription();
+    async function init() {
+        await migrateDataToSupabase();
+        initializeDate();
+        await fetchHolidays(); // Load holidays first
+        await createSchedule();
+        populateDatalists();
+        setupRealtimeSubscription();
+    }
+    init();
 
     // Re-render schedule if user changes the date manually
     targetDateInput.addEventListener('change', async (e) => {

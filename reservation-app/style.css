@@ -705,3 +705,36 @@ body {
 .rotating {
     animation: rotate 0.5s ease-in-out;
 }
+
+/* Non-working days (Sundays/Holidays) styling */
+.is-non-working-day {
+    background-color: #fce7f3 !important; /* Soft pink background */
+    position: relative;
+    pointer-events: none; /* Disable all clicks */
+}
+
+.is-non-working-day::after {
+    content: "休診日";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-15deg);
+    font-size: 3rem;
+    font-weight: 900;
+    color: rgba(219, 39, 119, 0.2);
+    letter-spacing: 0.5em;
+    white-space: nowrap;
+    z-index: 5;
+    pointer-events: none;
+}
+
+/* Specific styling for time columns on holidays */
+.is-non-working-day .time-col {
+    background-color: #fbcfe8 !important;
+    color: #9d174d !important;
+}
+
+.is-non-working-day th {
+    background-color: #f9a8d4 !important;
+    color: #881337 !important;
+}
