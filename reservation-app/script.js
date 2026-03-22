@@ -1797,8 +1797,31 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
 
         const lastDay = new Date(year, month + 1, 0).getDate();
+        let totalMonthlyWorkdays = 0;
+        let workdaysToDate = 0;
+        const today = new Date();
+        const todayStr = today.toISOString().split('T')[0];
+
         for (let d = 1; d <= lastDay; d++) {
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            const date = new Date(dateStr);
+            
+            // Calculate workday value: Sat=0.5, Weekday=1, Sun/Hol=0
+            let dayValue = 0;
+            if (isNonWorkingDay(dateStr)) {
+                dayValue = 0;
+            } else if (date.getDay() === 6) { // Saturday
+                dayValue = 0.5;
+            } else if (date.getDay() !== 0) { // Monday-Friday (and not holiday)
+                dayValue = 1.0;
+            }
+            
+            totalMonthlyWorkdays += dayValue;
+            
+            // Calculate workdays up to today
+            if (dateStr <= todayStr) {
+                workdaysToDate += dayValue;
+            }
             ['locomotor', 'cerebro', 'disuse'].forEach(cat => {
                 const c = parseInt(localStorage.getItem(`manual_inpatient_${cat}_cases_${dateStr}`)) || 0;
                 const u = parseFloat(localStorage.getItem(`manual_inpatient_${cat}_units_${dateStr}`)) || 0;
@@ -1859,6 +1882,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }).join('');
                 })()}
             `;
+
+            // Update Outpatient Summary Stats
+            const monthlyWorkdaysEl = document.getElementById('perf-monthly-workdays');
+            const workdaysToDateEl = document.getElementById('perf-workdays-to-date');
+            const averageUnitsEl = document.getElementById('perf-average-units');
+            
+            if (monthlyWorkdaysEl) monthlyWorkdaysEl.textContent = totalMonthlyWorkdays.toFixed(1);
+            if (workdaysToDateEl) workdaysToDateEl.textContent = workdaysToDate.toFixed(1);
+            
+            if (averageUnitsEl) {
+                const avg = workdaysToDate > 0 ? (stats.outpatient.total.units / workdaysToDate).toFixed(1) : '0.0';
+                averageUnitsEl.textContent = avg;
+            }
 
             // Add input listeners for nursing stats
             document.querySelectorAll('.perf-nursing-input').forEach(input => {
