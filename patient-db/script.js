@@ -270,14 +270,14 @@ async function openPatientDetails(dbId) {
 
 function calculateDocSubmissionDate(category, nextDate, holidays) {
     if (!nextDate) return null;
-    
+
     const d = new Date(nextDate);
     d.setDate(d.getDate() - 2); // Base: 2 days before
-    
+
     let targetDr = null;
     if (category.includes('運動器')) targetDr = 'suzuki';
     else if (category.includes('脳血管') || category.includes('廃用')) targetDr = 'tsukamoto';
-    
+
     // If no target doctor or category doesn't match, return base calculation (or null if preferred)
     if (!targetDr) return d.toISOString().split('T')[0];
 
@@ -288,13 +288,13 @@ function calculateDocSubmissionDate(category, nextDate, holidays) {
         const dateStr = d.toISOString().split('T')[0];
         const isClosed = isNonWorkingDay(dateStr);
         const isDrHoliday = holidays.some(h => h.dr_name === targetDr && h.attendance_date === dateStr);
-        
+
         if (!isClosed && !isDrHoliday) break;
-        
+
         d.setDate(d.getDate() - 1);
         safetyCounter++;
     }
-    
+
     return d.toISOString().split('T')[0];
 }
 
@@ -302,7 +302,7 @@ async function fetchLatestReserveDate() {
     if (!currentPatientDbId) return;
 
     const today = new Date().toISOString().split('T')[0];
-    
+
     // Fetch the earliest future reservation that is 'booked'
     const { data: nextRes, error } = await supabaseClient
         .from('reservations')
@@ -356,7 +356,7 @@ async function saveNextVisit() {
     if (isMatchingCategory && nextDate && !docDate) {
         await fetchDoctorHolidays();
         const autoDate = calculateDocSubmissionDate(categoryContent, nextDate, doctorHolidays);
-        
+
         if (autoDate && confirm(`カテゴリーに合わせて、書類提出予定日を ${autoDate} に自動設定しますか？`)) {
             document.getElementById('doc-submission-date').value = autoDate;
             saveNextVisit();
@@ -703,7 +703,7 @@ async function initApp() {
     await renderDischargedTable();
     await renderTerminatedTable();
     await renderNursingCareArchivedTable();
-    
+
     // Refresh Button Logic
     const refreshBtn = document.getElementById('refresh-btn');
     if (refreshBtn) {
@@ -750,10 +750,10 @@ async function initApp() {
 
                     const patientsToUpsert = jsonData.map(row => {
                         // Find keys by keywords (flexible matching)
-                        const findKey = (keywords) => Object.keys(row).find(k => 
+                        const findKey = (keywords) => Object.keys(row).find(k =>
                             keywords.some(kw => String(k).includes(kw))
                         );
-                        
+
                         const idKey = findKey(['ID', '患者ID', '利用者ID']) || 'p_id';
                         const nameKey = findKey(['名前', '氏名', '患者名', '利用者名']) || 'p_name';
                         const diseaseKey = findKey(['疾患', '病名', '疾患名']) || 'p_disease';
@@ -890,12 +890,12 @@ async function renderMeetingCalendar() {
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         dayDiv.innerHTML = `<span class="day-number">${d}</span>`;
         dayDiv.dataset.date = dateStr;
-        
+
         // --- Apply holiday marking ---
         if (isNonWorkingDay(dateStr)) {
             dayDiv.classList.add('is-non-working-day');
         }
-        
+
         grid.appendChild(dayDiv);
         currentMonthDays.push(dayDiv);
     }
@@ -928,10 +928,10 @@ async function renderMeetingCalendar() {
             if (p.next_reserve_date && p.next_reserve_date.length >= 10) {
                 const d = p.next_reserve_date.substring(0, 10);
                 if (!meetingsByDate[d]) meetingsByDate[d] = [];
-                meetingsByDate[d].push({ 
-                    id: p.p_id, 
-                    name: p.p_name, 
-                    category: p.p_category, 
+                meetingsByDate[d].push({
+                    id: p.p_id,
+                    name: p.p_name,
+                    category: p.p_category,
                     type: p.p_type,
                     date: d,
                     history: p.history
@@ -952,7 +952,7 @@ async function renderMeetingCalendar() {
             meetingsByDate[dateStr].forEach(info => {
                 const event = document.createElement('div');
                 event.className = 'calendar-event';
-                
+
                 // 色分けクラスの付与
                 if (info.type === 'nursing_care') {
                     event.classList.add('event-nursing');
@@ -963,7 +963,7 @@ async function renderMeetingCalendar() {
                 } else if (info.category === '廃用') {
                     event.classList.add('event-disuse');
                 }
-                
+
                 // 完了状態のチェック
                 let historyArr = [];
                 try {
@@ -971,13 +971,13 @@ async function renderMeetingCalendar() {
                         historyArr = typeof info.history === 'string' ? JSON.parse(info.history) : info.history;
                     }
                 } catch (e) { }
-                
+
                 const isCompleted = historyArr.some(h => h.date === dateStr && h.type === '面談' && h.status === 'completed');
-                
+
                 if (isCompleted) {
                     event.classList.add('event-completed');
                 }
-                
+
                 // 名前部分
                 const nameSpan = document.createElement('span');
                 nameSpan.textContent = info.name;
@@ -989,7 +989,7 @@ async function renderMeetingCalendar() {
                 // ボタン制御
                 const doneBtn = document.createElement('button');
                 doneBtn.className = 'event-complete-btn';
-                
+
                 if (isCompleted) {
                     doneBtn.textContent = '取消';
                     doneBtn.title = '面談の完了を取り消す';
@@ -1022,7 +1022,7 @@ async function renderMeetingCalendar() {
  */
 async function completeMeeting(patientId, date) {
     if (!confirm('面談を終了し、履歴に追加しますか？')) return;
-    
+
     try {
         // 現在の履歴を取得
         const { data: patient, error: fetchError } = await supabaseClient
@@ -1030,14 +1030,14 @@ async function completeMeeting(patientId, date) {
             .select('p_name, history')
             .eq('p_id', patientId)
             .single();
-            
+
         if (fetchError) throw fetchError;
-        
+
         let history = [];
         if (patient.history) {
             history = typeof patient.history === 'string' ? JSON.parse(patient.history) : patient.history;
         }
-        
+
         // 新しい履歴エントリを追加
         const newEntry = {
             date: date,
@@ -1047,19 +1047,19 @@ async function completeMeeting(patientId, date) {
             note: "面談終了"
         };
         history.push(newEntry);
-        
+
         // 患者データを更新（履歴追加：日付はクリアせず維持）
         const { error: updateError } = await supabaseClient
             .from('patients')
-            .update({ 
+            .update({
                 history: history
             })
             .eq('p_id', patientId);
-            
+
         if (updateError) throw updateError;
-        
+
         alert(`${patient.p_name}様の面談を終了し、履歴に追加しました。`);
-        
+
         // カレンダーを再描画
         await renderMeetingCalendar();
     } catch (err) {
@@ -1073,7 +1073,7 @@ async function completeMeeting(patientId, date) {
  */
 async function revertMeeting(patientId, date) {
     if (!confirm('面談の完了を取り消しますか？')) return;
-    
+
     try {
         // 現在の履歴を取得
         const { data: patient, error: fetchError } = await supabaseClient
@@ -1081,29 +1081,29 @@ async function revertMeeting(patientId, date) {
             .select('p_name, history')
             .eq('p_id', patientId)
             .single();
-            
+
         if (fetchError) throw fetchError;
-        
+
         let history = [];
         if (patient.history) {
             history = typeof patient.history === 'string' ? JSON.parse(patient.history) : patient.history;
         }
-        
+
         // 該当日の完了履歴を削除
         const newHistory = history.filter(h => !(h.date === date && h.type === '面談' && h.status === 'completed'));
-        
+
         // 患者データを更新
         const { error: updateError } = await supabaseClient
             .from('patients')
-            .update({ 
+            .update({
                 history: newHistory
             })
             .eq('p_id', patientId);
-            
+
         if (updateError) throw updateError;
-        
+
         alert(`${patient.p_name}様の面談完了を取り消しました。`);
-        
+
         // カレンダーを再描画
         await renderMeetingCalendar();
     } catch (err) {
@@ -1152,12 +1152,12 @@ async function renderDocSubmissionCalendar() {
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         dayDiv.innerHTML = `<span class="day-number">${d}</span>`;
         dayDiv.dataset.date = dateStr;
-        
+
         // --- Apply holiday marking ---
         if (isNonWorkingDay(dateStr)) {
             dayDiv.classList.add('is-non-working-day');
         }
-        
+
         grid.appendChild(dayDiv);
         currentMonthDays.push(dayDiv);
     }
@@ -1207,7 +1207,7 @@ async function renderDocSubmissionCalendar() {
             docsByDate[dateStr].forEach(info => {
                 const event = document.createElement('div');
                 event.className = 'calendar-event';
-                
+
                 // 色分けクラスの付与
                 if (info.type === 'nursing_care') {
                     event.classList.add('event-nursing');
@@ -1218,7 +1218,7 @@ async function renderDocSubmissionCalendar() {
                 } else if (info.category === '廃用') {
                     event.classList.add('event-disuse');
                 }
-                
+
                 event.textContent = info.name;
                 dayDiv.appendChild(event);
             });
@@ -1386,14 +1386,14 @@ async function toggleDrHoliday(drId, dateStr) {
 
         // --- Auto-sync affected patients' doc submission dates ---
         const affectedCategories = drId === 'suzuki' ? ['運動器'] : ['脳血管', '廃用'];
-        
+
         // Fetch all patients in affected categories with a next_reserve_date
         const { data: patients, error: pError } = await supabaseClient
             .from('patients')
             .select('p_id, p_category, next_reserve_date, p_doc_submission_date')
             .in('p_category', affectedCategories)
             .not('next_reserve_date', 'is', null);
-            
+
         if (!pError && patients) {
             for (const p of patients) {
                 const newDocDate = calculateDocSubmissionDate(p.p_category, p.next_reserve_date, doctorHolidays);
