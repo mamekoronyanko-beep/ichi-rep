@@ -933,7 +933,8 @@ async function renderMeetingCalendar() {
                     name: p.p_name, 
                     category: p.p_category, 
                     type: p.p_type,
-                    date: d
+                    date: d,
+                    history: p.history
                 });
             }
         });
@@ -963,6 +964,20 @@ async function renderMeetingCalendar() {
                     event.classList.add('event-disuse');
                 }
                 
+                // 完了状態のチェック
+                let historyArr = [];
+                try {
+                    if (info.history) {
+                        historyArr = typeof info.history === 'string' ? JSON.parse(info.history) : info.history;
+                    }
+                } catch (e) { }
+                
+                const isCompleted = historyArr.some(h => h.date === dateStr && h.type === '面談' && h.status === 'completed');
+                
+                if (isCompleted) {
+                    event.classList.add('event-completed');
+                }
+                
                 // 名前部分
                 const nameSpan = document.createElement('span');
                 nameSpan.textContent = info.name;
@@ -971,15 +986,25 @@ async function renderMeetingCalendar() {
                 nameSpan.style.textOverflow = "ellipsis";
                 event.appendChild(nameSpan);
 
-                // 「済」ボタン
+                // ボタン制御
                 const doneBtn = document.createElement('button');
                 doneBtn.className = 'event-complete-btn';
-                doneBtn.textContent = '済';
-                doneBtn.title = '面談を終了して履歴に追加';
-                doneBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    completeMeeting(info.id, info.date);
-                };
+                
+                if (isCompleted) {
+                    doneBtn.textContent = '取消';
+                    doneBtn.title = '面談の完了を取り消す';
+                    doneBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        revertMeeting(info.id, info.date);
+                    };
+                } else {
+                    doneBtn.textContent = '済';
+                    doneBtn.title = '面談を終了して履歴に追加';
+                    doneBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        completeMeeting(info.id, info.date);
+                    };
+                }
                 event.appendChild(doneBtn);
 
                 dayDiv.appendChild(event);
@@ -1023,12 +1048,11 @@ async function completeMeeting(patientId, date) {
         };
         history.push(newEntry);
         
-        // 患者データを更新（履歴追加と面談予定日のクリア）
+        // 患者データを更新（履歴追加：日付はクリアせず維持）
         const { error: updateError } = await supabaseClient
             .from('patients')
             .update({ 
-                history: history,
-                next_reserve_date: null
+                history: history
             })
             .eq('p_id', patientId);
             
@@ -1040,6 +1064,50 @@ async function completeMeeting(patientId, date) {
         await renderMeetingCalendar();
     } catch (err) {
         console.error('Error completing meeting:', err);
+        alert('エラーが発生しました: ' + err.message);
+    }
+}
+
+/**
+ * 面談の完了を取り消し、履歴から削除する
+ */
+async function revertMeeting(patientId, date) {
+    if (!confirm('面談の完了を取り消しますか？')) return;
+    
+    try {
+        // 現在の履歴を取得
+        const { data: patient, error: fetchError } = await supabaseClient
+            .from('patients')
+            .select('p_name, history')
+            .eq('p_id', patientId)
+            .single();
+            
+        if (fetchError) throw fetchError;
+        
+        let history = [];
+        if (patient.history) {
+            history = typeof patient.history === 'string' ? JSON.parse(patient.history) : patient.history;
+        }
+        
+        // 該当日の完了履歴を削除
+        const newHistory = history.filter(h => !(h.date === date && h.type === '面談' && h.status === 'completed'));
+        
+        // 患者データを更新
+        const { error: updateError } = await supabaseClient
+            .from('patients')
+            .update({ 
+                history: newHistory
+            })
+            .eq('p_id', patientId);
+            
+        if (updateError) throw updateError;
+        
+        alert(`${patient.p_name}様の面談完了を取り消しました。`);
+        
+        // カレンダーを再描画
+        await renderMeetingCalendar();
+    } catch (err) {
+        console.error('Error reverting meeting:', err);
         alert('エラーが発生しました: ' + err.message);
     }
 }

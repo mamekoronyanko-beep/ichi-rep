@@ -572,6 +572,15 @@ tr:hover {
     border: 1px solid #ddd6fe !important;
 }
 
+.event-completed {
+    opacity: 0.6;
+}
+
+.event-completed span {
+    text-decoration: line-through;
+    color: #6b7280;
+}
+
 .tag-nursing-care {
     background-color: #fee2e2;
     color: #991b1b;
