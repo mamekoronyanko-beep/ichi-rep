@@ -146,24 +146,40 @@ async function renderNursingCareTable() {
 // Function to delete an admission patient record (Archive)
 async function deleteAdmissionPatient(dbId) {
     if (confirm('この患者データを「退院者」としてアーカイブへ移動しますか？')) {
-        const dischargeDate = new Date().toLocaleDateString('ja-JP');
-        await supabaseClient.from('patients').update({
+        const dischargeDate = new Date().toISOString().split('T')[0];
+        const { error } = await supabaseClient.from('patients').update({
             p_type: 'archived_admission',
             p_termination_date: dischargeDate
         }).eq('p_id', dbId);
+
+        if (error) {
+            console.error('Delete error:', error);
+            alert('アーカイブへの移動に失敗しました: ' + error.message);
+            return;
+        }
+
         await renderAdmissionTable();
+        await renderDischargedTable();
     }
 }
 
 // Function to delete a nursing care patient record (Archive)
 async function deleteNursingCarePatient(dbId) {
     if (confirm('この利用者を「介護医療院修了者」としてアーカイブへ移動しますか？')) {
-        const terminationDate = new Date().toLocaleDateString('ja-JP');
-        await supabaseClient.from('patients').update({
+        const terminationDate = new Date().toISOString().split('T')[0];
+        const { error } = await supabaseClient.from('patients').update({
             p_type: 'archived_nursing_care',
             p_termination_date: terminationDate
         }).eq('p_id', dbId);
+
+        if (error) {
+            console.error('Delete error:', error);
+            alert('アーカイブへの移動に失敗しました: ' + error.message);
+            return;
+        }
+
         await renderNursingCareTable();
+        await renderNursingCareArchivedTable();
     }
 }
 
@@ -385,6 +401,9 @@ async function saveNextVisit() {
     await renderAdmissionTable();
     await renderOutpatientTable();
     await renderNursingCareTable();
+    await renderDischargedTable();
+    await renderTerminatedTable();
+    await renderNursingCareArchivedTable();
     // Refresh calendar if modal is open
     const calendarModal = document.getElementById('calendarModal');
     if (calendarModal && calendarModal.style.display === 'flex') {
@@ -450,12 +469,20 @@ async function renderOutpatientTable() {
 // Function to delete an outpatient record (Archive)
 async function deleteOutpatient(dbId) {
     if (confirm('この外来データを「外来終了」としてアーカイブへ移動しますか？')) {
-        const terminationDate = new Date().toLocaleDateString('ja-JP');
-        await supabaseClient.from('patients').update({
+        const terminationDate = new Date().toISOString().split('T')[0];
+        const { error } = await supabaseClient.from('patients').update({
             p_type: 'archived_outpatient',
             p_termination_date: terminationDate
         }).eq('p_id', dbId);
+
+        if (error) {
+            console.error('Delete error:', error);
+            alert('アーカイブへの移動に失敗しました: ' + error.message);
+            return;
+        }
+
         await renderOutpatientTable();
+        await renderTerminatedTable();
     }
 }
 
@@ -750,14 +777,23 @@ async function initApp() {
 
                     const patientsToUpsert = jsonData.map(row => {
                         // Find keys by keywords (flexible matching)
-                        const findKey = (keywords) => Object.keys(row).find(k =>
-                            keywords.some(kw => String(k).includes(kw))
-                        );
+                        const findKey = (keywords) => {
+                            const keys = Object.keys(row);
+                            // 優先度1: 完全一致
+                            let found = keys.find(k => keywords.includes(String(k).trim()));
+                            if (found) return found;
+                            // 優先度2: 部分一致（より具体的なものを優先するため、キーワードリストの順序を考慮）
+                            for (const kw of keywords) {
+                                let partial = keys.find(k => String(k).includes(kw));
+                                if (partial) return partial;
+                            }
+                            return null;
+                        };
 
                         const idKey = findKey(['ID', '患者ID', '利用者ID']) || 'p_id';
                         const nameKey = findKey(['名前', '氏名', '患者名', '利用者名']) || 'p_name';
-                        const diseaseKey = findKey(['疾患', '病名', '疾患名']) || 'p_disease';
-                        const categoryKey = findKey(['カテゴリ', '種別', '疾患種別']) || 'p_category';
+                        const categoryKey = findKey(['疾患種別', 'カテゴリ', '種別']) || 'p_category';
+                        const diseaseKey = findKey(['疾患名', '病名', '疾患']) || 'p_disease';
                         const diagDateKey = findKey(['診断日', '発症日']) || 'p_diagnosis_date';
                         const nursingCareKey = findKey(['要介護', '介護']) || 'p_nursing_care';
 

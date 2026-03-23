@@ -207,10 +207,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         let currentTime = new Date(startTime);
 
-        const skipCells = {
-            staff: Array(STAFF_COUNT + 1).fill(0),
-            anti: Array(ANTI_COUNT + 1).fill(0)
-        };
+        // { count: 1, startTime: '09:00' } のようなオブジェクトで管理するように変更
+        const skipCells = { staff: {}, anti: {} };
 
         const staffNames = await getStaffData();
         const staffAttendance = await getStaffAttendance(selectedDate);
@@ -267,14 +265,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else {
                 // Staff Slots
                 for (let i = 1; i <= STAFF_COUNT; i++) {
-                    if (skipCells.staff[i] > 0) {
-                        skipCells.staff[i]--;
-                        continue;
-                    }
                     const td = document.createElement('td');
                     td.dataset.time = timeString;
                     td.dataset.type = 'staff';
                     td.dataset.index = i;
+
+                    if (skipCells.staff[i] && skipCells.staff[i].count > 0) {
+                        td.classList.add('booked', 'continued-slot');
+                        td.dataset.resStart = skipCells.staff[i].startTime; // 元の予約開始時間を保持
+                        tr.appendChild(td);
+                        skipCells.staff[i].count--;
+                        
+                        const currentIdx = i;
+                        td.addEventListener('click', (e) => handleCellClick(e, staffNames[currentIdx - 1], currentIdx, timeString, td));
+                        continue;
+                    }
 
                     const attendanceMode = staffAttendance[i - 1];
                     let isStaffOff = false;
@@ -308,19 +313,25 @@ document.addEventListener('DOMContentLoaded', async () => {
                             td.classList.add('is-walk-in');
                         }
 
+                        const unitsLabel = units > 1 ? ` <span style="color:#6366f1; font-weight:800; font-size:0.65rem;">(${units}単位)</span>` : '';
+
                         if (data.is_inpatient_block) {
-                            td.innerHTML = `<div class="status-text" style="font-size: 0.7rem;">${isWalkIn ? '<span class="walk-in-badge">予約外</span><br>' : ''}🏥 入院患者介入枠<br><span style="font-size: 0.6rem;">${displayRemarks}</span></div>`;
+                            td.innerHTML = `<div class="status-text" style="font-size: 0.7rem;">${isWalkIn ? '<span class="walk-in-badge">予約外</span><br>' : ''}🏥 入院患者介入枠${unitsLabel}<br><span style="font-size: 0.6rem;">${displayRemarks}</span></div>`;
                             td.style.backgroundColor = isStaffOff ? '#fdf2f880' : '#fdf2f8';
                             td.style.color = isStaffOff ? '#be185d80' : '#be185d';
                         } else if (data.is_meeting) {
-                            td.innerHTML = `<div class="status-text" style="font-size: 0.7rem;">${isWalkIn ? '<span class="walk-in-badge">予約外</span><br>' : ''}💬 面談: ${data.patient_name || '未指定'}<br><span style="font-size: 0.6rem;">${displayRemarks}</span></div>`;
+                            td.innerHTML = `<div class="status-text" style="font-size: 0.7rem;">${isWalkIn ? '<span class="walk-in-badge">予約外</span><br>' : ''}💬 面談: ${data.patient_name || '未指定'}${unitsLabel}<br><span style="font-size: 0.6rem;">${displayRemarks}</span></div>`;
                             td.style.backgroundColor = isStaffOff ? '#ecfdf580' : '#ecfdf5';
                             td.style.color = isStaffOff ? '#065f4680' : '#065f46';
                             td.style.border = isStaffOff ? '2px solid #d1fae580' : '2px solid #10b981';
                         } else {
-                            td.innerHTML = `<div class="status-text" style="font-size: 0.7rem;">${isWalkIn ? '<span class="walk-in-badge">予約外</span><br>' : ''}${data.patient_name || '無名'}<br><span style="font-size: 0.6rem;">${displayRemarks}</span></div>`;
+                            td.innerHTML = `<div class="status-text" style="font-size: 0.7rem;">${isWalkIn ? '<span class="walk-in-badge">予約外</span><br>' : ''}${data.patient_name || '無名'}${unitsLabel}<br><span style="font-size: 0.6rem;">${displayRemarks}</span></div>`;
                         }
-                        if (units > 1) { td.rowSpan = units; skipCells.staff[i] = units - 1; }
+                        if (units > 1) { 
+                            // rowSpan は使用せず、skipCells だけセットする
+                            skipCells.staff[i] = { count: units - 1, startTime: data.res_time }; 
+                        }
+                        td.dataset.resStart = data.res_time;
                     }
 
                     const staffKey = `reservation_${selectedDate}_${timeString}_staff_${i}`;
@@ -349,11 +360,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 // Anti Slots
                 for (let i = 1; i <= ANTI_COUNT; i++) {
-                    if (skipCells.anti[i] > 0) { skipCells.anti[i]--; continue; }
                     const td = document.createElement('td');
                     td.dataset.time = timeString;
                     td.dataset.type = 'anti';
                     td.dataset.index = i;
+
+                    if (skipCells.anti[i] && skipCells.anti[i].count > 0) {
+                        td.classList.add('booked', 'continued-slot');
+                        td.dataset.resStart = skipCells.anti[i].startTime;
+                        tr.appendChild(td);
+                        skipCells.anti[i].count--;
+                        
+                        // 継続スロットでもクリック可能にする
+                        td.addEventListener('click', (e) => handleCellClick(e, '消炎', i, timeString, td));
+                        continue;
+                    }
+
                     const data = timeData.anti[i];
                     if (data) {
                         td.classList.add('booked');
@@ -370,16 +392,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                             td.classList.add('is-walk-in');
                         }
 
+                        const unitsLabel = units > 1 ? ` <span style="color:#6366f1; font-weight:800; font-size:0.65rem;">(${units}単位)</span>` : '';
+
                         if (data.is_inpatient_block) {
                             td.style.backgroundColor = '#fdf2f8'; td.style.color = '#be185d'; td.style.border = '2px solid #f43f5e';
-                            td.innerHTML = `<div class="status-text" style="font-size: 0.7rem;">${isWalkIn ? '<span class="walk-in-badge">予約外</span><br>' : ''}🏥 入院患者介入枠<br><span style="font-size: 0.6rem;">${displayRemarks}</span></div>`;
+                            td.innerHTML = `<div class="status-text" style="font-size: 0.7rem;">${isWalkIn ? '<span class="walk-in-badge">予約外</span><br>' : ''}🏥 入院患者介入枠${unitsLabel}<br><span style="font-size: 0.6rem;">${displayRemarks}</span></div>`;
                         } else if (data.is_meeting) {
                             td.style.backgroundColor = '#ecfdf5'; td.style.color = '#065f46'; td.style.border = '2px solid #10b981';
-                            td.innerHTML = `<div class="status-text" style="font-size: 0.7rem;">${isWalkIn ? '<span class="walk-in-badge">予約外</span><br>' : ''}💬 面談: ${data.patient_name || '未指定'}<br><span style="font-size: 0.6rem;">${displayRemarks}</span></div>`;
+                            td.innerHTML = `<div class="status-text" style="font-size: 0.7rem;">${isWalkIn ? '<span class="walk-in-badge">予約外</span><br>' : ''}💬 面談: ${data.patient_name || '未指定'}${unitsLabel}<br><span style="font-size: 0.6rem;">${displayRemarks}</span></div>`;
                         } else {
-                            td.innerHTML = `<div class="status-text" style="font-size: 0.7rem;">${isWalkIn ? '<span class="walk-in-badge">予約外</span><br>' : ''}${data.patient_name || '無名'}<br><span style="font-size: 0.6rem;">${displayRemarks}</span></div>`;
+                            td.innerHTML = `<div class="status-text" style="font-size: 0.7rem;">${isWalkIn ? '<span class="walk-in-badge">予約外</span><br>' : ''}${data.patient_name || '無名'}${unitsLabel}<br><span style="font-size: 0.6rem;">${displayRemarks}</span></div>`;
                         }
-                        if (units > 1) { td.rowSpan = units; skipCells.anti[i] = units - 1; }
+                        if (units > 1) { 
+                            // rowSpan は使用せず、skipCells だけセットする
+                            skipCells.anti[i] = { count: units - 1, startTime: data.res_time }; 
+                        }
+                        td.dataset.resStart = data.res_time;
                     }
                     const antiKey = `reservation_${selectedDate}_${timeString}_anti_${i}`;
                     td.addEventListener('click', (e) => handleCellClick(e, '消炎', i, timeString, td));
@@ -922,11 +950,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const selectedDate = targetDateInput.value;
         // Search in DB instead of localStorage key
+        // Handle multi-unit reservations: use original start time if available
+        const searchTime = tdElement.dataset.resStart || time;
+
         const { data: existing, error } = await supabase
             .from('reservations')
             .select('*')
             .eq('res_date', selectedDate)
-            .eq('res_time', time)
+            .eq('res_time', searchTime)
             .eq('res_type', tdElement.dataset.type)
             .eq('res_index', index)
             .single();

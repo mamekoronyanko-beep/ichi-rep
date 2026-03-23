@@ -593,6 +593,12 @@ body {
     box-shadow: inset 0 0 0 2px var(--anti-border) !important;
 }
 
+.continued-slot {
+    opacity: 0.5;
+    background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255,255,255,.5) 5px, rgba(255,255,255,.5) 10px);
+    cursor: default !important;
+}
+
 /* 統計パネル内の入力欄スタイル */
 .stats-input {
     width: 100%;
