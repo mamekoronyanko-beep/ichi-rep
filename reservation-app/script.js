@@ -207,9 +207,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         let currentTime = new Date(startTime);
 
-        // { count: 1, startTime: '09:00' } のようなオブジェクトで管理するように変更
-        const skipCells = { staff: {}, anti: {} };
-
         const staffNames = await getStaffData();
         const staffAttendance = await getStaffAttendance(selectedDate);
 
@@ -291,9 +288,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                             td.style.border = isStaffOff ? '2px solid #e5e7eb' : '2px solid #38bdf8';
                         }
                         const units = data.units || 1;
-                        if (units > 1) { 
-                            skipCells.staff[i] = { count: units - 1, startTime: data.res_time, resId: data.id }; 
-                        }
                         td.dataset.resStart = data.res_time;
                         td.dataset.resId = data.id;
 
@@ -326,11 +320,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                         });
                         td.addEventListener('dragend', () => { td.classList.remove('dragging'); draggedSourceKey = null; });
 
-                    } else if (skipCells.staff[i] && skipCells.staff[i].count > 0) {
-                        td.classList.add('continued-slot');
-                        td.dataset.resStart = skipCells.staff[i].startTime; // Link to parent reservation
-                        td.dataset.resId = skipCells.staff[i].resId;
-                        skipCells.staff[i].count--;
                     } else if (isStaffOff) {
                         td.classList.add('staff-off-cell');
                         td.style.backgroundColor = '#e2e8f0';
@@ -376,9 +365,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                         else { td.style.backgroundColor = '#e0f2fe'; td.style.color = '#0369a1'; td.style.border = '2px solid #38bdf8'; }
 
                         const units = data.units || 1;
-                        if (units > 1) { 
-                            skipCells.anti[i] = { count: units - 1, startTime: data.res_time, resId: data.id }; 
-                        }
                         td.dataset.resStart = data.res_time;
                         td.dataset.resId = data.id;
 
@@ -408,11 +394,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                         });
                         td.addEventListener('dragend', () => { td.classList.remove('dragging'); draggedSourceKey = null; });
 
-                    } else if (skipCells.anti[i] && skipCells.anti[i].count > 0) {
-                        td.classList.add('continued-slot');
-                        td.dataset.resStart = skipCells.anti[i].startTime; // Link to parent reservation
-                        td.dataset.resId = skipCells.anti[i].resId;
-                        skipCells.anti[i].count--;
                     }
                     const antiKey = `reservation_${selectedDate}_${timeString}_anti_${i}`;
                     td.addEventListener('click', (e) => handleCellClick(e, '消炎', i, timeString, td));
@@ -1096,81 +1077,27 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        // sourceId is now the DB ID
-        const { data: sourceData, error: fetchError } = await supabase.from('reservations').select('*').eq('id', sourceId).single();
-        if (fetchError || !sourceData) return;
+        // Check in DB if target slot is occupied
+        const { data: existing } = await supabase
+            .from('reservations')
+            .select('id')
+            .eq('res_date', targetDate)
+            .eq('res_time', targetTime)
+            .eq('res_type', targetType)
+            .eq('res_index', targetIndex)
+            .neq('id', sourceId) // Exclude self
+            .single();
 
-        const units = sourceData.units || 1;
-
-        // Check collision for all required units at target
-        let currentTime = new Date();
-        const [h, m] = targetTime.split(':').map(Number);
-        currentTime.setHours(h, m, 0, 0);
-
-        for (let u = 0; u < units; u++) {
-            const checkTime = formatTime(currentTime);
-
-            // Check in DB if occupied
-            const { data: existing } = await supabase
-                .from('reservations')
-                .select('id')
-                .eq('res_date', targetDate)
-                .eq('res_time', checkTime)
-                .eq('res_type', targetType)
-                .eq('res_index', targetIndex)
-                .neq('id', sourceId) // Exclude self
-                .single();
-
-            if (existing) {
-                alert('移動先に他の予約が入っています。');
-                return;
-            }
-
-            // Check break time
-            const checkH = currentTime.getHours();
-            if (checkH >= BREAK_START_HOUR && checkH < BREAK_END_HOUR) {
-                alert('休憩時間には移動できません。');
-                return;
-            }
-
-            // Check end hour
-            if (checkH > END_HOUR || (checkH === END_HOUR && checkTime.split(':')[1] !== '00')) {
-                alert('終了時間を超える予約は移動できません。');
-                return;
-            }
-
-            currentTime.setMinutes(currentTime.getMinutes() + INTERVAL_MINUTES);
+        if (existing) {
+            alert('移動先に他の予約が入っています。');
+            return;
         }
 
         // Check staff off
         if (targetType === 'staff') {
             const targetAttendance = await getStaffAttendance(targetDate);
             if (targetAttendance[targetIndex - 1] && targetAttendance[targetIndex - 1] !== 'work') {
-                // Need careful check for morning/afternoon off later if needed
                 alert('移動先のスタッフはお休みです。');
-                // return; // Optional: allowed if user warns? original didn't allow
-            }
-        }
-
-        // --- Overlap Handling for Drop: Shorten any parent multi-unit reservation at target ---
-        const [targetH, targetM] = targetTime.split(':').map(Number);
-        let checkH = targetH;
-        let checkM = targetM - 20;
-        if (checkM < 0) { checkH -= 1; checkM += 60; }
-        
-        if (checkH >= 9) {
-            const prevTime = `${String(checkH).padStart(2, '0')}:${String(checkM).padStart(2, '0')}`;
-            const { data: parentRes } = await supabase
-                .from('reservations')
-                .select('id, units')
-                .eq('res_date', targetDate)
-                .eq('res_time', prevTime)
-                .eq('res_type', targetType)
-                .eq('res_index', parseInt(targetIndex))
-                .eq('units', 2);
-
-            if (parentRes && parentRes.length > 0) {
-                await supabase.from('reservations').update({ units: 1 }).eq('id', parentRes[0].id);
             }
         }
 
