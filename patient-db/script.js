@@ -793,7 +793,7 @@ async function initApp() {
                         const idKey = findKey(['ID', '患者ID', '利用者ID']) || 'p_id';
                         const nameKey = findKey(['名前', '氏名', '患者名', '利用者名']) || 'p_name';
                         const categoryKey = findKey(['疾患種別', 'カテゴリ', '種別']) || 'p_category';
-                        const diseaseKey = findKey(['疾患名', '病名', '疾患']) || 'p_disease';
+                        const diseaseKey = findKey(['疾患名', '病名', '診断名', '疾患']) || 'p_disease';
                         const diagDateKey = findKey(['診断日', '発症日']) || 'p_diagnosis_date';
                         const nursingCareKey = findKey(['要介護', '介護']) || 'p_nursing_care';
 
