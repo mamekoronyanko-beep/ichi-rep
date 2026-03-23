@@ -729,7 +729,6 @@ body {
 .is-non-working-day {
     background-color: #fce7f3 !important; /* Soft pink background */
     position: relative;
-    pointer-events: none; /* Disable all clicks */
 }
 
 .is-non-working-day::after {
