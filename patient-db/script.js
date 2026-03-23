@@ -552,6 +552,7 @@ async function renderDischargedTable() {
             <td>${p.p_termination_date || '-'}</td>
             <td>
                 <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: #e0f2fe; color: #0369a1;" onclick="restoreAdmission('${p.p_id}')">復元</button>
+                <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: #fee2e2; color: #b91c1c; margin-left: 0.25rem;" onclick="permanentDeletePatient('${p.p_id}', 'archived_admission')">削除</button>
             </td>
         `;
         archivedAdmissionTableBody.appendChild(tr);
@@ -599,6 +600,7 @@ async function renderTerminatedTable() {
             <td>${p.p_termination_date || '-'}</td>
             <td>
                 <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: #e0f2fe; color: #0369a1;" onclick="restoreOutpatient('${p.p_id}')">復元</button>
+                <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: #fee2e2; color: #b91c1c; margin-left: 0.25rem;" onclick="permanentDeletePatient('${p.p_id}', 'archived_outpatient')">削除</button>
             </td>
         `;
         archivedOutpatientTableBody.appendChild(tr);
@@ -630,6 +632,7 @@ async function renderNursingCareArchivedTable() {
             <td>${p.p_termination_date || '-'}</td>
             <td>
                 <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: #e0f2fe; color: #0369a1;" onclick="restoreNursingCare('${p.p_id}')">復元</button>
+                <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: #fee2e2; color: #b91c1c; margin-left: 0.25rem;" onclick="permanentDeletePatient('${p.p_id}', 'archived_nursing_care')">削除</button>
             </td>
         `;
         archivedNursingCareTableBody.appendChild(tr);
@@ -655,6 +658,27 @@ async function restoreOutpatient(dbId) {
     await renderTerminatedTable();
     await renderOutpatientTable();
     alert('外来患者リストに復元しました。');
+}
+
+async function permanentDeletePatient(dbId, type) {
+    if (!confirm('データを完全に削除しますか？この操作は取り消せません。')) return;
+
+    const { error } = await supabaseClient
+        .from('patients')
+        .delete()
+        .eq('p_id', dbId);
+
+    if (error) {
+        console.error('Delete error:', error);
+        alert('削除に失敗しました: ' + error.message);
+        return;
+    }
+
+    if (type === 'archived_admission') await renderDischargedTable();
+    else if (type === 'archived_outpatient') await renderTerminatedTable();
+    else if (type === 'archived_nursing_care') await renderNursingCareArchivedTable();
+
+    alert('データを完全に削除しました。');
 }
 
 // Close modal when clicking outside
