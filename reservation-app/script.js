@@ -1458,66 +1458,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 pName = '入院患者介入枠';
             }
 
-            // Validation for multi-unit bookings
-            if (units === 2) {
-                if (selectedTime === '11:40') {
-                    alert('11:40からの予約は12:00の休憩時間と重なるため、1枠(20分)しか予約できません。');
-                    return;
-                }
-                const [hStr, mStr] = selectedTime.split(':');
-                let h = parseInt(hStr, 10);
-                let m = parseInt(mStr, 10);
-
-                // End of day check (18:00 is the hard limit)
-                if (h === 17 && m >= 40) {
-                    alert('17:40以降の予約は18:00の診療終了時間を超えるため、1枠(20分)しか予約できません。');
-                    return;
-                }
-
-                m += 20;
-                if (m >= 60) { h += 1; m -= 60; }
-                const nextTime = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-                const { data: existing } = await supabase
-                    .from('reservations')
-                    .select('id')
-                    .eq('res_date', selectedDate)
-                    .eq('res_time', nextTime)
-                    .eq('res_type', selectedType)
-                    .eq('res_index', selectedIndex)
-                    .single();
-
-                if (existing) {
-                    alert('次の時間枠がすでに予約されているため、2枠の予約ができません。');
-                    return;
-                }
-            }
-
-            // --- Overlap Handling: Shorten any parent multi-unit reservation ---
-            const [hStr, mStr] = selectedTime.split(':');
-            let oH = parseInt(hStr, 10);
-            let oM = parseInt(mStr, 10);
-
-            // Check for previous slot (20 mins earlier)
-            oM -= 20;
-            if (oM < 0) { oH -= 1; oM += 60; }
-            if (oH >= 9) {
-                const prevTime = `${String(oH).padStart(2, '0')}:${String(oM).padStart(2, '0')}`;
-                // Search for a reservation that starts at prevTime and has 2 units
-                const { data: parentRes } = await supabase
-                    .from('reservations')
-                    .select('id, units')
-                    .eq('res_date', selectedDate)
-                    .eq('res_time', prevTime)
-                    .eq('res_type', selectedType)
-                    .eq('res_index', parseInt(selectedIndex))
-                    .eq('units', 2);
-
-                if (parentRes && parentRes.length > 0) {
-                    // Update parent to 1 unit to make room for the new one at the current selectedTime
-                    await supabase.from('reservations').update({ units: 1 }).eq('id', parentRes[0].id);
-                }
-            }
-            // ---------------------------------------------------------------
 
             const reservationData = {
                 res_date: selectedDate,
