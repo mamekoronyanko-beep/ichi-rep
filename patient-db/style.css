@@ -154,9 +154,11 @@ h1 {
 .table-container,
 .table-wrapper {
     background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-    overflow-x: auto;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    overflow: auto; /* auto but styled to be visible */
+    max-height: 75vh;
+    border: 1px solid var(--border-color);
 }
 
 table {
@@ -174,10 +176,14 @@ td {
 }
 
 th {
-    background-color: #fafafa;
-    font-weight: 600;
-    color: #555;
-    font-size: 0.9rem;
+    background-color: #f1f5f9;
+    font-weight: 700;
+    color: #334155;
+    font-size: 0.85rem;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    box-shadow: inset 0 -1px 0 var(--border-color);
 }
 
 tr:hover {
@@ -619,4 +625,35 @@ tr:hover {
     pointer-events: none;
     z-index: 1;
     white-space: nowrap;
+}
+
+/* Custom Scrollbar for better visibility */
+.table-container::-webkit-scrollbar,
+.table-wrapper::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+.table-container::-webkit-scrollbar-track,
+.table-wrapper::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 6px;
+}
+
+.table-container::-webkit-scrollbar-thumb,
+.table-wrapper::-webkit-scrollbar-thumb {
+    background: #94a3b8;
+    border-radius: 6px;
+    border: 3px solid #f1f5f9;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover,
+.table-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
+}
+
+/* Ensure horizontal scroll bar is always visible on Windows */
+.table-container, .table-wrapper {
+    scrollbar-color: #94a3b8 #f1f5f9;
+    scrollbar-width: thin;
 }
