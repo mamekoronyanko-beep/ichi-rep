@@ -594,9 +594,22 @@ body {
 }
 
 .continued-slot {
-    opacity: 0.5;
-    background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255,255,255,.5) 5px, rgba(255,255,255,.5) 10px);
-    cursor: default !important;
+    background-color: #f8fafc;
+    background-image: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(203, 213, 225, 0.2) 10px, rgba(203, 213, 225, 0.2) 20px);
+    cursor: pointer !important;
+    position: relative;
+    border: 1px dashed #cbd5e1 !important;
+}
+
+.continued-slot::after {
+    content: "（継続枠）";
+    font-size: 0.6rem;
+    color: #94a3b8;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
 }
 
 /* 統計パネル内の入力欄スタイル */
