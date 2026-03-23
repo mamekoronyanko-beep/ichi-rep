@@ -276,9 +276,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     const data = timeData.staff[i];
                     if (data) {
-                        // Something is booked at this exact time - Clear any skip flags
-                        if (skipCells.staff[i]) skipCells.staff[i].count = 0;
-
                         td.classList.add('booked');
                         if (data.status === 'arrived') td.classList.add('status-arrived');
                         else if (data.status === 'canceled') td.classList.add('status-canceled');
@@ -358,7 +355,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     const data = timeData.anti[i];
                     if (data) {
-                        if (skipCells.anti[i]) skipCells.anti[i].count = 0;
                         td.classList.add('booked');
                         if (data.status === 'arrived') td.classList.add('status-arrived');
                         else if (data.status === 'canceled') td.classList.add('status-canceled');
