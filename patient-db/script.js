@@ -100,7 +100,9 @@ async function renderAdmissionTable() {
             <td onclick="openPatientDetails('${patient.p_id}')">${remainingHtml}</td>
             <td onclick="openPatientDetails('${patient.p_id}')">${patient.next_reserve_date || '<span style="color:var(--text-muted);font-size:0.85rem;">未定</span>'}</td>
             <td onclick="openPatientDetails('${patient.p_id}')">${patient.p_doc_submission_date || '<span style="color:var(--text-muted);font-size:0.85rem;">未定</span>'}</td>
-            <td onclick="openPatientDetails('${patient.p_id}')">${patient.p_nursing_care ? '<span class="tag-nursing-care">あり</span>' : '<span style="color:var(--text-muted);">-</span>'}</td>
+            <td onclick="event.stopPropagation()">
+                <input type="checkbox" ${patient.p_nursing_care ? 'checked' : ''} onchange="toggleNursingCare('${patient.p_id}', this.checked)" style="transform: scale(1.2); cursor: pointer;" title="要介護の切り替え">
+            </td>
             <td>
                 <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin: 0; background: #ffebee; color: #c62828;" onclick="event.stopPropagation(); deleteAdmissionPatient('${patient.p_id}')">削除</button>
             </td>
@@ -134,7 +136,9 @@ async function renderNursingCareTable() {
             <td onclick="openPatientDetails('${patient.p_id}')">${patient.p_diagnosis_date}</td>
             <td onclick="openPatientDetails('${patient.p_id}')">${patient.next_reserve_date || '<span style="color:var(--text-muted);font-size:0.85rem;">未定</span>'}</td>
             <td onclick="openPatientDetails('${patient.p_id}')">${patient.p_doc_submission_date || '<span style="color:var(--text-muted);font-size:0.85rem;">未定</span>'}</td>
-            <td onclick="openPatientDetails('${patient.p_id}')">${patient.p_nursing_care ? '<span class="tag-nursing-care">あり</span>' : '<span style="color:var(--text-muted);">-</span>'}</td>
+            <td onclick="event.stopPropagation()">
+                <input type="checkbox" ${patient.p_nursing_care ? 'checked' : ''} onchange="toggleNursingCare('${patient.p_id}', this.checked)" style="transform: scale(1.2); cursor: pointer;" title="要介護の切り替え">
+            </td>
             <td>
                 <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin: 0; background: #ffebee; color: #c62828;" onclick="event.stopPropagation(); deleteNursingCarePatient('${patient.p_id}')">削除</button>
             </td>
@@ -345,6 +349,22 @@ async function fetchLatestReserveDate() {
     }
 }
 
+// Function to toggle nursing care status directly from table
+async function toggleNursingCare(dbId, isEnabled) {
+    const { error } = await supabaseClient.from('patients').update({
+        p_nursing_care: isEnabled
+    }).eq('p_id', dbId);
+
+    if (error) {
+        console.error('Toggle nursing care error:', error);
+        alert('要介護の設定変更に失敗しました: ' + error.message);
+        // Refresh tables to revert checkbox state UI
+        await renderAdmissionTable();
+        await renderOutpatientTable();
+        await renderNursingCareTable();
+    }
+}
+
 async function saveNextVisit() {
     if (!currentPatientDbId) return;
     const nextDate = document.getElementById('next-visit-date').value;
@@ -457,7 +477,9 @@ async function renderOutpatientTable() {
             <td onclick="openPatientDetails('${op.p_id}')">${remainingHtml}</td>
             <td onclick="openPatientDetails('${op.p_id}')">${op.next_reserve_date || '<span style="color:var(--text-muted);font-size:0.85rem;">未定</span>'}</td>
             <td onclick="openPatientDetails('${op.p_id}')">${op.p_doc_submission_date || '<span style="color:var(--text-muted);font-size:0.85rem;">未定</span>'}</td>
-            <td onclick="openPatientDetails('${op.p_id}')">${op.p_nursing_care ? '<span class="tag-nursing-care">あり</span>' : '<span style="color:var(--text-muted);">-</span>'}</td>
+            <td onclick="event.stopPropagation()">
+                <input type="checkbox" ${op.p_nursing_care ? 'checked' : ''} onchange="toggleNursingCare('${op.p_id}', this.checked)" style="transform: scale(1.2); cursor: pointer;" title="要介護の切り替え">
+            </td>
             <td>
                 <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin: 0; background: #ffebee; color: #c62828;" onclick="event.stopPropagation(); deleteOutpatient('${op.p_id}')">削除</button>
             </td>
