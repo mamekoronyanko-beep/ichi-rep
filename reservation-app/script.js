@@ -926,11 +926,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const isHoliday = isNonWorkingDay(dateStr);
         const isExisting = tdElement.classList.contains('booked') || tdElement.classList.contains('continued-slot');
 
-        if (isHoliday && !isExisting) {
-            alert('休診日のため、新規予約はできません。');
-            return;
-        }
-
         currentSelectedCell = tdElement;
 
         const resId = tdElement.dataset.resId;
@@ -1068,10 +1063,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- Drag and Drop handleDrop Implementation (Supabase) ---
     const handleDrop = async (sourceId, targetDate, targetTime, targetType, targetIndex) => {
-        if (isNonWorkingDay(targetDate)) {
-            alert('休診日のため、予約の移動はできません。');
-            return;
-        }
 
         // Check in DB if target slot is occupied
         const { data: existing } = await supabase
