@@ -2060,35 +2060,68 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (e.target === modal) closePerformanceModal();
     });
 
-    // --- Realtime Sync Logic ---
+    // --- Realtime Sync Logic (Enhanced) ---
+    const flashSyncIndicator = () => {
+        const indicator = document.getElementById('sync-indicator');
+        if (indicator) {
+            indicator.classList.remove('sync-flash');
+            void indicator.offsetWidth; // Trigger reflow
+            indicator.classList.add('sync-flash');
+        }
+    };
+
     const setupRealtimeSubscription = () => {
-        console.log("Setting up Realtime Subscription for reservations...");
-        const reservationsChannel = supabase
+        console.log("Setting up Realtime Subscriptions...");
+        
+        // 1. Reservations Table
+        supabase
             .channel('public:reservations-changes')
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'reservations' },
                 (payload) => {
-                    console.log('Realtime change detected:', payload);
+                    console.log('Realtime change (reservations):', payload);
                     const currentDate = targetDateInput.value;
                     const newRes = payload.new;
                     const oldRes = payload.old;
 
-                    // Refresh if change is relevant to the current date
-                    const isRelevant = (newRes && newRes.res_date === currentDate) || 
+                    // Refresh if change is relevant to the current date or if we can't tell (e.g. DELETE)
+                    const isRelevant = !newRes || !newRes.res_date || newRes.res_date === currentDate || 
                                        (oldRes && oldRes.res_date === currentDate);
                     
                     if (isRelevant) {
-                        console.log('Current date matches. Refreshing schedule...');
+                        flashSyncIndicator();
                         createSchedule();
                     }
                 }
             )
-            .subscribe((status) => {
-                console.log("Realtime subscription status:", status);
-            });
-            
-        return reservationsChannel;
+            .subscribe();
+
+        // 2. Staff Settings Table (Names, Global Attendance)
+        supabase
+            .channel('public:staff-settings-changes')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'staff_settings' },
+                () => {
+                    flashSyncIndicator();
+                    createSchedule();
+                }
+            )
+            .subscribe();
+
+        // 3. Doctor Attendance Table (Holidays)
+        supabase
+            .channel('public:doctor-attendance-changes')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'doctor_attendance' },
+                () => {
+                    flashSyncIndicator();
+                    createSchedule();
+                }
+            )
+            .subscribe();
     };
 
     // Initialization sequence
