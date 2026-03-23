@@ -327,6 +327,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     } else if (skipCells.staff[i] && skipCells.staff[i].count > 0) {
                         td.classList.add('continued-slot');
+                        td.dataset.resStart = skipCells.staff[i].startTime; // Link to parent reservation
                         skipCells.staff[i].count--;
                     } else if (isStaffOff) {
                         td.classList.add('staff-off-cell');
@@ -406,6 +407,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     } else if (skipCells.anti[i] && skipCells.anti[i].count > 0) {
                         td.classList.add('continued-slot');
+                        td.dataset.resStart = skipCells.anti[i].startTime; // Link to parent reservation
                         skipCells.anti[i].count--;
                     }
                     const antiKey = `reservation_${selectedDate}_${timeString}_anti_${i}`;
@@ -935,13 +937,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     const btnStatusCanceled = document.getElementById('btn-status-canceled');
     const btnStatusDelete = document.getElementById('btn-status-delete');
 
+    let currentReservationId = null;
     let currentReservationKey = null;
 
     const handleCellClick = async (e, typeName, index, time, tdElement) => {
         const dateStr = targetDateInput.value;
-        if (isNonWorkingDay(dateStr)) {
-            console.log('Action blocked: Non-working day');
-            alert('休診日のため、予約の追加・変更はできません。');
+        const isHoliday = isNonWorkingDay(dateStr);
+        const isExisting = tdElement.classList.contains('booked') || tdElement.classList.contains('continued-slot');
+
+        if (isHoliday && !isExisting) {
+            alert('休診日のため、新規予約はできません。');
             return;
         }
 
@@ -962,7 +967,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             .single();
 
         // Check if already booked
-        if (tdElement.classList.contains('booked') && existing) {
+        if (isExisting && existing) {
             const data = existing;
             // Fetch patient diagnosis from patients table
             const { data: patient } = await supabase.from('patients').select('p_diagnosis_date').eq('p_id', data.patient_id).single();
