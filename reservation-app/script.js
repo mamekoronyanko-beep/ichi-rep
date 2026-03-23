@@ -292,9 +292,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                         }
                         const units = data.units || 1;
                         if (units > 1) { 
-                            skipCells.staff[i] = { count: units - 1, startTime: data.res_time }; 
+                            skipCells.staff[i] = { count: units - 1, startTime: data.res_time, resId: data.id }; 
                         }
                         td.dataset.resStart = data.res_time;
+                        td.dataset.resId = data.id;
 
                         const fullRemarks = data.remarks || '';
                         const isWalkIn = fullRemarks.startsWith('[予約外]');
@@ -328,6 +329,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     } else if (skipCells.staff[i] && skipCells.staff[i].count > 0) {
                         td.classList.add('continued-slot');
                         td.dataset.resStart = skipCells.staff[i].startTime; // Link to parent reservation
+                        td.dataset.resId = skipCells.staff[i].resId;
                         skipCells.staff[i].count--;
                     } else if (isStaffOff) {
                         td.classList.add('staff-off-cell');
@@ -375,9 +377,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                         const units = data.units || 1;
                         if (units > 1) { 
-                            skipCells.anti[i] = { count: units - 1, startTime: data.res_time }; 
+                            skipCells.anti[i] = { count: units - 1, startTime: data.res_time, resId: data.id }; 
                         }
                         td.dataset.resStart = data.res_time;
+                        td.dataset.resId = data.id;
 
                         const fullRemarks = data.remarks || '';
                         const isWalkIn = fullRemarks.startsWith('[予約外]');
@@ -408,6 +411,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     } else if (skipCells.anti[i] && skipCells.anti[i].count > 0) {
                         td.classList.add('continued-slot');
                         td.dataset.resStart = skipCells.anti[i].startTime; // Link to parent reservation
+                        td.dataset.resId = skipCells.anti[i].resId;
                         skipCells.anti[i].count--;
                     }
                     const antiKey = `reservation_${selectedDate}_${timeString}_anti_${i}`;
@@ -952,19 +956,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         currentSelectedCell = tdElement;
 
-        const selectedDate = targetDateInput.value;
-        // Search in DB instead of localStorage key
-        // Handle multi-unit reservations: use original start time if available
-        const searchTime = tdElement.dataset.resStart || time;
-
-        const { data: existing, error } = await supabase
-            .from('reservations')
-            .select('*')
-            .eq('res_date', selectedDate)
-            .eq('res_time', searchTime)
-            .eq('res_type', tdElement.dataset.type)
-            .eq('res_index', index)
-            .single();
+        const resId = tdElement.dataset.resId;
+        let existing = null;
+        if (resId) {
+            const { data, error } = await supabase.from('reservations').select('*').eq('id', resId).single();
+            if (!error) existing = data;
+        }
 
         // Check if already booked
         if (isExisting && existing) {
@@ -974,7 +971,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const diagnosisDate = patient ? (patient.p_diagnosis_date || '未登録') : '未登録';
 
             statusModalSubtitle.textContent = `${data.patient_name} (${data.patient_id})`;
-            document.getElementById('status-modal-diagnosis-date').innerHTML = `<strong>診断日:</strong> ${diagnosisDate} | <strong>日時:</strong> ${selectedDate} ${time}`;
+            document.getElementById('status-modal-diagnosis-date').innerHTML = `<strong>診断日:</strong> ${diagnosisDate} | <strong>日時:</strong> ${dateStr} ${time}`;
             currentReservationId = data.id; // Store DB ID instead of key
             statusModal.classList.add('show');
             return;
