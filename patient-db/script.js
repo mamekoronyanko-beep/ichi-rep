@@ -358,14 +358,13 @@ async function toggleNursingCare(dbId, isEnabled) {
     if (error) {
         console.error('Toggle nursing care error:', error);
         alert('要介護の設定変更に失敗しました: ' + error.message);
-        // Refresh tables to revert checkbox state UI
         await renderAdmissionTable();
         await renderOutpatientTable();
         await renderNursingCareTable();
     }
 }
 
-async function saveNextVisit() {
+async function saveNextVisit(skipAutoCalc = false) {
     if (!currentPatientDbId) return;
     const nextDate = document.getElementById('next-visit-date').value;
     const nursingCare = document.getElementById('details-nursing-care')?.checked || false;
@@ -373,7 +372,7 @@ async function saveNextVisit() {
     const docDate = docDateInput?.value || null;
     const label = document.getElementById('next-visit-label')?.textContent || '次回予定日';
 
-    // Validation: Check for invalid years (e.g., 202604)
+    // Validation
     const validateDate = (dateStr) => {
         if (!dateStr) return true;
         const year = parseInt(dateStr.split('-')[0]);
@@ -381,15 +380,15 @@ async function saveNextVisit() {
     };
 
     if (!validateDate(nextDate) || (docDate && !validateDate(docDate))) {
-        alert('入力された日付の年が正しくありません（例: 2026）。正しく修正してください。');
+        alert('入力された日付の年が正しくありません。正しく修正してください。');
         return;
     }
 
-    // Auto-calculate Doc Submission Date if category matches doctor rules
+    // Auto-calculate Doc Submission Date if category matches
     const categoryContent = document.getElementById('details-patient-category')?.textContent || '';
     const isMatchingCategory = categoryContent.includes('運動器') || categoryContent.includes('脳血管') || categoryContent.includes('廃用');
 
-    if (isMatchingCategory && nextDate && !docDate) {
+    if (!skipAutoCalc && isMatchingCategory && nextDate && !docDate) {
         await fetchDoctorHolidays();
         const autoDate = calculateDocSubmissionDate(categoryContent, nextDate, doctorHolidays);
 
@@ -408,31 +407,25 @@ async function saveNextVisit() {
 
     if (error) {
         console.error('Save error:', error);
-        if (error.message.includes('column') && (error.message.includes('not found') || error.message.includes('does not exist'))) {
-            alert(`保存に失敗しました。Supabaseに新しいカラム（p_doc_submission_date）を追加してください。\nエラー内容: ${error.message}`);
-        } else {
-            alert(`保存に失敗しました: ${error.message || JSON.stringify(error)}`);
-        }
+        alert(`保存に失敗しました: ${error.message}`);
         return;
     }
 
     alert(`${label}および設定を保存しました。`);
-    // Refresh relevant table
+    // Refresh tables
     await renderAdmissionTable();
     await renderOutpatientTable();
     await renderNursingCareTable();
     await renderDischargedTable();
     await renderTerminatedTable();
     await renderNursingCareArchivedTable();
-    // Refresh calendar if modal is open
+
+    // Refresh calendar if open
     const calendarModal = document.getElementById('calendarModal');
     if (calendarModal && calendarModal.style.display === 'flex') {
         const title = document.getElementById('calendarMonthTitle').textContent;
-        if (title.includes('面談予定')) {
-            renderMeetingCalendar();
-        } else if (title.includes('書類提出')) {
-            renderDocSubmissionCalendar();
-        }
+        if (title.includes('面談予定')) renderMeetingCalendar();
+        else if (title.includes('書類提出')) renderDocSubmissionCalendar();
     }
 }
 
