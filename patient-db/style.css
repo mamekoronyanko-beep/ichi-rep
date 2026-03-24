@@ -658,8 +658,8 @@ tr:hover {
     scrollbar-width: thin;
 }
 
-/* --- Mobile Responsiveness --- */
-@media screen and (max-width: 768px) {
+/* --- Mobile and Landscape Responsiveness --- */
+@media screen and (max-width: 1024px) {
     body {
         padding: 0;
     }

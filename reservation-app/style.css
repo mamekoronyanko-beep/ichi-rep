@@ -757,12 +757,8 @@ body {
     color: #881337 !important;
 }
 
-/* Mobile Responsiveness */
-@media screen and (max-width: 768px) {
-    body {
-        padding: 0.25rem;
-    }
-
+/* --- Mobile and Landscape Responsiveness --- */
+@media screen and (max-width: 1024px) {
     .navbar {
         padding: 0.5rem 1rem;
         flex-direction: column;
