@@ -756,3 +756,117 @@ body {
     background-color: #f9a8d4 !important;
     color: #881337 !important;
 }
+
+/* Mobile Responsiveness */
+@media screen and (max-width: 768px) {
+    body {
+        padding: 0.25rem;
+    }
+
+    .navbar {
+        padding: 0.5rem 1rem;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .nav-links {
+        gap: 0.5rem;
+        font-size: 0.8rem;
+    }
+
+    .nav-links a {
+        padding: 0.25rem 0.5rem;
+    }
+
+    .app-container {
+        height: calc(100vh - 0.5rem);
+        border-radius: 0;
+    }
+
+    .app-header {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 0.75rem;
+        gap: 0.75rem;
+    }
+
+    .app-header h1 {
+        font-size: 1.25rem;
+    }
+
+    .date-selector-wrapper {
+        width: 100%;
+        justify-content: space-between;
+        gap: 0.5rem;
+    }
+
+    .date-input-container {
+        flex: 1;
+        justify-content: space-between;
+    }
+
+    .date-input-container input[type="date"] {
+        flex: 1;
+        width: auto;
+        min-width: 0;
+    }
+
+    .schedule-wrapper {
+        padding: 0.25rem;
+    }
+
+    .schedule-table th,
+    .schedule-table td {
+        padding: 0.25rem 0.15rem;
+        font-size: 0.7rem;
+    }
+
+    .time-col {
+        width: 55px;
+        font-size: 0.7rem;
+    }
+
+    .status-text {
+        font-size: 0.65rem !important;
+        line-height: 1.1;
+    }
+
+    .walk-in-badge {
+        font-size: 0.55rem;
+        padding: 1px 3px;
+    }
+
+    /* Adjust units label */
+    .status-text span[style*="font-size:0.65rem"] {
+        font-size: 0.55rem !important;
+    }
+
+    /* Modal responsiveness */
+    .modal-content {
+        padding: 1.25rem;
+        width: 95%;
+        max-width: none;
+        margin: 0.5rem;
+    }
+
+    .form-group label {
+        font-size: 0.8rem;
+    }
+
+    .form-group input, 
+    .form-group select, 
+    .form-group textarea {
+        padding: 0.5rem;
+        font-size: 0.9rem;
+    }
+
+    #booking-form h3 {
+        font-size: 1.1rem;
+        margin-bottom: 1rem;
+    }
+
+    /* Stats sidebar if visible */
+    .stats-sidebar {
+        display: none; /* Hide sidebar on mobile to save space, user can check on desktop */
+    }
+}
