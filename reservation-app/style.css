@@ -815,15 +815,22 @@ body {
         padding: 0.25rem;
     }
 
+    .schedule-table {
+        min-width: 650px; /* Ensure enough horizontal space */
+    }
+
     .schedule-table th,
     .schedule-table td {
         padding: 0.25rem 0.15rem;
         font-size: 0.7rem;
+        min-width: 75px;
     }
 
     .time-col {
         width: 55px;
+        min-width: 55px;
         font-size: 0.7rem;
+        z-index: 21;
     }
 
     .status-text {
