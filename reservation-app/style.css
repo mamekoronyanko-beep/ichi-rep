@@ -509,7 +509,7 @@ body {
 }
 
 .booked.status-arrived::after {
-    content: "✓ 来院";
+    content: "✁E来院";
     display: block;
     position: absolute;
     top: 2px;
@@ -602,7 +602,7 @@ body {
 }
 
 .continued-slot::after {
-    content: "（継続枠）";
+    content: "�E�継続枠�E�E;
     font-size: 0.6rem;
     color: #94a3b8;
     position: absolute;
@@ -612,7 +612,7 @@ body {
     pointer-events: none;
 }
 
-/* 統計パネル内の入力欄スタイル */
+/* 統計パネル冁E�E入力欁E��タイル */
 .stats-input {
     width: 100%;
     padding: 0.2rem 0.4rem;
@@ -690,47 +690,36 @@ body {
         width: 60px !important;
         border-right: 1px solid #000 !important;
     }
-    @page {
-        size: landscape;
-        margin: 5mm;
-    }
-}
-
-/* スクロール時にヘッダーを固定 */
-.schedule-table thead th,
-.schedule-table thead td {
+ /* --- Sticky & Animation Utils --- */
+.schedule-table thead th {
     position: sticky;
     top: 0;
     z-index: 20;
     background-color: var(--th-bg, #f9fafb);
+    box-shadow: 0 1px 0 var(--border-color);
 }
+
 .schedule-table thead tr:nth-child(2) th {
     top: 40px;
 }
 
-/* 単位数行をスクロール時に固定（tbody内） */
 #staff-units-row td {
     position: sticky;
     top: 0;
     z-index: 5;
 }
 
-/* 更新ボタンの回転アニメーション */
 @keyframes rotate {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
 }
+.rotating { animation: rotate 0.5s ease-in-out; }
 
-.rotating {
-    animation: rotate 0.5s ease-in-out;
-}
-
-/* Non-working days (Sundays/Holidays) styling */
+/* Holiday Styling */
 .is-non-working-day {
-    background-color: #fce7f3 !important; /* Soft pink background */
+    background-color: #fce7f3 !important;
     position: relative;
 }
-
 .is-non-working-day::after {
     content: "休診日";
     position: absolute;
@@ -745,135 +734,124 @@ body {
     z-index: 5;
     pointer-events: none;
 }
+.is-non-working-day .time-col { background-color: #fbcfe8 !important; color: #9d174d !important; }
+.is-non-working-day th { background-color: #f9a8d4 !important; color: #881337 !important; }
 
-/* Specific styling for time columns on holidays */
-.is-non-working-day .time-col {
-    background-color: #fbcfe8 !important;
-    color: #9d174d !important;
+/* --- Desktop Layout --- */
+.schedule-wrapper {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 1.5rem;
+    align-items: flex-start;
 }
 
-.is-non-working-day th {
-    background-color: #f9a8d4 !important;
-    color: #881337 !important;
+.table-content-area {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    min-width: 0;
 }
 
-/* --- Mobile and Landscape Responsiveness --- */
+.table-container {
+    overflow: auto;
+    max-height: calc(100vh - 200px);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+}
+
+.stats-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    position: sticky;
+    top: 1rem;
+    overflow-y: auto;
+    max-height: calc(100vh - 120px);
+}
+
+.stat-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.stat-card {
+    padding: 1rem;
+    border-radius: 8px;
+    border-left: 4px solid #ccc;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.stat-blue { background: #eff6ff; border-left-color: #3b82f6; }
+.stat-green { background: #f0fdf4; border-left-color: #22c55e; }
+.stat-red { background: #fef2f2; border-left-color: #ef4444; }
+.stat-purple { background: #fdf4ff; border-left-color: #a855f7; }
+.stat-pink { background: #fdf2f8; border-left-color: #db2777; }
+
+/* --- Mobile Responsiveness --- */
 @media screen and (max-width: 1024px) {
-    .navbar {
-        padding: 0.5rem 1rem;
-        flex-direction: column;
-        gap: 0.5rem;
+    .navbar { padding: 0.5rem 1rem; flex-direction: column; gap: 0.5rem; }
+    .nav-links { gap: 0.5rem; font-size: 0.8rem; }
+    .app-container { height: 100vh; border-radius: 0; }
+    .app-header { flex-direction: column; align-items: flex-start; padding: 0.75rem; gap: 0.5rem; }
+    .app-header h1 { font-size: 1.2rem; margin: 0; }
+    .subtitle { display: none; } /* Hide subtitle to save space */
+
+    .schedule-wrapper { 
+        grid-template-columns: 1fr !important;
+        gap: 0.75rem !important; 
+        padding: 0.5rem !important; 
     }
 
-    .nav-links {
-        gap: 0.5rem;
-        font-size: 0.8rem;
+    .stats-sidebar { 
+        position: static !important; 
+        max-height: none !important; 
+        order: -1; 
+        gap: 0.5rem !important; 
+        margin-bottom: 0.5rem !important;
     }
 
-    .nav-links a {
-        padding: 0.25rem 0.5rem;
+    .stats-sidebar > div { padding: 0.5rem !important; }
+    .stats-sidebar h3 { font-size: 0.9rem !important; margin: 0 0 0.5rem 0 !important; }
+
+    .stat-grid { 
+        display: grid; 
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important; 
+        gap: 0.4rem !important; 
     }
 
-    .app-container {
-        height: calc(100vh - 0.5rem);
-        border-radius: 0;
+    .stat-card { padding: 0.4rem !important; }
+    .stat-card p { font-size: 0.7rem !important; margin-bottom: 0.15rem !important; }
+    .stat-card span[id*="count"], .stat-card span[id*="units"] { font-size: 1.1rem !important; }
+
+    .table-container { 
+        max-height: calc(100vh - 250px) !important; 
     }
 
-    .app-header {
-        flex-direction: column;
-        align-items: flex-start;
-        padding: 0.75rem;
-        gap: 0.75rem;
+    .schedule-table { 
+        min-width: 1400px !important; 
+    }
+    .schedule-table th, .schedule-table td { 
+        padding: 0.4rem 0.2rem !important; 
+        font-size: 0.85rem !important; 
+        min-width: 130px !important; 
     }
 
-    .app-header h1 {
-        font-size: 1.25rem;
+    .time-col { 
+        width: 65px !important; 
+        min-width: 65px !important; 
+        left: 0 !important; 
+        z-index: 41 !important; 
+        background-color: #f1f5f9 !important; 
+        font-weight: 700 !important;
     }
+    
+    .schedule-table thead th { z-index: 30; }
+    .schedule-table thead th.time-col { z-index: 50; }
+}
 
-    .date-selector-wrapper {
-        width: 100%;
-        justify-content: space-between;
-        gap: 0.5rem;
-    }
-
-    .date-input-container {
-        flex: 1;
-        justify-content: space-between;
-    }
-
-    .date-input-container input[type="date"] {
-        flex: 1;
-        width: auto;
-        min-width: 0;
-    }
-
-    .schedule-wrapper {
-        padding: 0.1rem;
-    }
-
-    .schedule-table {
-        min-width: 1300px; /* Allow wider columns for 11 slots */
-    }
-
-    .schedule-table th,
-    .schedule-table td {
-        padding: 0.5rem 0.25rem;
-        font-size: 0.85rem;
-        min-width: 120px;
-        height: 55px;
-    }
-
-    .time-col {
-        width: 65px;
-        min-width: 65px;
-        font-size: 0.85rem;
-        font-weight: bold;
-        background: #f1f5f9 !important;
-        color: #1e293b;
-        z-index: 22; /* Ensure it's above other elements */
-    }
-
-    .status-text {
-        font-size: 0.75rem !important;
-        line-height: 1.2;
-    }
-
-    .walk-in-badge {
-        font-size: 0.55rem;
-        padding: 1px 3px;
-    }
-
-    /* Adjust units label */
-    .status-text span[style*="font-size:0.65rem"] {
-        font-size: 0.55rem !important;
-    }
-
-    /* Modal responsiveness */
-    .modal-content {
-        padding: 1.25rem;
-        width: 95%;
-        max-width: none;
-        margin: 0.5rem;
-    }
-
-    .form-group label {
-        font-size: 0.8rem;
-    }
-
-    .form-group input, 
-    .form-group select, 
-    .form-group textarea {
-        padding: 0.5rem;
-        font-size: 0.9rem;
-    }
-
-    #booking-form h3 {
-        font-size: 1.1rem;
-        margin-bottom: 1rem;
-    }
-
-    /* Stats sidebar if visible */
-    .stats-sidebar {
-        display: none; /* Hide sidebar on mobile to save space, user can check on desktop */
-    }
+@media screen and (max-height: 500px) and (orientation: landscape) {
+    .app-header { padding: 0.25rem 1rem !important; flex-direction: row !important; }
+    .stats-sidebar { display: none !important; }
+    .table-container { max-height: calc(100vh - 100px) !important; }
 }

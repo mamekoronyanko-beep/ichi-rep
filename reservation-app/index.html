@@ -74,9 +74,9 @@
                 <button onclick="window.print()" class="nav-link-btn print-btn" style="background-color: #64748b; color: white; border: none; margin-left: 0.5rem;">印刷する</button>
             </div>
         </header>
-        <main class="schedule-wrapper" style="display: grid; grid-template-columns: 1fr 300px; gap: 1.5rem;">
-            <div class="table-content-area" style="display: flex; flex-direction: column; gap: 1.5rem; height: 100%; overflow: hidden;">
-                <div class="table-container" style="overflow-y: auto; max-height: calc(100vh - 200px);">
+        <main class="schedule-wrapper">
+            <div class="table-content-area">
+                <div class="table-container">
                 <table class="schedule-table">
                     <thead>
                         <tr>
@@ -112,14 +112,13 @@
                 </div>
             </div>
 
-            <aside class="stats-sidebar"
-                style="display: flex; flex-direction: column; gap: 1.5rem; position: sticky; top: 1rem; overflow-y: auto; max-height: calc(100vh - 120px);">
+            <aside class="stats-sidebar">
                 <div
                     style="background: #ffffff; padding: 1.5rem; border-radius: var(--border-radius-lg); border: 1px solid var(--border-color); box-shadow: var(--box-shadow-sm);">
                     <h3 style="font-size: 1rem; margin-bottom: 1rem; color: var(--text-main); font-weight: 700;">当日集計サマリー</h3>
                     
-                    <div style="display: flex; flex-direction: column; gap: 1rem;">
-                        <div style="background: #eff6ff; padding: 1rem; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                    <div class="stat-grid">
+                        <div class="stat-card stat-blue">
                             <p style="font-size: 0.8rem; color: #1e40af; font-weight: 600; margin-bottom: 0.25rem;">合計予約単位数</p>
                             <div style="display: flex; align-items: baseline; gap: 0.5rem;">
                                 <span id="total-units-count" style="font-size: 1.75rem; font-weight: 800; color: #1e3a8a;">0</span>
@@ -133,7 +132,7 @@
                         </div>
 
                         <!-- 1日必要単位数 入力欄 -->
-                        <div style="background: #f0fdf4; padding: 1rem; border-radius: 8px; border-left: 4px solid #22c55e;">
+                        <div class="stat-card stat-green">
                             <p style="font-size: 0.8rem; color: #166534; font-weight: 600; margin-bottom: 0.5rem;">1日必要単位数</p>
                             <div style="display: flex; align-items: center; gap: 0.5rem;">
                                 <input type="number" id="manual-total-units" min="0" value="0"
@@ -149,7 +148,7 @@
                         </div>
 
                         <!-- Detailed Breakdown -->
-                        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+                        <div class="stat-card" style="background: #ffffff; border: 1px solid #e2e8f0; overflow: hidden; border-left: none; padding: 4px;">
                             <div style="background: #f8fafc; padding: 0.5rem 0.75rem; border-bottom: 1px solid #e2e8f0; font-size: 0.75rem; font-weight: 700; color: #475569;">
                                 📊 項目別詳細集計
                             </div>
@@ -185,7 +184,7 @@
                             </div>
                         </div>
 
-                        <div style="background: #fef2f2; padding: 1rem; border-radius: 8px; border-left: 4px solid #ef4444; margin-bottom: 1rem;">
+                        <div class="stat-card stat-red">
                             <p style="font-size: 0.8rem; color: #991b1b; font-weight: 600; margin-bottom: 0.25rem;">当日キャンセル数</p>
                             <div style="display: flex; align-items: baseline; gap: 0.25rem;">
                                 <span id="total-cancellations-count" style="font-size: 1.75rem; font-weight: 800; color: #7f1d1d;">0</span>
@@ -194,7 +193,7 @@
                         </div>
 
                         <!-- 🏥 入院介入実施（内訳入力） -->
-                        <div style="background: #fdf2f8; padding: 0.75rem; border-radius: 8px; border-left: 4px solid #db2777;">
+                        <div class="stat-card stat-pink">
                             <p style="font-size: 0.75rem; color: #9d174d; font-weight: 700; margin-bottom: 0.5rem;">🏥 入院介入実施（内訳入力）</p>
                             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.4rem; margin-bottom: 0.4rem;">
                                 <div style="font-size: 0.65rem; color: #9d174d; font-weight: 600; text-align: center;">種別</div>
@@ -221,7 +220,7 @@
                         </div>
 
                         <!-- 入院週間予定単位数 -->
-                        <div style="background: #fdf4ff; padding: 1rem; border-radius: 8px; border-left: 4px solid #a855f7;">
+                        <div class="stat-card stat-purple">
                             <p style="font-size: 0.8rem; color: #6b21a8; font-weight: 600; margin-bottom: 0.5rem;">🏥 入院週間予定単位数</p>
                             <div style="display: flex; align-items: baseline; gap: 0.25rem; margin-bottom: 0.5rem;">
                                 <span id="inpatient-weekly-units" style="font-size: 1.75rem; font-weight: 800; color: #581c87;">0</span>
