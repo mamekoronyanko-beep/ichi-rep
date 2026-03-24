@@ -808,30 +808,34 @@ body {
     }
 
     .schedule-wrapper {
-        padding: 0.25rem;
+        padding: 0.1rem;
     }
 
     .schedule-table {
-        min-width: 650px; /* Ensure enough horizontal space */
+        min-width: 1300px; /* Allow wider columns for 11 slots */
     }
 
     .schedule-table th,
     .schedule-table td {
-        padding: 0.25rem 0.15rem;
-        font-size: 0.7rem;
-        min-width: 75px;
+        padding: 0.5rem 0.25rem;
+        font-size: 0.85rem;
+        min-width: 120px;
+        height: 55px;
     }
 
     .time-col {
-        width: 55px;
-        min-width: 55px;
-        font-size: 0.7rem;
-        z-index: 21;
+        width: 65px;
+        min-width: 65px;
+        font-size: 0.85rem;
+        font-weight: bold;
+        background: #f1f5f9 !important;
+        color: #1e293b;
+        z-index: 22; /* Ensure it's above other elements */
     }
 
     .status-text {
-        font-size: 0.65rem !important;
-        line-height: 1.1;
+        font-size: 0.75rem !important;
+        line-height: 1.2;
     }
 
     .walk-in-badge {
