@@ -148,8 +148,12 @@
                 <div style="background: var(--bg-color); padding: 1rem; border-radius: 8px;">
                     <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.25rem;">書類提出予定日</p>
                     <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem;">
-                        <input type="date" id="doc-submission-date"
-                            style="padding: 0.25rem; border: 1px solid #ccc; border-radius: 4px; width: 100%;">
+                        <div style="display: flex; gap: 0.25rem;">
+                            <input type="date" id="doc-submission-date"
+                                style="padding: 0.25rem; border: 1px solid #ccc; border-radius: 4px; flex: 1;">
+                            <button onclick="document.getElementById('doc-submission-date').value=''; saveNextVisit()" 
+                                class="btn" style="padding: 0 0.5rem; background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; margin:0;" title="日付をクリア">✕</button>
+                        </div>
                     </div>
                 </div>
             </div>
