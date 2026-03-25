@@ -40,38 +40,42 @@
 <body>
     <div class="app-container">
         <nav class="navbar">
-            <div class="logo">MedicalDB 🏥</div>
+            <div class="logo">🏥</div>
             <ul class="nav-links">
                 <li><a href="../patient-db/index.html">ホーム</a></li>
                 <li><a href="../patient-db/admission.html">入院</a></li>
                 <li><a href="../patient-db/outpatient.html">外来</a></li>
-                <li><a href="../patient-db/nursing-care.html">介護医療院</a></li>
+                <li><a href="../patient-db/nursing-care.html">介護</a></li>
                 <li><a href="index.html" class="active">予約表</a></li>
             </ul>
         </nav>
         <header class="app-header" style="margin-top: 1rem;">
-            <div>
+            <div class="header-title-area">
                 <h1>クリニック予約管理システム</h1>
                 <p class="subtitle" style="margin-bottom: 0.25rem;">患者様の予約状況をリアルタイムで確認・管理</p>
                 <div id="sync-indicator" style="font-size: 0.7rem; color: #10b981; display: flex; align-items: center; gap: 0.4rem; font-weight: 500;">
-                    <span class="pulse-dot"></span> リアルタイム同期中
+                    <span class="pulse-dot"></span> <span class="sync-text">リアルタイム同期中</span>
                 </div>
             </div>
             <div class="date-selector-wrapper">
-                <div class="import-container">
-                    <label for="excel-import" class="import-btn">Excelインポート</label>
-                    <input type="file" id="excel-import" accept=".xlsx, .xls" style="display: none;">
+                <div class="header-btn-row">
+                    <div class="import-container">
+                        <label for="excel-import" class="import-btn"><span class="btn-icon">📂</span><span class="btn-text"> インポート</span></label>
+                        <input type="file" id="excel-import" accept=".xlsx, .xls" style="display: none;">
+                    </div>
+                    <button id="refresh-btn" class="nav-link-btn" style="background-color: #0ea5e9; color: white; border: none;" title="最新情報に更新">🔄 <span class="btn-text">更新</span></button>
+                    <button id="staff-settings-btn" class="nav-link-btn" style="background-color: #6366f1; color: white; border: none;">⚙️ <span class="btn-text">スタッフ</span></button>
+                    <button id="performance-btn" class="nav-link-btn" style="background-color: #8b5cf6; color: white; border: none;" title="月間集計を確認">📊 <span class="btn-text">実績</span></button>
+                    <button onclick="window.print()" class="nav-link-btn print-btn" style="background-color: #64748b; color: white; border: none;">🖨️ <span class="btn-text">印刷</span></button>
                 </div>
-                <button id="refresh-btn" class="nav-link-btn" style="background-color: #0ea5e9; color: white; border: none; margin-left: 0.5rem;" title="最新情報に更新">🔄 更新</button>
-                <button id="staff-settings-btn" class="nav-link-btn" style="background-color: #6366f1; color: white; border: none;">スタッフ設定</button>
-                <label for="target-date">予約日:</label>
-                <div class="date-input-container">
-                    <button id="prev-date" class="date-nav-btn" title="前日">◁</button>
-                    <input type="date" id="target-date">
-                    <button id="next-date" class="date-nav-btn" title="翌日">⇒</button>
+                <div class="header-date-row">
+                    <label for="target-date" class="date-label">予約日:</label>
+                    <div class="date-input-container">
+                        <button id="prev-date" class="date-nav-btn" title="前日">◁</button>
+                        <input type="date" id="target-date">
+                        <button id="next-date" class="date-nav-btn" title="翌日">▷</button>
+                    </div>
                 </div>
-                <button id="performance-btn" class="nav-link-btn" style="background-color: #8b5cf6; color: white; border: none; margin-left: 0.5rem;" title="月間集計を確認">📊 実績</button>
-                <button onclick="window.print()" class="nav-link-btn print-btn" style="background-color: #64748b; color: white; border: none; margin-left: 0.5rem;">印刷する</button>
             </div>
         </header>
         <main class="schedule-wrapper">

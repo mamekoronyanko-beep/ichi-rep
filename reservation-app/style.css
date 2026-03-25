@@ -125,12 +125,33 @@ body {
 .date-selector-wrapper {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 0.5rem;
+    flex-wrap: wrap;
 }
 
 .date-selector-wrapper label {
     font-weight: 500;
     color: var(--text-main);
+}
+
+.date-label {
+    font-weight: 600;
+    color: var(--text-main);
+    white-space: nowrap;
+}
+
+/* Header two-row layout for buttons and date */
+.header-btn-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+.header-date-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.4rem;
 }
 
 .date-input-container {
@@ -788,13 +809,53 @@ body {
     /* App container: fixed viewport height, internal scroll */
     .app-container { height: 100vh; border-radius: 0; overflow: hidden; }
 
-    /* Navbar */
-    .navbar { padding: 0.5rem 1rem; flex-direction: column; gap: 0.5rem; }
-    .nav-links { gap: 0.5rem; font-size: 0.8rem; }
+    /* Navbar: compact inline row */
+    .navbar {
+        padding: 0.3rem 0.75rem;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .logo { font-size: 1.2rem; }
+    .nav-links { gap: 0.2rem; font-size: 0.75rem; }
+    .nav-links a { padding: 0.3rem 0.5rem; border-radius: 4px; }
 
-    /* Header */
-    .app-header { flex-direction: column; align-items: flex-start; padding: 0.5rem; gap: 0.25rem; }
+    /* Header: stacked layout, minimal padding */
+    .app-header {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 0.4rem 0.6rem;
+        gap: 0.3rem;
+        margin-top: 0 !important;
+    }
+    .header-title-area h1 { font-size: 0.95rem; font-weight: 700; }
     .subtitle { display: none; }
+    .sync-text { display: none; }
+
+    /* Header buttons: compact row */
+    .date-selector-wrapper {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.3rem;
+    }
+    .header-btn-row {
+        gap: 0.3rem;
+        justify-content: flex-start;
+    }
+    .header-btn-row .nav-link-btn,
+    .header-btn-row .import-btn {
+        padding: 0.35rem 0.5rem !important;
+        font-size: 0.75rem !important;
+    }
+    .header-date-row {
+        margin-top: 0;
+        justify-content: flex-start;
+    }
+    .date-label { font-size: 0.8rem; }
+    #target-date { font-size: 0.85rem; padding: 0.3rem 0.5rem; }
+    .date-nav-btn { width: 30px; height: 30px; font-size: 1rem; }
 
     /* Schedule wrapper: single column, vertical scroll enabled */
     .schedule-wrapper {
