@@ -64,6 +64,36 @@ document.addEventListener('DOMContentLoaded', async () => {
         return `${h}:${m}`;
     };
 
+    // --- Mobile Stats Toggle Logic ---
+    const toggleStatsBtn = document.getElementById('toggle-stats-btn');
+    const statsContainer = document.getElementById('stats-container');
+    const tableContainer = document.querySelector('.table-container');
+
+    const updateToggleState = (isCollapsed) => {
+        if (isCollapsed) {
+            statsContainer.classList.add('collapsed');
+            tableContainer.classList.add('stats-collapsed');
+            const textSpan = toggleStatsBtn.querySelector('.toggle-text');
+            if (textSpan) textSpan.textContent = '集計を表示';
+        } else {
+            statsContainer.classList.remove('collapsed');
+            tableContainer.classList.remove('stats-collapsed');
+            const textSpan = toggleStatsBtn.querySelector('.toggle-text');
+            if (textSpan) textSpan.textContent = '集計を非表示';
+        }
+        localStorage.setItem('stats_collapsed', isCollapsed);
+    };
+
+    if (toggleStatsBtn) {
+        const savedState = localStorage.getItem('stats_collapsed') === 'true';
+        updateToggleState(savedState);
+
+        toggleStatsBtn.addEventListener('click', () => {
+            const currentlyCollapsed = statsContainer.classList.contains('collapsed');
+            updateToggleState(!currentlyCollapsed);
+        });
+    }
+
     // --- Staff Management Logic (DB Optimized) ---
     const getStaffData = async () => {
         const { data, error } = await supabase.from('staff_settings').select('*').order('id', { ascending: true });

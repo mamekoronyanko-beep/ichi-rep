@@ -509,7 +509,7 @@ body {
 }
 
 .booked.status-arrived::after {
-    content: "✁E来院";
+    content: "笨・譚･髯｢";
     display: block;
     position: absolute;
     top: 2px;
@@ -532,7 +532,7 @@ body {
 }
 
 .booked.status-canceled::after {
-    content: "キャンセル";
+    content: "繧ｭ繝｣繝ｳ繧ｻ繝ｫ";
     display: block;
     position: absolute;
     top: 2px;
@@ -602,7 +602,7 @@ body {
 }
 
 .continued-slot::after {
-    content: "�E�継続枠�E�E;
+    content: "・育ｶ咏ｶ壽棧・・;
     font-size: 0.6rem;
     color: #94a3b8;
     position: absolute;
@@ -612,7 +612,7 @@ body {
     pointer-events: none;
 }
 
-/* 統計パネル冁E�E入力欁E��タイル */
+/* 邨ｱ險医ヱ繝阪Ν蜀・・蜈･蜉帶ｬ・せ繧ｿ繧､繝ｫ */
 .stats-input {
     width: 100%;
     padding: 0.2rem 0.4rem;
@@ -630,7 +630,7 @@ body {
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
 
-/* スピンボタンを表示 */
+/* 繧ｹ繝斐Φ繝懊ち繝ｳ繧定｡ｨ遉ｺ */
 .stats-input::-webkit-inner-spin-button,
 .stats-input::-webkit-outer-spin-button {
     opacity: 1;
@@ -721,7 +721,7 @@ body {
     position: relative;
 }
 .is-non-working-day::after {
-    content: "休診日";
+    content: "莨題ｨｺ譌･";
     position: absolute;
     top: 50%;
     left: 50%;
@@ -794,7 +794,6 @@ body {
     .nav-links { gap: 0.5rem; font-size: 0.8rem; }
     .app-container { height: 100vh; border-radius: 0; }
     .app-header { flex-direction: column; align-items: flex-start; padding: 0.75rem; gap: 0.5rem; }
-    .app-header h1 { font-size: 1.2rem; margin: 0; }
     .subtitle { display: none; } /* Hide subtitle to save space */
 
     .schedule-wrapper { 
@@ -848,10 +847,42 @@ body {
     
     .schedule-table thead th { z-index: 30; }
     .schedule-table thead th.time-col { z-index: 50; }
+
+    /* New/Updated Mobile Styles */
+    .stats-toggle-btn { display: flex; }
+    .stats-container.collapsed {
+        max-height: 0 !important;
+        opacity: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        pointer-events: none;
+    }
+
+    .main-layout { grid-template-columns: 1fr !important; gap: 0.5rem !important; padding: 0.5rem !important; }
+    .stats-sidebar { position: static !important; max-height: none !important; order: -1; margin-bottom: 0.5rem !important; }
+    .stats-sidebar > .stats-container > div { padding: 0.75rem !important; }
+    
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important; gap: 0.5rem !important; }
+
+    .table-container { 
+        max-height: calc(100vh - 300px) !important; 
+        transition: max-height 0.3s ease-out;
+    }
+    .table-container.stats-collapsed {
+        max-height: calc(100vh - 120px) !important;
+    }
+
+    .schedule-table { min-width: 900px !important; }
+    .schedule-table th, .schedule-table td { padding: 0.4rem 0.2rem !important; font-size: 0.8rem !important; min-width: 85px !important; }
+    .time-col { width: 55px !important; min-width: 55px !important; z-index: 55 !important; }
+
+    .app-header { padding: 0.5rem !important; }
+    .navbar { flex-direction: row !important; flex-wrap: wrap !important; gap: 0.25rem !important; justify-content: center !important; }
+    .navbar a { padding: 0.4rem 0.6rem !important; font-size: 0.75rem !important; }
 }
 
 @media screen and (max-height: 500px) and (orientation: landscape) {
     .app-header { padding: 0.25rem 1rem !important; flex-direction: row !important; }
-    .stats-sidebar { display: none !important; }
-    .table-container { max-height: calc(100vh - 100px) !important; }
+    .stats-sidebar, .stats-toggle-btn { display: none !important; }
+    .table-container { max-height: calc(100vh - 80px) !important; }
 }
