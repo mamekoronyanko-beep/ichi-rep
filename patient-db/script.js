@@ -288,6 +288,88 @@ async function openPatientDetails(dbId) {
     modal.style.display = 'flex';
 }
 
+window.openPatientEditForm = async function () {
+    if (!currentPatientDbId) return;
+
+    // Fetch latest fresh data just to be safe
+    const { data: patient, error } = await supabaseClient.from('patients').select('*').eq('p_id', currentPatientDbId).single();
+    if (error || !patient) {
+        alert('患者データの取得に失敗しました。');
+        return;
+    }
+
+    // Populate the form fields
+    document.getElementById('edit-patient-id').value = patient.p_id || '';
+    document.getElementById('edit-patient-name').value = patient.p_name || '';
+
+    const categorySelect = document.getElementById('edit-patient-category');
+    if (categorySelect) {
+        categorySelect.value = patient.p_category || '';
+    }
+
+    document.getElementById('edit-disease-name').value = patient.p_disease || '';
+    document.getElementById('edit-diagnosis-date').value = patient.p_diagnosis_date || '';
+
+    const ncCheck = document.getElementById('edit-patient-nursing-care');
+    if (ncCheck) {
+        ncCheck.checked = !!patient.p_nursing_care;
+    }
+
+    // Show the form
+    document.getElementById('patient-edit-form').style.display = 'block';
+};
+
+window.savePatientBasicInfo = async function () {
+    if (!currentPatientDbId) return;
+
+    const p_name = document.getElementById('edit-patient-name').value;
+    const p_category = document.getElementById('edit-patient-category') ? document.getElementById('edit-patient-category').value : null;
+    const p_disease = document.getElementById('edit-disease-name').value;
+    const p_diagnosis_date = document.getElementById('edit-diagnosis-date').value;
+    const p_nursing_care = document.getElementById('edit-patient-nursing-care') ? document.getElementById('edit-patient-nursing-care').checked : false;
+
+    if (!p_name) {
+        alert('氏名は必須です。');
+        return;
+    }
+
+    const updates = {
+        p_name,
+        p_disease,
+        p_diagnosis_date,
+        p_nursing_care
+    };
+
+    // If category select exists (admission/outpatient), add to updates
+    if (document.getElementById('edit-patient-category')) {
+        updates.p_category = p_category;
+    }
+
+    try {
+        const { error } = await supabaseClient
+            .from('patients')
+            .update(updates)
+            .eq('p_id', currentPatientDbId);
+
+        if (error) throw error;
+
+        alert('基本情報を更新しました。');
+
+        // Hide form and refresh modal details
+        document.getElementById('patient-edit-form').style.display = 'none';
+        await openPatientDetails(currentPatientDbId);
+
+        // Refresh the tables in the background based on what page we are on
+        if (typeof renderAdmissionTable === 'function' && window.location.pathname.includes('admission.html')) renderAdmissionTable();
+        if (typeof renderOutpatientTable === 'function' && window.location.pathname.includes('outpatient.html')) renderOutpatientTable();
+        if (typeof renderNursingCareTable === 'function' && window.location.pathname.includes('nursing-care.html')) renderNursingCareTable();
+
+    } catch (err) {
+        console.error('Update failed:', err);
+        alert('更新に失敗しました: ' + (err.message || err));
+    }
+}
+
 function calculateDocSubmissionDate(category, nextDate, holidays) {
     if (!nextDate) return null;
 
