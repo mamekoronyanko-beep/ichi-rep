@@ -713,6 +713,8 @@ body {
         width: 60px !important;
         border-right: 1px solid #000 !important;
     }
+}
+
  /* --- Sticky & Animation Utils --- */
 .schedule-table thead th {
     position: sticky;
@@ -744,7 +746,7 @@ body {
     position: relative;
 }
 .is-non-working-day::after {
-    content: "莨題ｨｺ譌･";
+    content: "休診日";
     position: absolute;
     top: 50%;
     left: 50%;
