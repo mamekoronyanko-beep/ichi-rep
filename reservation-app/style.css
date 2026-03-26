@@ -807,103 +807,120 @@ body {
 /* --- Mobile Responsiveness --- */
 @media screen and (max-width: 1024px) {
     /* App container: fixed viewport height, internal scroll */
-    .app-container { height: 100vh; border-radius: 0; overflow: hidden; }
+    .app-container { height: 100vh; border-radius: 0; overflow: hidden; display: flex; flex-direction: column; }
 
-    /* Navbar: compact inline row */
+    /* Navbar: extremely compact inline row */
     .navbar {
-        padding: 0.1rem 0.5rem;
+        padding: 0.2rem 0.4rem !important;
         flex-direction: row;
         flex-wrap: wrap;
-        gap: 0.15rem;
-        justify-content: space-between;
+        gap: 0.1rem;
+        justify-content: center;
         align-items: center;
+        min-height: auto;
     }
-    .logo { font-size: 1.1rem; }
-    .nav-links { gap: 0.15rem; font-size: 0.75rem; }
-    .nav-links a { padding: 0.2rem 0.4rem; border-radius: 4px; }
+    .logo { display: none; }
+    .nav-links { gap: 0.2rem; font-size: 0.7rem; justify-content: center; width: 100%; margin: 0; padding: 0; }
+    .nav-links a { padding: 0.2rem 0.3rem !important; border-radius: 4px; display: inline-block; }
 
     /* Header: stacked layout, minimal padding */
     .app-header {
         flex-direction: column;
         align-items: stretch;
-        padding: 0.2rem 0.4rem;
-        gap: 0.15rem;
+        padding: 0.2rem 0.3rem !important;
+        gap: 0.15rem !important;
         margin-top: 0 !important;
+        border-bottom: 1px solid var(--border-color);
     }
-    .header-title-area h1 { font-size: 0.85rem; font-weight: 700; }
+    .header-title-area { display: none; } /* Hide title entirely to save space */
     .subtitle { display: none; }
     .sync-text { display: none; }
 
-    /* Header buttons: compact row */
+    /* Header buttons: ultra compact row */
     .date-selector-wrapper {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 0.15rem;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.2rem;
+        width: 100%;
+        overflow-x: auto;
     }
     .header-btn-row {
+        display: flex;
         gap: 0.2rem;
-        justify-content: flex-start;
+        flex-wrap: nowrap;
+        flex-shrink: 0;
     }
     .header-btn-row .nav-link-btn,
     .header-btn-row .import-btn {
-        padding: 0.25rem 0.4rem !important;
-        font-size: 0.7rem !important;
+        padding: 0.2rem 0.3rem !important;
+        font-size: 0.65rem !important;
+        white-space: nowrap;
     }
     .header-date-row {
         margin-top: 0;
-        justify-content: flex-start;
-        gap: 0.2rem;
+        justify-content: flex-end;
+        gap: 0.15rem;
+        flex-shrink: 0;
     }
-    .date-label { font-size: 0.75rem; }
-    #target-date { font-size: 0.8rem; padding: 0.2rem 0.4rem; height: 26px; }
-    .date-nav-btn { width: 26px; height: 26px; font-size: 0.9rem; }
+    .date-label { display: none; }
+    #target-date { font-size: 0.75rem; padding: 0.1rem 0.2rem; height: 24px; min-width: 95px; }
+    .date-nav-btn { width: 24px; height: 24px; font-size: 0.8rem; padding: 0; }
 
-    /* Schedule wrapper: single column, vertical scroll enabled */
+    /* Schedule wrapper: flex column layout covering remaining height */
     .schedule-wrapper {
-        grid-template-columns: 1fr !important;
-        overflow-y: auto !important;
-        overflow-x: hidden !important;
-        align-items: start !important;
-        gap: 0.5rem !important;
-        padding: 0.5rem !important;
+        display: flex !important;
+        flex-direction: column !important;
+        flex: 1 !important;
+        overflow: hidden !important;
+        gap: 0.2rem !important;
+        padding: 0.2rem !important;
+    }
+    .table-content-area {
+        display: flex !important;
+        flex-direction: column !important;
+        flex: 1 !important;
+        overflow: hidden !important;
+        min-height: 0 !important;
+        gap: 0 !important;
     }
 
     /* Stats sidebar: flows above the table */
     .stats-sidebar {
         position: static !important;
-        max-height: none !important;
+        max-height: 35vh !important;
+        flex-shrink: 0;
         order: -1;
-        gap: 0.5rem !important;
-        margin-bottom: 0.25rem !important;
+        gap: 0.2rem !important;
+        margin-bottom: 0.2rem !important;
+        overflow-y: auto !important;
     }
-    .stats-sidebar > .stats-container > div { padding: 0.75rem !important; }
-
-    /* Stats toggle button: show on mobile */
-    .stats-toggle-btn { display: flex; }
+    .stats-sidebar > .stats-container > div { padding: 0.4rem !important; }
+    .stats-toggle-btn { display: flex; padding: 0.3rem !important; font-size: 0.75rem !important; margin-bottom: 0.2rem !important; min-height: 28px !important; }
+    
     .stats-container.collapsed {
-        max-height: 0 !important;
-        opacity: 0 !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        pointer-events: none;
+        display: none !important;
     }
 
-    /* Stats grid: horizontal layout */
+    /* Stats grid: tighter padding */
     .stat-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important;
-        gap: 0.5rem !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.3rem !important;
     }
+    .stat-card { padding: 0.4rem !important; }
 
-    /* Table container: explicit height for internal scroll */
+    /* Table container: stretches to fill available height */
     .table-container {
-        height: calc(100vh - 320px) !important;
+        flex: 1 1 auto !important;
+        height: auto !important;
         max-height: none !important;
         overflow: auto !important;
-        transition: height 0.3s ease-out;
+        border-radius: 4px;
     }
     .table-container.stats-collapsed {
-        height: calc(100vh - 130px) !important;
+        height: auto !important;
     }
 
     /* Schedule table: compact for mobile */
