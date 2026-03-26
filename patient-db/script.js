@@ -325,7 +325,7 @@ window.savePatientBasicInfo = async function () {
     const p_name = document.getElementById('edit-patient-name').value;
     const p_category = document.getElementById('edit-patient-category') ? document.getElementById('edit-patient-category').value : null;
     const p_disease = document.getElementById('edit-disease-name').value;
-    const p_diagnosis_date = document.getElementById('edit-diagnosis-date').value;
+    const p_diagnosis_date = document.getElementById('edit-diagnosis-date').value || null;
     const p_nursing_care = document.getElementById('edit-patient-nursing-care') ? document.getElementById('edit-patient-nursing-care').checked : false;
 
     if (!p_name) {
@@ -482,9 +482,9 @@ async function saveNextVisit(skipAutoCalc = false) {
     }
 
     const { data, error } = await supabaseClient.from('patients').update({
-        next_reserve_date: nextDate,
+        next_reserve_date: nextDate || null,
         p_nursing_care: nursingCare,
-        p_doc_submission_date: docDate
+        p_doc_submission_date: docDate || null
     }).eq('p_id', currentPatientDbId);
 
     if (error) {
