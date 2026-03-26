@@ -532,7 +532,7 @@ body {
 }
 
 .booked.status-arrived::after {
-    content: "笨・譚･髯｢";
+    content: "来院済";
     display: block;
     position: absolute;
     top: 2px;
@@ -555,7 +555,7 @@ body {
 }
 
 .booked.status-canceled::after {
-    content: "繧ｭ繝｣繝ｳ繧ｻ繝ｫ";
+    content: "キャンセル";
     display: block;
     position: absolute;
     top: 2px;
@@ -625,7 +625,7 @@ body {
 }
 
 .continued-slot::after {
-    content: "・育ｶ咏ｶ壽棧・・;
+    content: "(継続枠)";
     font-size: 0.6rem;
     color: #94a3b8;
     position: absolute;
@@ -811,26 +811,26 @@ body {
 
     /* Navbar: compact inline row */
     .navbar {
-        padding: 0.3rem 0.75rem;
+        padding: 0.1rem 0.5rem;
         flex-direction: row;
         flex-wrap: wrap;
-        gap: 0.25rem;
+        gap: 0.15rem;
         justify-content: space-between;
         align-items: center;
     }
-    .logo { font-size: 1.2rem; }
-    .nav-links { gap: 0.2rem; font-size: 0.75rem; }
-    .nav-links a { padding: 0.3rem 0.5rem; border-radius: 4px; }
+    .logo { font-size: 1.1rem; }
+    .nav-links { gap: 0.15rem; font-size: 0.75rem; }
+    .nav-links a { padding: 0.2rem 0.4rem; border-radius: 4px; }
 
     /* Header: stacked layout, minimal padding */
     .app-header {
         flex-direction: column;
         align-items: stretch;
-        padding: 0.4rem 0.6rem;
-        gap: 0.3rem;
+        padding: 0.2rem 0.4rem;
+        gap: 0.15rem;
         margin-top: 0 !important;
     }
-    .header-title-area h1 { font-size: 0.95rem; font-weight: 700; }
+    .header-title-area h1 { font-size: 0.85rem; font-weight: 700; }
     .subtitle { display: none; }
     .sync-text { display: none; }
 
@@ -838,24 +838,25 @@ body {
     .date-selector-wrapper {
         flex-direction: column;
         align-items: stretch;
-        gap: 0.3rem;
+        gap: 0.15rem;
     }
     .header-btn-row {
-        gap: 0.3rem;
+        gap: 0.2rem;
         justify-content: flex-start;
     }
     .header-btn-row .nav-link-btn,
     .header-btn-row .import-btn {
-        padding: 0.35rem 0.5rem !important;
-        font-size: 0.75rem !important;
+        padding: 0.25rem 0.4rem !important;
+        font-size: 0.7rem !important;
     }
     .header-date-row {
         margin-top: 0;
         justify-content: flex-start;
+        gap: 0.2rem;
     }
-    .date-label { font-size: 0.8rem; }
-    #target-date { font-size: 0.85rem; padding: 0.3rem 0.5rem; }
-    .date-nav-btn { width: 30px; height: 30px; font-size: 1rem; }
+    .date-label { font-size: 0.75rem; }
+    #target-date { font-size: 0.8rem; padding: 0.2rem 0.4rem; height: 26px; }
+    .date-nav-btn { width: 26px; height: 26px; font-size: 0.9rem; }
 
     /* Schedule wrapper: single column, vertical scroll enabled */
     .schedule-wrapper {
@@ -896,12 +897,13 @@ body {
 
     /* Table container: explicit height for internal scroll */
     .table-container {
-        max-height: 65vh !important;
+        height: calc(100vh - 320px) !important;
+        max-height: none !important;
         overflow: auto !important;
-        transition: max-height 0.3s ease-out;
+        transition: height 0.3s ease-out;
     }
     .table-container.stats-collapsed {
-        max-height: 85vh !important;
+        height: calc(100vh - 130px) !important;
     }
 
     /* Schedule table: compact for mobile */
