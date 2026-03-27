@@ -67,6 +67,60 @@ function calculateRemainingDays(diagDate, category) {
 
 let admissionTableBody, outpatientTableBody, archivedAdmissionTableBody, archivedOutpatientTableBody, nursingCareTableBody, archivedNursingCareTableBody;
 let addAdmissionModal, addAdmissionForm, addOutpatientModal, addOutpatientForm, addNursingCareModal, addNursingCareForm;
+ 
+// State for search and sort
+let categoryState = {
+    admission: { data: [], filtered: [], sortCol: 'p_id', sortOrder: 'asc', query: '' },
+    outpatient: { data: [], filtered: [], sortCol: 'p_id', sortOrder: 'asc', query: '' },
+    nursing_care: { data: [], filtered: [], sortCol: 'p_id', sortOrder: 'asc', query: '' }
+};
+ 
+function sortCategoryTable(category, column) {
+    const state = categoryState[category];
+    if (state.sortCol === column) {
+        state.sortOrder = state.sortOrder === 'asc' ? 'desc' : 'asc';
+    } else {
+        state.sortCol = column;
+        state.sortOrder = 'asc';
+    }
+    applyCategoryFilterAndSort(category);
+}
+ 
+function filterCategoryTable(category) {
+    const searchInput = document.getElementById('category-search');
+    if (!searchInput) return;
+    categoryState[category].query = searchInput.value.toLowerCase();
+    applyCategoryFilterAndSort(category);
+}
+ 
+function applyCategoryFilterAndSort(category) {
+    const state = categoryState[category];
+    
+    // Filter
+    state.filtered = state.data.filter(p => 
+        p.p_name.toLowerCase().includes(state.query) || 
+        p.p_id.toLowerCase().includes(state.query) || 
+        (p.p_disease && p.p_disease.toLowerCase().includes(state.query))
+    );
+ 
+    // Sort
+    state.filtered.sort((a, b) => {
+        let valA = a[state.sortCol] || '';
+        let valB = b[state.sortCol] || '';
+        
+        if (typeof valA === 'string') valA = valA.toLowerCase();
+        if (typeof valB === 'string') valB = valB.toLowerCase();
+ 
+        if (valA < valB) return state.sortOrder === 'asc' ? -1 : 1;
+        if (valA > valB) return state.sortOrder === 'asc' ? 1 : -1;
+        return 0;
+    });
+ 
+    // Re-render
+    if (category === 'admission') renderAdmissionTableRows(state.filtered);
+    else if (category === 'outpatient') renderOutpatientTableRows(state.filtered);
+    else if (category === 'nursing_care') renderNursingCareTableRows(state.filtered);
+}
 
 // Initialize Admission Table
 async function renderAdmissionTable() {
@@ -77,12 +131,20 @@ async function renderAdmissionTable() {
     const { data: dbPatients, error } = await supabaseClient
         .from('patients')
         .select('*')
-        .eq('p_type', 'admission')
-        .order('p_id', { ascending: true });
-
+        .eq('p_type', 'admission');
+ 
     if (error || !dbPatients) return;
-
-    dbPatients.forEach((patient) => {
+    
+    categoryState.admission.data = dbPatients;
+    applyCategoryFilterAndSort('admission');
+}
+ 
+function renderAdmissionTableRows(patients) {
+    admissionTableBody = document.getElementById('patientTableBody');
+    if (!admissionTableBody) return;
+    admissionTableBody.innerHTML = '';
+ 
+    patients.forEach((patient) => {
         let categoryClass = 'tag-unknown';
         if (patient.p_category === '運動器') categoryClass = 'tag-locomotor';
         else if (patient.p_category === '脳血管') categoryClass = 'tag-cerebro';
@@ -129,12 +191,20 @@ async function renderNursingCareTable() {
     const { data: dbPatients, error } = await supabaseClient
         .from('patients')
         .select('*')
-        .eq('p_type', 'nursing_care')
-        .order('p_id', { ascending: true });
-
+        .eq('p_type', 'nursing_care');
+ 
     if (error || !dbPatients) return;
-
-    dbPatients.forEach((patient) => {
+ 
+    categoryState.nursing_care.data = dbPatients;
+    applyCategoryFilterAndSort('nursing_care');
+}
+ 
+function renderNursingCareTableRows(patients) {
+    nursingCareTableBody = document.getElementById('nursingCareTableBody');
+    if (!nursingCareTableBody) return;
+    nursingCareTableBody.innerHTML = '';
+ 
+    patients.forEach((patient) => {
         const tr = document.createElement('tr');
         tr.style.cursor = 'pointer';
         tr.innerHTML = `
@@ -587,12 +657,20 @@ async function renderOutpatientTable() {
     const { data: dbPatients, error } = await supabaseClient
         .from('patients')
         .select('*')
-        .eq('p_type', 'outpatient')
-        .order('p_id', { ascending: true });
-
+        .eq('p_type', 'outpatient');
+ 
     if (error || !dbPatients) return;
-
-    dbPatients.forEach((op) => {
+ 
+    categoryState.outpatient.data = dbPatients;
+    applyCategoryFilterAndSort('outpatient');
+}
+ 
+function renderOutpatientTableRows(patients) {
+    outpatientTableBody = document.getElementById('outpatientTableBody');
+    if (!outpatientTableBody) return;
+    outpatientTableBody.innerHTML = '';
+ 
+    patients.forEach((op) => {
         let categoryClass = 'tag-unknown';
         if (op.p_category === '運動器') categoryClass = 'tag-locomotor';
         else if (op.p_category === '脳血管') categoryClass = 'tag-cerebro';

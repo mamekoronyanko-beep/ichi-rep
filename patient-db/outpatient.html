@@ -28,15 +28,14 @@
                 <h1>🏥 外来患者管理</h1>
                 <p>現在通院中の外来患者一覧です。ダブルクリックで詳細を確認・編集できます。</p>
             </div>
-            <div style="display: flex; gap: 0.5rem; align-items: flex-start;">
-                <button class="btn print-btn" onclick="window.print()"
-                    style="background-color: #64748b; color: white; margin-top: 0;">印刷する</button>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: flex-end;">
+                <div class="search-container" style="margin-right: auto; min-width: 300px;">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="category-search" class="search-input" placeholder="名前・ID・疾患名で検索..." oninput="filterCategoryTable('outpatient')">
+                </div>
+                <button class="btn print-btn" onclick="window.print()" style="background-color: #64748b; color: white; margin-top: 0;">印刷</button>
                 <button id="refresh-btn" class="btn" style="background-color: #0ea5e9; color: white; border: none; margin-top: 0;" title="最新情報に更新">🔄 更新</button>
-                <button class="btn" style="background-color: #10b981; color: white; border: none; margin-top: 0;"
-                    onclick="document.getElementById('excel-import').click()">📄 Excelから読込</button>
-                <input type="file" id="excel-import" accept=".xlsx, .xls" style="display: none;">
-                <button class="btn primary" style="margin-top: 0;"
-                    onclick="document.getElementById('addOutpatientModal').style.display='flex'">新規外来追加</button>
+                <button class="btn primary" style="margin-top: 0;" onclick="document.getElementById('addOutpatientModal').style.display='flex'">新規外来追加</button>
             </div>
         </div>
 
@@ -44,15 +43,15 @@
             <table id="outpatientTable">
                 <thead>
                     <tr>
-                        <th>外来患者ID</th>
-                        <th>氏名</th>
+                        <th onclick="sortCategoryTable('outpatient', 'p_id')" style="cursor:pointer;">外来患者ID ↕️</th>
+                        <th onclick="sortCategoryTable('outpatient', 'p_name')" style="cursor:pointer;">氏名 ↕️</th>
                         <th>区分</th>
-                        <th>疾患種別</th>
-                        <th>診断名</th>
-                        <th>診断日</th>
+                        <th onclick="sortCategoryTable('outpatient', 'p_category')" style="cursor:pointer;">疾患種別 ↕️</th>
+                        <th onclick="sortCategoryTable('outpatient', 'p_disease')" style="cursor:pointer;">診断名 ↕️</th>
+                        <th onclick="sortCategoryTable('outpatient', 'p_diagnosis_date')" style="cursor:pointer;">診断日 ↕️</th>
                         <th>残日数</th>
-                        <th>次回リハ予約日</th>
-                        <th>書類提出日</th>
+                        <th onclick="sortCategoryTable('outpatient', 'next_reserve_date')" style="cursor:pointer;">次回リハ予約日 ↕️</th>
+                        <th onclick="sortCategoryTable('outpatient', 'p_doc_submission_date')" style="cursor:pointer;">書類提出日 ↕️</th>
                         <th>要介護</th>
                         <th>アクション</th>
                     </tr>

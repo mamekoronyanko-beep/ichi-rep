@@ -33,19 +33,16 @@
     <main class="container">
         <div class="header-actions">
             <h1>🏥 入院患者管理</h1>
-            <div style="display: flex; gap: 0.5rem; align-items: flex-end;">
-                <button class="btn" onclick="openMeetingCalendar()" style="background-color: #3b82f6; color: white;">🗓️
-                    面談予定</button>
-                <button class="btn" onclick="openDocSubmissionCalendar()"
-                    style="background-color: #10b981; color: white;">📄 書類提出</button>
-                <button class="btn print-btn" onclick="window.print()"
-                    style="background-color: #64748b; color: white;">印刷する</button>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: flex-end;">
+                <div class="search-container" style="margin-right: auto; min-width: 300px;">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="category-search" class="search-input" placeholder="名前・ID・疾患名で検索..." oninput="filterCategoryTable('admission')">
+                </div>
+                <button class="btn" onclick="openMeetingCalendar()" style="background-color: #3b82f6; color: white;">🗓️ 面談予定</button>
+                <button class="btn" onclick="openDocSubmissionCalendar()" style="background-color: #10b981; color: white;">📄 書類提出</button>
+                <button class="btn print-btn" onclick="window.print()" style="background-color: #64748b; color: white;">印刷</button>
                 <button id="refresh-btn" class="btn" style="background-color: #0ea5e9; color: white; border: none;" title="最新情報に更新">🔄 更新</button>
-                <button class="btn" style="background-color: #10b981; color: white; border: none;"
-                    onclick="document.getElementById('excel-import').click()">📄 Excelから読込</button>
-                <input type="file" id="excel-import" accept=".xlsx, .xls" style="display: none;">
-                <button class="btn primary"
-                    onclick="document.getElementById('addModal').style.display='flex'">新規患者追加</button>
+                <button class="btn primary" onclick="document.getElementById('addModal').style.display='flex'">新規追加</button>
             </div>
         </div>
 
@@ -53,15 +50,15 @@
             <table id="patientTable">
                 <thead>
                     <tr>
-                        <th>入院患者ID</th>
-                        <th>氏名</th>
+                        <th onclick="sortCategoryTable('admission', 'p_id')" style="cursor:pointer;">入院患者ID ↕️</th>
+                        <th onclick="sortCategoryTable('admission', 'p_name')" style="cursor:pointer;">氏名 ↕️</th>
                         <th>区分</th>
-                        <th>疾患種別</th>
-                        <th>診断名</th>
-                        <th>診断日</th>
+                        <th onclick="sortCategoryTable('admission', 'p_category')" style="cursor:pointer;">疾患種別 ↕️</th>
+                        <th onclick="sortCategoryTable('admission', 'p_disease')" style="cursor:pointer;">診断名 ↕️</th>
+                        <th onclick="sortCategoryTable('admission', 'p_diagnosis_date')" style="cursor:pointer;">診断日 ↕️</th>
                         <th>残日数</th>
-                        <th>次回面談予定日</th>
-                        <th>書類提出日</th>
+                        <th onclick="sortCategoryTable('admission', 'next_reserve_date')" style="cursor:pointer;">次回面談予定日 ↕️</th>
+                        <th onclick="sortCategoryTable('admission', 'p_doc_submission_date')" style="cursor:pointer;">書類提出日 ↕️</th>
                         <th>要介護</th>
                         <th>アクション</th>
                     </tr>

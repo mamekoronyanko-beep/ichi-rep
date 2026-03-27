@@ -25,19 +25,16 @@
     <main class="container">
         <div class="header-actions">
             <h1>🏥 介護医療院管理</h1>
-            <div style="display: flex; gap: 0.5rem; align-items: flex-end;">
-                <button class="btn" onclick="openMeetingCalendar()" style="background-color: #3b82f6; color: white;">🗓️
-                    面談予定</button>
-                <button class="btn" onclick="openDocSubmissionCalendar()"
-                    style="background-color: #10b981; color: white;">📄 書類提出</button>
-                <button class="btn print-btn" onclick="window.print()"
-                    style="background-color: #64748b; color: white; margin-top: 0;">印刷する</button>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: flex-end;">
+                <div class="search-container" style="margin-right: auto; min-width: 300px;">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="category-search" class="search-input" placeholder="名前・ID・疾患名で検索..." oninput="filterCategoryTable('nursing_care')">
+                </div>
+                <button class="btn" onclick="openMeetingCalendar()" style="background-color: #3b82f6; color: white;">🗓️ 面談予定</button>
+                <button class="btn" onclick="openDocSubmissionCalendar()" style="background-color: #10b981; color: white;">📄 書類提出</button>
+                <button class="btn print-btn" onclick="window.print()" style="background-color: #64748b; color: white; margin-top: 0;">印刷</button>
                 <button id="refresh-btn" class="btn" style="background-color: #0ea5e9; color: white; border: none; margin-top: 0;" title="最新情報に更新">🔄 更新</button>
-                <button class="btn" style="background-color: #10b981; color: white; border: none; margin-top: 0;"
-                    onclick="document.getElementById('excel-import').click()">📄 Excelから読込</button>
-                <input type="file" id="excel-import" accept=".xlsx, .xls" style="display: none;">
-                <button class="btn primary" style="margin-top: 0;"
-                    onclick="document.getElementById('addNursingCareModal').style.display='flex'">新規利用者追加</button>
+                <button class="btn primary" style="margin-top: 0;" onclick="document.getElementById('addNursingCareModal').style.display='flex'">新規追加</button>
             </div>
         </div>
 
@@ -45,13 +42,13 @@
             <table id="nursingCareTable">
                 <thead>
                     <tr>
-                        <th>利用者ID</th>
-                        <th>氏名</th>
+                        <th onclick="sortCategoryTable('nursing_care', 'p_id')" style="cursor:pointer;">利用者ID ↕️</th>
+                        <th onclick="sortCategoryTable('nursing_care', 'p_name')" style="cursor:pointer;">氏名 ↕️</th>
                         <th>区分</th>
-                        <th>診断名</th>
-                        <th>診断日</th>
-                        <th>次回面談予定日</th>
-                        <th>書類提出日</th>
+                        <th onclick="sortCategoryTable('nursing_care', 'p_disease')" style="cursor:pointer;">診断名 ↕️</th>
+                        <th onclick="sortCategoryTable('nursing_care', 'p_diagnosis_date')" style="cursor:pointer;">診断日 ↕️</th>
+                        <th onclick="sortCategoryTable('nursing_care', 'next_reserve_date')" style="cursor:pointer;">次回面談予定日 ↕️</th>
+                        <th onclick="sortCategoryTable('nursing_care', 'p_doc_submission_date')" style="cursor:pointer;">書類提出日 ↕️</th>
                         <th>要介護</th>
                         <th>アクション</th>
                     </tr>
