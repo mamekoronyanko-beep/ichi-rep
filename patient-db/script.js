@@ -375,13 +375,23 @@ function calculateDocSubmissionDate(category, nextDate, holidays) {
     if (!nextDate) return null;
 
     const d = new Date(nextDate);
-    d.setDate(d.getDate() - 2); // Base: 2 days before
+    
+    // Logic for Cerebrovascular (脳血管) or Disuse (廃用)
+    if (category.includes('脳血管') || category.includes('廃用')) {
+        const dayOfWeek = d.getDay(); // 0: Sun, 1: Mon, ..., 6: Sat
+        // Go to Tuesday of the preceding week
+        // Subtract current day to get to Sun, then subtract 7 to get to prev Sun, then add 2 to get to Tue
+        d.setDate(d.getDate() - dayOfWeek - 5);
+    } else {
+        // Default logic for others (e.g., Locomotor / 運動器): 2 days before
+        d.setDate(d.getDate() - 2);
+    }
 
     let targetDr = null;
     if (category.includes('運動器')) targetDr = 'suzuki';
     else if (category.includes('脳血管') || category.includes('廃用')) targetDr = 'tsukamoto';
 
-    // If no target doctor or category doesn't match, return base calculation (or null if preferred)
+    // If no target doctor, return the base calculation (formatted)
     if (!targetDr) return d.toISOString().split('T')[0];
 
     // Check holidays (including Sundays and Japanese Holidays)
