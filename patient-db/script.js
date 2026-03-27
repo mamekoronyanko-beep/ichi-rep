@@ -378,10 +378,14 @@ function calculateDocSubmissionDate(category, nextDate, holidays) {
     
     // Logic for Cerebrovascular (脳血管) or Disuse (廃用)
     if (category.includes('脳血管') || category.includes('廃用')) {
-        const dayOfWeek = d.getDay(); // 0: Sun, 1: Mon, ..., 6: Sat
-        // Go to Tuesday of the preceding week
-        // Subtract current day to get to Sun, then subtract 7 to get to prev Sun, then add 2 to get to Tue
-        d.setDate(d.getDate() - dayOfWeek - 5);
+        const dayOfWeek = d.getDay(); // 0: Sun, 1: Mon, 2: Tue, 3: Wed, 4: Thu, 5: Fri, 6: Sat
+        if (dayOfWeek <= 2) {
+            // Sun, Mon, Tue -> Tuesday of the preceding week
+            d.setDate(d.getDate() - dayOfWeek - 5);
+        } else {
+            // Wed, Thu, Fri, Sat -> Tuesday of the same week
+            d.setDate(d.getDate() - dayOfWeek + 2);
+        }
     } else {
         // Default logic for others (e.g., Locomotor / 運動器): 2 days before
         d.setDate(d.getDate() - 2);
