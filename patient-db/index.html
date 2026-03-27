@@ -60,31 +60,36 @@
             </div>
         </div>
 
-        <div class="header-actions">
+        <div class="header-actions" style="margin-top: 2rem;">
             <h2>📊 全患者基本データ</h2>
-            <div class="search-container">
-                <span class="search-icon">🔍</span>
-                <input type="text" id="global-search" class="search-input" placeholder="名前・ID・疾患名で検索...">
-            </div>
+            <button id="toggle-list-btn" class="btn primary" style="padding: 0.5rem 1.5rem; border-radius: 20px;" onclick="toggleBasicDataTable()">全患者データを表示</button>
         </div>
 
-        <div class="card" style="padding: 0; overflow-x: auto;">
-            <table id="basicPatientTable">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>氏名</th>
-                        <th>種別</th>
-                        <th>カテゴリー</th>
-                        <th>疾患名</th>
-                        <th>次回予定日</th>
-                        <th>書類提出日</th>
-                    </tr>
-                </thead>
-                <tbody id="basicPatientTableBody">
-                    <!-- データがここに挿入されます -->
-                </tbody>
-            </table>
+        <div id="basic-data-container" style="display: none; margin-top: 1.5rem;">
+            <div class="header-actions" style="margin-bottom: 1rem;">
+                <div class="search-container">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="global-search" class="search-input" placeholder="名前・ID・疾患名で検索...">
+                </div>
+            </div>
+            <div class="card" style="padding: 0; overflow-x: auto;">
+                <table id="basicPatientTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>氏名</th>
+                            <th>種別</th>
+                            <th>カテゴリー</th>
+                            <th>疾患名</th>
+                            <th>次回予定日</th>
+                            <th>書類提出日</th>
+                        </tr>
+                    </thead>
+                    <tbody id="basicPatientTableBody">
+                        <!-- データがここに挿入されます -->
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <h2 style="margin-top: 3rem; margin-bottom: 1rem;">🗂️ カテゴリー管理</h2>

@@ -1079,6 +1079,22 @@ function renderBasicDataTable(patients) {
     });
 }
 
+function toggleBasicDataTable() {
+    const container = document.getElementById('basic-data-container');
+    const btn = document.getElementById('toggle-list-btn');
+    if (!container || !btn) return;
+
+    if (container.style.display === 'none') {
+        container.style.display = 'block';
+        btn.textContent = '一覧を閉じる';
+        btn.style.backgroundColor = '#64748b'; // secondary style
+    } else {
+        container.style.display = 'none';
+        btn.textContent = '全患者データを表示';
+        btn.style.backgroundColor = 'var(--primary-color)'; // primary style
+    }
+}
+
 console.log("script.js loaded. readyState:", document.readyState);
 
 // Run initialization immediately if DOM is ready, otherwise wait for it
