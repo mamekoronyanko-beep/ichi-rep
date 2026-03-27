@@ -11,6 +11,15 @@ const toHalfWidth = (str) => {
     }).replace(/ー/g, '-');
 };
 
+// Helper to format date as YYYY-MM-DD in local time (preventing timezone shift)
+const formatLocalDate = (date) => {
+    if (!(date instanceof Date) || isNaN(date.getTime())) return null;
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+};
+
 // --- Holiday Support ---
 let holidaysData = {};
 
@@ -396,13 +405,13 @@ function calculateDocSubmissionDate(category, nextDate, holidays) {
     else if (category.includes('脳血管') || category.includes('廃用')) targetDr = 'tsukamoto';
 
     // If no target doctor, return the base calculation (formatted)
-    if (!targetDr) return d.toISOString().split('T')[0];
+    if (!targetDr) return formatLocalDate(d);
 
     // Check holidays (including Sundays and Japanese Holidays)
     // Go back until we find a work day
     let safetyCounter = 0;
     while (safetyCounter < 30) {
-        const dateStr = d.toISOString().split('T')[0];
+        const dateStr = formatLocalDate(d);
         const isClosed = isNonWorkingDay(dateStr);
         const isDrHoliday = holidays.some(h => h.dr_name === targetDr && h.attendance_date === dateStr);
 
@@ -412,13 +421,13 @@ function calculateDocSubmissionDate(category, nextDate, holidays) {
         safetyCounter++;
     }
 
-    return d.toISOString().split('T')[0];
+    return formatLocalDate(d);
 }
 
 async function fetchLatestReserveDate() {
     if (!currentPatientDbId) return;
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = formatLocalDate(new Date());
 
     // Fetch the earliest future reservation that is 'booked'
     const { data: nextRes, error } = await supabaseClient
@@ -581,7 +590,7 @@ async function renderOutpatientTable() {
 // Function to delete an outpatient record (Archive)
 async function deleteOutpatient(dbId) {
     if (confirm('この外来データを「外来終了」としてアーカイブへ移動しますか？')) {
-        const terminationDate = new Date().toISOString().split('T')[0];
+        const terminationDate = formatLocalDate(new Date());
         const { error } = await supabaseClient.from('patients').update({
             p_type: 'archived_outpatient',
             p_termination_date: terminationDate
