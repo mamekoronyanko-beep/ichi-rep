@@ -259,6 +259,7 @@ async function openPatientDetails(dbId) {
             const tr = document.createElement('tr');
             let statusHtml = '';
             if (h.status === 'arrived') statusHtml = '<span style="background: #d1fae5; color: #065f46; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">来院</span>';
+            else if (h.status === 'completed') statusHtml = '<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">完了</span>';
             else if (h.status === 'canceled') statusHtml = '<span style="background: #f3f4f6; color: #6b7280; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">キャンセル</span>';
             else statusHtml = '<span style="background: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">予約中</span>';
 
@@ -1332,7 +1333,7 @@ async function renderDocSubmissionCalendar() {
     // Now Fetch data
     const { data: patients, error } = await supabaseClient
         .from('patients')
-        .select('p_name, p_doc_submission_date, p_category, p_type')
+        .select('p_id, p_name, p_doc_submission_date, p_category, p_type, history')
         .not('p_doc_submission_date', 'is', null)
         .neq('p_type', 'outpatient');
 
@@ -1347,7 +1348,14 @@ async function renderDocSubmissionCalendar() {
             if (p.p_doc_submission_date && p.p_doc_submission_date.length >= 10) {
                 const d = p.p_doc_submission_date.substring(0, 10);
                 if (!docsByDate[d]) docsByDate[d] = [];
-                docsByDate[d].push({ name: p.p_name, category: p.p_category, type: p.p_type });
+                docsByDate[d].push({
+                    id: p.p_id,
+                    name: p.p_name,
+                    category: p.p_category,
+                    type: p.p_type,
+                    date: d,
+                    history: p.history
+                });
             }
         });
     }
@@ -1376,7 +1384,49 @@ async function renderDocSubmissionCalendar() {
                     event.classList.add('event-disuse');
                 }
 
-                event.textContent = info.name;
+                // 完了状態のチェック
+                let historyArr = [];
+                try {
+                    if (info.history) {
+                        historyArr = typeof info.history === 'string' ? JSON.parse(info.history) : info.history;
+                    }
+                } catch (e) { }
+
+                const isCompleted = historyArr.some(h => h.date === dateStr && h.type === '書類提出' && h.status === 'completed');
+
+                if (isCompleted) {
+                    event.classList.add('event-completed');
+                }
+
+                // 名前部分
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = info.name;
+                nameSpan.style.flex = "1";
+                nameSpan.style.overflow = "hidden";
+                nameSpan.style.textOverflow = "ellipsis";
+                event.appendChild(nameSpan);
+
+                // ボタン制御
+                const doneBtn = document.createElement('button');
+                doneBtn.className = 'event-complete-btn';
+
+                if (isCompleted) {
+                    doneBtn.textContent = '取消';
+                    doneBtn.title = '書類提出の完了を取り消す';
+                    doneBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        revertDocSubmission(info.id, info.date);
+                    };
+                } else {
+                    doneBtn.textContent = '済';
+                    doneBtn.title = '書類提出を終了して履歴に追加';
+                    doneBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        completeDocSubmission(info.id, info.date);
+                    };
+                }
+                event.appendChild(doneBtn);
+
                 dayDiv.appendChild(event);
             });
         }
@@ -1385,6 +1435,87 @@ async function renderDocSubmissionCalendar() {
     // Render Doctor Sidebar
     await fetchDoctorHolidays();
     renderDoctorSidebar();
+}
+
+/**
+ * 書類提出を終了し、履歴に追加する
+ */
+async function completeDocSubmission(patientId, date) {
+    if (!confirm('書類提出を終了し、履歴に追加しますか？')) return;
+
+    try {
+        const { data: patient, error: fetchError } = await supabaseClient
+            .from('patients')
+            .select('p_name, history')
+            .eq('p_id', patientId)
+            .single();
+
+        if (fetchError) throw fetchError;
+
+        let history = [];
+        if (patient.history) {
+            history = typeof patient.history === 'string' ? JSON.parse(patient.history) : patient.history;
+        }
+
+        const newEntry = {
+            date: date,
+            time: "書類提出",
+            type: "書類提出",
+            status: "completed",
+            note: "書類提出終了"
+        };
+        history.push(newEntry);
+
+        const { error: updateError } = await supabaseClient
+            .from('patients')
+            .update({ history: history })
+            .eq('p_id', patientId);
+
+        if (updateError) throw updateError;
+
+        alert(`${patient.p_name}様の書類提出を終了し、履歴に追加しました。`);
+        await renderDocSubmissionCalendar();
+    } catch (err) {
+        console.error('Error completing document submission:', err);
+        alert('エラーが発生しました: ' + err.message);
+    }
+}
+
+/**
+ * 書類提出の完了を取り消し、履歴から削除する
+ */
+async function revertDocSubmission(patientId, date) {
+    if (!confirm('書類提出の完了を取り消しますか？')) return;
+
+    try {
+        const { data: patient, error: fetchError } = await supabaseClient
+            .from('patients')
+            .select('p_name, history')
+            .eq('p_id', patientId)
+            .single();
+
+        if (fetchError) throw fetchError;
+
+        let history = [];
+        if (patient.history) {
+            history = typeof patient.history === 'string' ? JSON.parse(patient.history) : patient.history;
+        }
+
+        const newHistory = history.filter(h => !(h.date === date && h.type === '書類提出' && h.status === 'completed'));
+
+        const { error: updateError } = await supabaseClient
+            .from('patients')
+            .update({ history: newHistory })
+            .eq('p_id', patientId);
+
+        if (updateError) throw updateError;
+
+        alert(`${patient.p_name}様の書類提出完了を取り消しました。`);
+        await renderDocSubmissionCalendar();
+    } catch (err) {
+        console.error('Error reverting document submission:', err);
+        alert('エラーが発生しました: ' + err.message);
+    }
 }
 
 function changeCalendarMonth(offset) {
