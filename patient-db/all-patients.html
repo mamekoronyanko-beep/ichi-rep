@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>患者データベース - ホーム</title>
+    <title>患者データベース - 全患者一覧</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -15,8 +15,8 @@
     <nav class="navbar">
         <div class="logo">MedicalDB 🏥</div>
         <ul class="nav-links">
-            <li><a href="index.html" class="active">ホーム</a></li>
-            <li><a href="all-patients.html">全患者</a></li>
+            <li><a href="index.html">ホーム</a></li>
+            <li><a href="all-patients.html" class="active">全患者</a></li>
             <li><a href="admission.html">入院</a></li>
             <li><a href="outpatient.html">外来</a></li>
             <li><a href="nursing-care.html">介護医療院</a></li>
@@ -33,67 +33,38 @@
     <main class="container">
         <div class="header-v2">
             <div>
-                <h1>ダッシュボード</h1>
-                <p style="color:var(--text-muted);">総合患者データベースの基本統計と全患者一覧を表示します。</p>
+                <h1>📊 全患者基本データ</h1>
+                <p style="color:var(--text-muted);">入院・外来・介護の全患者データを一括で確認・検索できます。</p>
             </div>
             <div id="refresh-btn" class="btn" style="cursor: pointer; padding: 0.5rem; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: white; border: 1px solid var(--border-color); color: var(--text-muted);" title="データを更新">
                 🔄
             </div>
         </div>
 
-        <!-- 統計カード -->
-        <div class="stats-grid">
-            <div class="stats-card">
-                <div class="stats-label">入院患者</div>
-                <div id="count-admission" class="stats-value" style="color: var(--primary-color);">--</div>
-            </div>
-            <div class="stats-card" style="border-left-color: #10b981;">
-                <div class="stats-label">外来患者</div>
-                <div id="count-outpatient" class="stats-value" style="color: #059669;">--</div>
-            </div>
-            <div class="stats-card" style="border-left-color: #8b5cf6;">
-                <div class="stats-label">介護医療院</div>
-                <div id="count-nursing" class="stats-value" style="color: #7c3aed;">--</div>
-            </div>
-            <div class="stats-card" style="border-left-color: #f59e0b;">
-                <div class="stats-label">本日の予約数</div>
-                <div id="count-today-res" class="stats-value" style="color: #d97706;">--</div>
+        <div class="header-actions">
+            <div class="search-container">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="global-search" class="search-input" placeholder="名前・ID・疾患名で検索...">
             </div>
         </div>
 
-        <h2 style="margin-top: 1rem; margin-bottom: 1.5rem;">🗂️ カテゴリー管理</h2>
-        <div class="card-grid">
-            <div class="card" onclick="location.href='admission.html'">
-                <h3>🛏️ 入院患者管理</h3>
-                <p>入院患者のID、氏名、疾患名、診断日などを管理します。</p>
-                <button class="btn primary">ページへ移動</button>
-            </div>
-            <div class="card" onclick="location.href='outpatient.html'">
-                <h3>🏥 外来患者管理</h3>
-                <p>外来患者のID、氏名、疾患名、診断日、次回リハ予約日などを管理します。</p>
-                <button class="btn primary">ページへ移動</button>
-            </div>
-            <div class="card" onclick="location.href='nursing-care.html'" style="border-top: 4px solid #8b5cf6;">
-                <h3>🏥 介護医療院管理</h3>
-                <p>介護医療院入所者の情報を管理します。面談予定日や要介護状態を一括確認できます。</p>
-                <button class="btn primary" style="background-color: #8b5cf6;">ページへ移動</button>
-            </div>
-            <!-- Archive Cards -->
-            <div class="card" onclick="location.href='archived-admission.html'" style="border-top: 4px solid #64748b;">
-                <h3>📁 退院者一覧</h3>
-                <p>退院した患者の履歴データを確認します。</p>
-                <button class="btn secondary" style="background-color: #64748b; color: white;">データを確認</button>
-            </div>
-            <div class="card" onclick="location.href='archived-outpatient.html'" style="border-top: 4px solid #64748b;">
-                <h3>📁 外来終了者一覧</h3>
-                <p>診療が終了した外来患者のデータを確認します。</p>
-                <button class="btn secondary" style="background-color: #64748b; color: white;">データを確認</button>
-            </div>
-            <div class="card" onclick="location.href='archived-nursing-care.html'" style="border-top: 4px solid #64748b;">
-                <h3>📁 介護医療院修了者</h3>
-                <p>退所・修了した利用者の履歴データを確認します。</p>
-                <button class="btn secondary" style="background-color: #64748b; color: white;">データを確認</button>
-            </div>
+        <div class="card" style="padding: 0; overflow-x: auto; margin-top: 1rem;">
+            <table id="basicPatientTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>氏名</th>
+                        <th>種別</th>
+                        <th>カテゴリー</th>
+                        <th>疾患名</th>
+                        <th>次回予定日</th>
+                        <th>書類提出日</th>
+                    </tr>
+                </thead>
+                <tbody id="basicPatientTableBody">
+                    <!-- データがここに挿入されます -->
+                </tbody>
+            </table>
         </div>
     </main>
 

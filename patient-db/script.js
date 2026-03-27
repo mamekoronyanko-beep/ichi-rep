@@ -249,38 +249,54 @@ async function openPatientDetails(dbId) {
 
     const cancelRate = totalAppointments > 0 ? Math.round((cancelCount / totalAppointments) * 100) : 0;
     const rateEl = document.getElementById('details-cancel-rate');
-    rateEl.textContent = `${cancelRate}%`;
+    if (rateEl) {
+        rateEl.textContent = `${cancelRate}%`;
+        if (cancelRate >= 30) rateEl.style.color = '#ef4444';
+        else if (cancelRate > 0) rateEl.style.color = '#f59e0b';
+        else rateEl.style.color = '#10b981';
+    }
 
-    if (cancelRate >= 30) rateEl.style.color = '#ef4444';
-    else if (cancelRate > 0) rateEl.style.color = '#f59e0b';
-    else rateEl.style.color = '#10b981';
-
-    document.getElementById('details-cancel-count').textContent = `${cancelCount} / ${totalAppointments} 回`;
-
+    const countEl = document.getElementById('details-cancel-count');
+    if (countEl) countEl.textContent = `${cancelCount} / ${totalAppointments} 回`;
+ 
     // Render history table
     const historyBody = document.getElementById('details-history-body');
-    historyBody.innerHTML = '';
-
-    if (history.length === 0) {
-        historyBody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 1rem; color: var(--text-muted);">履歴はありません</td></tr>`;
-    } else {
-        history.filter(h => h.status !== 'deleted').forEach(h => {
-            const tr = document.createElement('tr');
-            let statusHtml = '';
-            if (h.status === 'arrived') statusHtml = '<span style="background: #d1fae5; color: #065f46; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">来院</span>';
-            else if (h.status === 'completed') statusHtml = '<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">完了</span>';
-            else if (h.status === 'canceled') statusHtml = '<span style="background: #f3f4f6; color: #6b7280; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">キャンセル</span>';
-            else statusHtml = '<span style="background: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">予約中</span>';
-
-            tr.innerHTML = `
-                <td style="padding: 0.75rem; border-bottom: 1px solid var(--border-color);">${h.date}</td>
-                <td style="padding: 0.75rem; border-bottom: 1px solid var(--border-color);">${h.time}</td>
-                <td style="padding: 0.75rem; border-bottom: 1px solid var(--border-color);">${h.type}${h.isWalkIn ? ' <span style="color:#f59e0b; font-weight:bold; font-size:0.75rem;">[予約外]</span>' : ''}</td>
-                <td style="padding: 0.75rem; border-bottom: 1px solid var(--border-color);">${h.cancelReason || '-'}</td>
-                <td style="padding: 0.75rem; border-bottom: 1px solid var(--border-color); text-align: center;">${statusHtml}</td>
-            `;
-            historyBody.appendChild(tr);
-        });
+    if (historyBody) {
+        historyBody.innerHTML = '';
+ 
+        if (history.length === 0) {
+            historyBody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 1rem; color: var(--text-muted);">履歴はありません</td></tr>`;
+        } else {
+            history.filter(h => h && h.status !== 'deleted').forEach(h => {
+                const tr = document.createElement('tr');
+                let statusHtml = '';
+                let typeHtml = h.type || '-';
+                let timeHtml = h.time || '-';
+                let noteHtml = h.cancelReason || h.note || '-';
+ 
+                if (h.type === 'diagnosis_change') {
+                    typeHtml = '<span style="color:#2563eb; font-weight:bold;">病名変更</span>';
+                    statusHtml = '<span style="background: #eff6ff; color: #1e40af; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">修正</span>';
+                    timeHtml = '-';
+                } else {
+                    if (h.status === 'arrived') statusHtml = '<span style="background: #d1fae5; color: #065f46; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">来院</span>';
+                    else if (h.status === 'completed') statusHtml = '<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">完了</span>';
+                    else if (h.status === 'canceled') statusHtml = '<span style="background: #f3f4f6; color: #6b7280; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">キャンセル</span>';
+                    else statusHtml = '<span style="background: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">予約中</span>';
+                    
+                    typeHtml = `${h.type}${h.isWalkIn ? ' <span style="color:#f59e0b; font-weight:bold; font-size:0.75rem;">[予約外]</span>' : ''}`;
+                }
+ 
+                tr.innerHTML = `
+                    <td style="padding: 0.75rem; border-bottom: 1px solid var(--border-color);">${h.date || '-'}</td>
+                    <td style="padding: 0.75rem; border-bottom: 1px solid var(--border-color);">${timeHtml}</td>
+                    <td style="padding: 0.75rem; border-bottom: 1px solid var(--border-color);">${typeHtml}</td>
+                    <td style="padding: 0.75rem; border-bottom: 1px solid var(--border-color);">${noteHtml}</td>
+                    <td style="padding: 0.75rem; border-bottom: 1px solid var(--border-color); text-align: center;">${statusHtml}</td>
+                `;
+                historyBody.appendChild(tr);
+            });
+        }
     }
 
     document.getElementById('next-visit-date').value = patient.next_reserve_date || '';
@@ -356,6 +372,32 @@ window.savePatientBasicInfo = async function () {
     }
 
     try {
+        // --- Diagnosis History Tracking ---
+        const { data: oldPatient, error: fetchError } = await supabaseClient
+            .from('patients')
+            .select('p_disease, history')
+            .eq('p_id', currentPatientDbId)
+            .single();
+        
+        if (!fetchError && oldPatient) {
+            if (oldPatient.p_disease !== p_disease) {
+                let history = [];
+                if (oldPatient.history) {
+                    history = typeof oldPatient.history === 'string' ? JSON.parse(oldPatient.history) : oldPatient.history;
+                }
+                const changeEntry = {
+                    date: formatLocalDate(new Date()),
+                    type: "diagnosis_change",
+                    old_value: oldPatient.p_disease,
+                    new_value: p_disease,
+                    status: "info",
+                    note: `疾患名を「${oldPatient.p_disease}」から「${p_disease}」に変更`
+                };
+                history.push(changeEntry);
+                updates.history = history;
+            }
+        }
+
         const { error } = await supabaseClient
             .from('patients')
             .update(updates)
@@ -366,7 +408,8 @@ window.savePatientBasicInfo = async function () {
         alert('基本情報を更新しました。');
 
         // Hide form and refresh modal details
-        document.getElementById('patient-edit-form').style.display = 'none';
+        const editForm = document.getElementById('patient-edit-form');
+        if (editForm) editForm.style.display = 'none';
         await openPatientDetails(currentPatientDbId);
 
         // Refresh the tables in the background based on what page we are on
@@ -876,6 +919,7 @@ async function initApp() {
     await renderTerminatedTable();
     await renderNursingCareArchivedTable();
     await renderHomeDashboard();
+    await renderAllPatientsPage();
 
     // Refresh Button Logic
     const refreshBtn = document.getElementById('refresh-btn');
@@ -889,6 +933,7 @@ async function initApp() {
             await renderTerminatedTable();
             await renderNursingCareArchivedTable();
             await renderHomeDashboard();
+            await renderAllPatientsPage();
             setTimeout(() => refreshBtn.classList.remove('rotating'), 500);
             console.log('Patient records refreshed.');
         });
@@ -1038,6 +1083,39 @@ async function renderHomeDashboard() {
     renderBasicDataTable(allPatients);
 
     // Global Search Listener
+    const searchInput = document.getElementById('global-search');
+    if (searchInput) {
+        searchInput.oninput = () => {
+            const query = searchInput.value.toLowerCase();
+            const filtered = allPatients.filter(p => 
+                p.p_name.toLowerCase().includes(query) || 
+                p.p_id.toLowerCase().includes(query) || 
+                (p.p_disease && p.p_disease.toLowerCase().includes(query))
+            );
+            renderBasicDataTable(filtered);
+        };
+    }
+}
+
+async function renderAllPatientsPage() {
+    // Only run on all-patients.html
+    const tbody = document.getElementById('basicPatientTableBody');
+    if (!tbody || window.location.pathname.indexOf('all-patients.html') === -1) return;
+
+    // Fetch all patients
+    const { data: allPatients, error } = await supabaseClient
+        .from('patients')
+        .select('*')
+        .order('p_id', { ascending: true });
+
+    if (error) {
+        console.error('All Patients Fetch Error:', error);
+        return;
+    }
+
+    renderBasicDataTable(allPatients);
+
+    // Global Search Listener (Specific to this page)
     const searchInput = document.getElementById('global-search');
     if (searchInput) {
         searchInput.oninput = () => {
