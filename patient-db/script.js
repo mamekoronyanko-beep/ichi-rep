@@ -875,6 +875,7 @@ async function initApp() {
     await renderDischargedTable();
     await renderTerminatedTable();
     await renderNursingCareArchivedTable();
+    await renderHomeDashboard();
 
     // Refresh Button Logic
     const refreshBtn = document.getElementById('refresh-btn');
@@ -887,6 +888,7 @@ async function initApp() {
             await renderDischargedTable();
             await renderTerminatedTable();
             await renderNursingCareArchivedTable();
+            await renderHomeDashboard();
             setTimeout(() => refreshBtn.classList.remove('rotating'), 500);
             console.log('Patient records refreshed.');
         });
@@ -997,6 +999,85 @@ async function initApp() {
         });
     }
 } // End of initApp()
+
+// --- Home Dashboard Logic ---
+async function renderHomeDashboard() {
+    const statsAdmission = document.getElementById('count-admission');
+    if (!statsAdmission) return;
+
+    // Fetch all patients for stats and table
+    const { data: allPatients, error } = await supabaseClient
+        .from('patients')
+        .select('*')
+        .order('p_id', { ascending: true });
+
+    if (error) {
+        console.error('Home Dashboard Fetch Error:', error);
+        return;
+    }
+
+    // Update Stats
+    const admissionCount = allPatients.filter(p => p.p_type === 'admission').length;
+    const outpatientCount = allPatients.filter(p => p.p_type === 'outpatient').length;
+    const nursingCount = allPatients.filter(p => p.p_type === 'nursing_care').length;
+    
+    document.getElementById('count-admission').textContent = admissionCount;
+    document.getElementById('count-outpatient').textContent = outpatientCount;
+    document.getElementById('count-nursing').textContent = nursingCount;
+
+    // Fetch today's reservations (simplified)
+    const todayStr = formatLocalDate(new Date());
+    const { count: todayCount } = await supabaseClient
+        .from('reservations')
+        .select('*', { count: 'exact', head: true })
+        .eq('res_date', todayStr);
+    
+    document.getElementById('count-today-res').textContent = todayCount || 0;
+
+    // Render Table
+    renderBasicDataTable(allPatients);
+
+    // Global Search Listener
+    const searchInput = document.getElementById('global-search');
+    if (searchInput) {
+        searchInput.oninput = () => {
+            const query = searchInput.value.toLowerCase();
+            const filtered = allPatients.filter(p => 
+                p.p_name.toLowerCase().includes(query) || 
+                p.p_id.toLowerCase().includes(query) || 
+                (p.p_disease && p.p_disease.toLowerCase().includes(query))
+            );
+            renderBasicDataTable(filtered);
+        };
+    }
+}
+
+function renderBasicDataTable(patients) {
+    const tbody = document.getElementById('basicPatientTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    patients.forEach(p => {
+        let typeBadge = '';
+        if (p.p_type === 'admission') typeBadge = '<span class="tag-type-admission">入院</span>';
+        else if (p.p_type === 'outpatient') typeBadge = '<span class="tag-type-outpatient">外来</span>';
+        else if (p.p_type === 'nursing_care') typeBadge = '<span class="tag-type-admission" style="background:#ede9fe; color:#6d28d9;">介護</span>';
+
+        const tr = document.createElement('tr');
+        tr.style.cursor = 'pointer';
+        tr.onclick = () => openPatientDetails(p.p_id);
+        tr.innerHTML = `
+            <td><strong>${p.p_id}</strong></td>
+            <td>${p.p_name}</td>
+            <td>${typeBadge}</td>
+            <td>${p.p_category || '-'}</td>
+            <td><span style="font-size: 0.85rem;">${p.p_disease || '-'}</span></td>
+            <td>${p.next_reserve_date || '-'}</td>
+            <td>${p.p_doc_submission_date || '-'}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
 
 console.log("script.js loaded. readyState:", document.readyState);
 

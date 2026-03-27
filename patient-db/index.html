@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="script.js" defer></script>
 </head>
 
 <body>
@@ -29,9 +30,64 @@
         </div>
     </nav>
     <main class="container">
-        <h1>ダッシュボード</h1>
-        <p>総合患者データベースのサンプルアプリです。「入院」タブ（ナビゲーション）または下のカードをクリックして入院患者管理ページへ移動してください。</p>
+        <div class="header-v2">
+            <div>
+                <h1>ダッシュボード</h1>
+                <p style="color:var(--text-muted);">総合患者データベースの基本統計と全患者一覧を表示します。</p>
+            </div>
+            <div id="refresh-btn" class="btn" style="cursor: pointer; padding: 0.5rem; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: white; border: 1px solid var(--border-color); color: var(--text-muted);" title="データを更新">
+                🔄
+            </div>
+        </div>
 
+        <!-- 統計カード -->
+        <div class="stats-grid">
+            <div class="stats-card">
+                <div class="stats-label">入院患者</div>
+                <div id="count-admission" class="stats-value" style="color: var(--primary-color);">--</div>
+            </div>
+            <div class="stats-card" style="border-left-color: #10b981;">
+                <div class="stats-label">外来患者</div>
+                <div id="count-outpatient" class="stats-value" style="color: #059669;">--</div>
+            </div>
+            <div class="stats-card" style="border-left-color: #8b5cf6;">
+                <div class="stats-label">介護医療院</div>
+                <div id="count-nursing" class="stats-value" style="color: #7c3aed;">--</div>
+            </div>
+            <div class="stats-card" style="border-left-color: #f59e0b;">
+                <div class="stats-label">本日の予約数</div>
+                <div id="count-today-res" class="stats-value" style="color: #d97706;">--</div>
+            </div>
+        </div>
+
+        <div class="header-actions">
+            <h2>📊 全患者基本データ</h2>
+            <div class="search-container">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="global-search" class="search-input" placeholder="名前・ID・疾患名で検索...">
+            </div>
+        </div>
+
+        <div class="card" style="padding: 0; overflow-x: auto;">
+            <table id="basicPatientTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>氏名</th>
+                        <th>種別</th>
+                        <th>カテゴリー</th>
+                        <th>疾患名</th>
+                        <th>次回予定日</th>
+                        <th>書類提出日</th>
+                    </tr>
+                </thead>
+                <tbody id="basicPatientTableBody">
+                    <!-- データがここに挿入されます -->
+                </tbody>
+            </table>
+        </div>
+
+        <h2 style="margin-top: 3rem; margin-bottom: 1rem;">🗂️ カテゴリー管理</h2>
         <div class="card-grid">
             <div class="card" onclick="location.href='admission.html'">
                 <h3>🛏️ 入院患者管理</h3>
@@ -66,6 +122,65 @@
             </div>
         </div>
     </main>
+
+    <!-- Patient Details Modal (Reused) -->
+    <div id="detailsModal" class="modal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h2 id="details-patient-name">患者詳細</h2>
+                <span class="close-btn" onclick="document.getElementById('detailsModal').style.display='none'">&times;</span>
+            </div>
+            <div id="details-content" style="padding: 1.5rem;">
+                <!-- Content will be injected by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal (Reused) -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>患者データの編集</h2>
+                <span class="close-btn" onclick="document.getElementById('editModal').style.display='none'">&times;</span>
+            </div>
+            <form id="editPatientForm" style="padding: 1.5rem;">
+                <input type="hidden" id="edit-p-id">
+                <div class="form-group">
+                    <label>氏名</label>
+                    <input type="text" id="edit-p-name" required>
+                </div>
+                <div class="form-group">
+                    <label>種別</label>
+                    <select id="edit-p-type">
+                        <option value="admission">入院</option>
+                        <option value="outpatient">外来</option>
+                        <option value="nursing_care">介護医療院</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>カテゴリー</label>
+                    <select id="edit-p-category">
+                        <option value="運動器">運動器</option>
+                        <option value="脳血管">脳血管</option>
+                        <option value="廃用">廃用</option>
+                        <option value="消炎">消炎</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>疾患名</label>
+                    <input type="text" id="edit-p-disease">
+                </div>
+                <div class="form-group">
+                    <label>診断日/発症日</label>
+                    <input type="date" id="edit-p-diag-date">
+                </div>
+                <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                    <button type="submit" class="btn primary" style="flex: 1;">変更を保存</button>
+                    <button type="button" class="btn secondary" style="flex: 1;" onclick="document.getElementById('editModal').style.display='none'">キャンセル</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </body>
 
 </html>
