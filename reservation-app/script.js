@@ -19,6 +19,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Global holidays state
     let holidaysData = {};
+    let dbReservations = []; // Make global to be accessible across functions
+    let performanceStatsCache = { reservations: [], patientMap: {} }; // For sales calculation
 
     /**
      * Fetch Japanese holidays from external API
@@ -211,10 +213,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         scheduleBody.appendChild(unitsRow);
 
         // --- Fetch from Supabase ---
-        const { data: dbReservations, error } = await supabase
+        const { data: resData, error } = await supabase
             .from('reservations')
             .select('*')
             .eq('res_date', selectedDate);
+        
+        dbReservations = resData || [];
 
         const reservationsByTime = {};
         if (dbReservations) {
@@ -1735,6 +1739,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         }
 
+        // Cache for sales calculation
+        performanceStatsCache = {
+            reservations: reservations || [],
+            patientCategoryMap: patientCategoryMap,
+            patientNursingCareMap: patientNursingCareMap
+        };
+
         // Stats calculation
         const stats = {
             inpatient: { patients: new Set(), cases: 0, units: 0 },
@@ -1996,13 +2007,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             locomotor_deduction: 1110,
             cerebro: 2000,
             cerebro_deduction: 1200,
-            disuse: 2050, // Assumption based on points if not specified
+            disuse: 2050, 
             anti: 350,
             re_exam: 770 / 2, // 385 yen
             nursing: {
                 '計画評価1': 3000,
                 '計画評価1(初回)': 3000,
-                '計画評価1(2回目以降)': 3000, // Assumption based on user mapping
+                '計画評価1(2回目以降)': 3000,
                 '計画評価2': 2400,
                 '計画評価2(初回)': 2400,
                 '計画評価2(2回目以降)': 2400,
@@ -2011,10 +2022,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         };
 
-        // Recalculate everything for accurate sales
-        // (Note: In a real app, I'd store the stats in a shared object during updatePerformanceStats)
-        // Here I'll re-calculate or fetch from DOM where possible.
-        
+        const { reservations: pReservations, patientCategoryMap, patientNursingCareMap } = performanceStatsCache;
+        if (!pReservations || !patientCategoryMap) {
+            alert('統計データが読み込まれていません。一度実績ページを閉じて開き直してください。');
+            return;
+        }
+
         // --- Inpatient Sales ---
         let inpatientSales = 0;
         ['locomotor', 'cerebro', 'disuse'].forEach(cat => {
@@ -2038,17 +2051,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
 
-        // --- Outpatient Sales ---
+        // --- Outpatient & Nursing Base Sales ---
         let outpatientUnitsSales = 0;
         let outpatientReExamSales = 0;
+        const nursingVisits = { withCare: 0, withoutCare: 0 };
         
-        const filtered = dbReservations.filter(res => {
+        const filtered = pReservations.filter(res => {
             if (res.status === 'canceled') return false;
             const d = new Date(res.res_date);
             return d.getFullYear() === year && d.getMonth() + 1 === month;
         });
-
-        const nursingVisits = { withCare: 0, withoutCare: 0 };
         
         filtered.forEach(res => {
             const units = parseInt(res.units) || 1;
@@ -2058,15 +2070,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (res.is_meeting) {
                 if (patientNursingCareMap[pId]) nursingVisits.withCare++;
                 else nursingVisits.withoutCare++;
-                return; // Skip standard unit calculation for meetings
+                return; 
             }
 
-            if (res.is_inpatient_block) return; // Inpatient calculated from manual input
+            if (res.is_inpatient_block) return; 
 
             if (cat === '運動器') outpatientUnitsSales += units * prices.locomotor;
             else if (cat === '脳血管') outpatientUnitsSales += units * prices.cerebro;
             else if (cat === '消炎') outpatientUnitsSales += units * prices.anti;
-            else outpatientUnitsSales += units * 2000; // Default
+            else outpatientUnitsSales += units * 2000; 
             
             outpatientReExamSales += prices.re_exam;
         });
@@ -2075,7 +2087,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         let nursingCareBaseSales = (nursingVisits.withoutCare * 1230) + (nursingVisits.withCare * 860);
         let planEvalAndGoalSales = 0;
         
-        // Plan Eval (1, 2) + Goals (1, 2) are now combined into "Inpatient/Outpatient context" sales
         const inOutMetrics = [
             '計画評価1', '計画評価1(初回)', '計画評価1(2回目以降)', 
             '計画評価2', '計画評価2(初回)', '計画評価2(2回目以降)',
