@@ -226,44 +226,147 @@ function renderNursingCareTableRows(patients) {
     });
 }
 
-// Function to delete an admission patient record (Archive)
-async function deleteAdmissionPatient(dbId) {
-    if (confirm('この患者データを「退院者」としてアーカイブへ移動しますか？')) {
-        const dischargeDate = new Date().toISOString().split('T')[0];
+// --- Termination Modal Logic ---
+function openTerminationModal(dbId, type) {
+    let modal = document.getElementById('terminationModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'terminationModal';
+        modal.className = 'modal';
+        modal.style.zIndex = '10000';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 400px; padding: 2rem; border-radius: 12px; background: #fff; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
+                <h3 style="margin-top:0; font-size:1.25rem; color:#1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-bottom: 1.5rem;" id="termial-modal-title">アーカイブへの移動</h3>
+                
+                <div style="margin-bottom: 1rem;">
+                    <label style="display:block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem; color: #475569;">終了日</label>
+                    <input type="date" id="termination-date-input" style="width: 100%; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 6px;">
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="display:block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem; color: #475569;">終了理由</label>
+                    <select id="termination-reason-input" style="width: 100%; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 6px;">
+                        <!-- Options generated dynamically -->
+                    </select>
+                </div>
+
+                <div style="display:flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.5rem;">
+                    <button id="cancel-termination-btn" class="btn secondary" style="padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid #cbd5e1; background: #fff; color: #475569; font-weight: 600;">キャンセル</button>
+                    <button id="confirm-termination-btn" class="btn primary" style="padding: 0.5rem 1rem; border-radius: 6px; background: #ef4444; color: #fff; border: none; font-weight: 600;">移動を実行</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        document.getElementById('cancel-termination-btn').addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+
+        // Outside click to close
+        window.addEventListener('click', (e) => {
+            if (e.target === modal) modal.style.display = 'none';
+        });
+    }
+
+    // Configure for type
+    const titleEl = document.getElementById('termial-modal-title');
+    const reasonSelect = document.getElementById('termination-reason-input');
+    const dateInput = document.getElementById('termination-date-input');
+    const executeBtn = document.getElementById('confirm-termination-btn');
+
+    dateInput.value = formatLocalDate(new Date());
+    reasonSelect.innerHTML = '';
+
+    let options = [];
+    let archiveType = '';
+    let confirmMsg = '';
+
+    if (type === 'admission') {
+        titleEl.textContent = '「退院者」としてアーカイブへ移動';
+        options = ['死亡退院', '転院', '入所'];
+        archiveType = 'archived_admission';
+        confirmMsg = '退院処理を実行しますか？';
+    } else if (type === 'outpatient') {
+        titleEl.textContent = '「外来終了」としてアーカイブへ移動';
+        options = ['改善終了', '自己都合', '体調不良', 'その他の項目'];
+        archiveType = 'archived_outpatient';
+        confirmMsg = '外来終了処理を実行しますか？';
+    } else if (type === 'nursing_care') {
+        titleEl.textContent = '「介護医療院修了者」としてアーカイブへ移動';
+        options = ['死亡退院', '転所', '転院'];
+        archiveType = 'archived_nursing_care';
+        confirmMsg = '介護医療院の終了処理を実行しますか？';
+    }
+
+    options.forEach(opt => {
+        const option = document.createElement('option');
+        option.value = opt;
+        option.textContent = opt;
+        reasonSelect.appendChild(option);
+    });
+
+    // Remove old event listener from Execute button and add new one
+    const newExecuteBtn = executeBtn.cloneNode(true);
+    executeBtn.parentNode.replaceChild(newExecuteBtn, executeBtn);
+    
+    newExecuteBtn.addEventListener('click', async () => {
+        if (!confirm(confirmMsg)) return;
+
+        const termDate = dateInput.value;
+        const termReason = reasonSelect.value;
+        
+        // Fetch patient to update history
+        const { data: pData } = await supabaseClient.from('patients').select('p_disease, history').eq('p_id', dbId).single();
+        let history = [];
+        if (pData && pData.history) {
+            history = typeof pData.history === 'string' ? JSON.parse(pData.history) : pData.history;
+        }
+
+        history.push({
+            date: termDate,
+            type: "termination",
+            reason: termReason,
+            status: "warning",
+            note: `[終了処理] 理由: ${termReason}`
+        });
+
         const { error } = await supabaseClient.from('patients').update({
-            p_type: 'archived_admission',
-            p_termination_date: dischargeDate
+            p_type: archiveType,
+            p_termination_date: termDate,
+            history: history
         }).eq('p_id', dbId);
 
         if (error) {
-            console.error('Delete error:', error);
-            alert('アーカイブへの移動に失敗しました: ' + error.message);
+            console.error('Termination error:', error);
+            alert('処理に失敗しました: ' + error.message);
             return;
         }
 
-        await renderAdmissionTable();
-        await renderDischargedTable();
-    }
+        modal.style.display = 'none';
+
+        if (type === 'admission') {
+            if (typeof renderAdmissionTable === 'function') await renderAdmissionTable();
+            if (typeof renderDischargedTable === 'function') await renderDischargedTable();
+        } else if (type === 'outpatient') {
+            if (typeof renderOutpatientTable === 'function') await renderOutpatientTable();
+            if (typeof renderTerminatedTable === 'function') await renderTerminatedTable();
+        } else if (type === 'nursing_care') {
+            if (typeof renderNursingCareTable === 'function') await renderNursingCareTable();
+            if (typeof renderNursingCareArchivedTable === 'function') await renderNursingCareArchivedTable();
+        }
+    });
+
+    modal.style.display = 'flex';
+}
+
+// Function to delete an admission patient record (Archive)
+async function deleteAdmissionPatient(dbId) {
+    openTerminationModal(dbId, 'admission');
 }
 
 // Function to delete a nursing care patient record (Archive)
 async function deleteNursingCarePatient(dbId) {
-    if (confirm('この利用者を「介護医療院修了者」としてアーカイブへ移動しますか？')) {
-        const terminationDate = new Date().toISOString().split('T')[0];
-        const { error } = await supabaseClient.from('patients').update({
-            p_type: 'archived_nursing_care',
-            p_termination_date: terminationDate
-        }).eq('p_id', dbId);
-
-        if (error) {
-            console.error('Delete error:', error);
-            alert('アーカイブへの移動に失敗しました: ' + error.message);
-            return;
-        }
-
-        await renderNursingCareTable();
-        await renderNursingCareArchivedTable();
-    }
+    openTerminationModal(dbId, 'nursing_care');
 }
 
 // Function to open patient details modal
@@ -710,22 +813,7 @@ function renderOutpatientTableRows(patients) {
 
 // Function to delete an outpatient record (Archive)
 async function deleteOutpatient(dbId) {
-    if (confirm('この外来データを「外来終了」としてアーカイブへ移動しますか？')) {
-        const terminationDate = formatLocalDate(new Date());
-        const { error } = await supabaseClient.from('patients').update({
-            p_type: 'archived_outpatient',
-            p_termination_date: terminationDate
-        }).eq('p_id', dbId);
-
-        if (error) {
-            console.error('Delete error:', error);
-            alert('アーカイブへの移動に失敗しました: ' + error.message);
-            return;
-        }
-
-        await renderOutpatientTable();
-        await renderTerminatedTable();
-    }
+    openTerminationModal(dbId, 'outpatient');
 }
 
 
@@ -759,6 +847,13 @@ async function renderDischargedTable() {
             remainingHtml = `<span style="color: ${color}; font-weight: ${weight};">${remainingDays}日</span>`;
         }
 
+        let termReason = '-';
+        if (p.history) {
+            const histArray = typeof p.history === 'string' ? JSON.parse(p.history) : p.history;
+            const termEntry = [...histArray].reverse().find(h => h.type === 'termination');
+            if (termEntry && termEntry.reason) termReason = termEntry.reason;
+        }
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td><strong>${p.p_id}</strong></td>
@@ -770,6 +865,7 @@ async function renderDischargedTable() {
             <td>${remainingHtml}</td>
             <td>${p.p_nursing_care ? '<span class="tag-nursing-care">あり</span>' : '<span style="color:var(--text-muted);">-</span>'}</td>
             <td>${p.p_termination_date || '-'}</td>
+            <td><span style="background: #fef08a; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; color: #854d0e;">${termReason}</span></td>
             <td>
                 <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: #e0f2fe; color: #0369a1;" onclick="restoreAdmission('${p.p_id}')">復元</button>
                 <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: #fee2e2; color: #b91c1c; margin-left: 0.25rem;" onclick="permanentDeletePatient('${p.p_id}', 'archived_admission')">削除</button>
@@ -807,6 +903,13 @@ async function renderTerminatedTable() {
             remainingHtml = `<span style="color: ${color}; font-weight: ${weight};">${remainingDays}日</span>`;
         }
 
+        let termReason = '-';
+        if (p.history) {
+            const histArray = typeof p.history === 'string' ? JSON.parse(p.history) : p.history;
+            const termEntry = [...histArray].reverse().find(h => h.type === 'termination');
+            if (termEntry && termEntry.reason) termReason = termEntry.reason;
+        }
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td><strong>${p.p_id}</strong></td>
@@ -818,6 +921,7 @@ async function renderTerminatedTable() {
             <td>${remainingHtml}</td>
             <td>${p.p_nursing_care ? '<span class="tag-nursing-care">あり</span>' : '<span style="color:var(--text-muted);">-</span>'}</td>
             <td>${p.p_termination_date || '-'}</td>
+            <td><span style="background: #fef08a; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; color: #854d0e;">${termReason}</span></td>
             <td>
                 <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: #e0f2fe; color: #0369a1;" onclick="restoreOutpatient('${p.p_id}')">復元</button>
                 <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: #fee2e2; color: #b91c1c; margin-left: 0.25rem;" onclick="permanentDeletePatient('${p.p_id}', 'archived_outpatient')">削除</button>
@@ -841,6 +945,13 @@ async function renderNursingCareArchivedTable() {
     if (!dbPatients) return;
 
     dbPatients.forEach((p) => {
+        let termReason = '-';
+        if (p.history) {
+            const histArray = typeof p.history === 'string' ? JSON.parse(p.history) : p.history;
+            const termEntry = [...histArray].reverse().find(h => h.type === 'termination');
+            if (termEntry && termEntry.reason) termReason = termEntry.reason;
+        }
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td><strong>${p.p_id}</strong></td>
@@ -850,6 +961,7 @@ async function renderNursingCareArchivedTable() {
             <td>${p.p_diagnosis_date}</td>
             <td>${p.p_nursing_care ? '<span class="tag-nursing-care">あり</span>' : '<span style="color:var(--text-muted);">-</span>'}</td>
             <td>${p.p_termination_date || '-'}</td>
+            <td><span style="background: #fef08a; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; color: #854d0e;">${termReason}</span></td>
             <td>
                 <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: #e0f2fe; color: #0369a1;" onclick="restoreNursingCare('${p.p_id}')">復元</button>
                 <button class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: #fee2e2; color: #b91c1c; margin-left: 0.25rem;" onclick="permanentDeletePatient('${p.p_id}', 'archived_nursing_care')">削除</button>
@@ -1044,6 +1156,9 @@ async function initApp() {
                     let currentPageType = 'admission';
                     if (document.getElementById('outpatientTableBody')) currentPageType = 'outpatient';
                     else if (document.getElementById('nursingCareTableBody')) currentPageType = 'nursing_care';
+                    else if (document.getElementById('archivedAdmissionTableBody')) currentPageType = 'archived_admission';
+                    else if (document.getElementById('archivedOutpatientTableBody')) currentPageType = 'archived_outpatient';
+                    else if (document.getElementById('archivedNursingCareTableBody')) currentPageType = 'archived_nursing_care';
 
                     const patientsToUpsert = jsonData.map(row => {
                         // Find keys by keywords (flexible matching)
@@ -1153,6 +1268,9 @@ async function initApp() {
                             if (currentPageType === 'admission') await renderAdmissionTable();
                             else if (currentPageType === 'outpatient') await renderOutpatientTable();
                             else if (currentPageType === 'nursing_care') await renderNursingCareTable();
+                            else if (currentPageType === 'archived_admission') await renderDischargedTable();
+                            else if (currentPageType === 'archived_outpatient') await renderTerminatedTable();
+                            else if (currentPageType === 'archived_nursing_care') await renderNursingCareArchivedTable();
                         }
                     }
 
