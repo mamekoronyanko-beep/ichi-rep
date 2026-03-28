@@ -1722,13 +1722,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        // Fetch patient categories to map outpatient stats
+        // Fetch patient categories and care status to map stats and sales
         const { data: patients, error: pError } = await supabase
             .from('patients')
-            .select('p_id, p_category');
+            .select('p_id, p_category, p_nursing_care');
         const patientCategoryMap = {};
+        const patientNursingCareMap = {};
         if (patients) {
-            patients.forEach(p => patientCategoryMap[p.p_id] = p.p_category);
+            patients.forEach(p => {
+                patientCategoryMap[p.p_id] = p.p_category;
+                patientNursingCareMap[p.p_id] = p.p_nursing_care;
+            });
         }
 
         // Stats calculation
@@ -1979,28 +1983,124 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('perf-sales-btn')?.addEventListener('click', () => {
         const year = performanceDate.getFullYear();
         const month = performanceDate.getMonth() + 1;
-        
-        // Simple Sales Calc (Based on typical Japanese medical points)
-        // 運動器: 185 pts, 脳血管: 245 pts, 廃用: 205 pts, 外来(平均): 200 pts, 介護: 3000 yen/entry
-        const pts = {
-            locomotor: 185,
-            cerebro: 245,
-            disuse: 205,
-            outpatient: 200,
-            nursing: 300 // 300 pts = 3000 yen
+        const isBeforeJune2026 = (year < 2026) || (year === 2026 && month < 6);
+
+        if (!isBeforeJune2026) {
+            alert('2026年6月以降の改定料金体系は現在未設定です。');
+            return;
+        }
+
+        // Prices (Yen)
+        const prices = {
+            locomotor: 1850,
+            locomotor_deduction: 1110,
+            cerebro: 2000,
+            cerebro_deduction: 1200,
+            disuse: 2050, // Assumption based on points if not specified
+            anti: 350,
+            re_exam: 770 / 2, // 385 yen
+            nursing: {
+                '計画評価1': 3000,
+                '計画評価1(初回)': 3000,
+                '計画評価1(2回目以降)': 3000, // Assumption based on user mapping
+                '計画評価2': 2400,
+                '計画評価2(初回)': 2400,
+                '計画評価2(2回目以降)': 2400,
+                '目標1': 2500,
+                '目標2': 1000
+            }
         };
 
-        // This is a rough estimate for demonstration. 
-        // Real logic should use specific insurance points and handling of 150-day deductions.
+        // Recalculate everything for accurate sales
+        // (Note: In a real app, I'd store the stats in a shared object during updatePerformanceStats)
+        // Here I'll re-calculate or fetch from DOM where possible.
         
-        // Fetch monthly summary again (simpler to just re-calculate key parts or use a global state if we had one)
-        // For now, I'll use the calculated manualInpatient from the current view (but it's local to updatePerformanceStats)
-        // I should probably make updatePerformanceStats return the stats or store them.
+        // --- Inpatient Sales ---
+        let inpatientSales = 0;
+        ['locomotor', 'cerebro', 'disuse'].forEach(cat => {
+            let totalUnits = 0;
+            let deductionUnits = 0;
+            const lastDay = new Date(year, month, 0).getDate();
+            for (let d = 1; d <= lastDay; d++) {
+                const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                totalUnits += parseFloat(localStorage.getItem(`manual_inpatient_${cat}_units_${dateStr}`)) || 0;
+                if (cat === 'locomotor' || cat === 'cerebro') {
+                    deductionUnits += parseFloat(localStorage.getItem(`manual_inpatient_${cat}_deduction_units_${dateStr}`)) || 0;
+                }
+            }
+            
+            if (cat === 'locomotor') {
+                inpatientSales += (totalUnits - deductionUnits) * prices.locomotor + (deductionUnits * prices.locomotor_deduction);
+            } else if (cat === 'cerebro') {
+                inpatientSales += (totalUnits - deductionUnits) * prices.cerebro + (deductionUnits * prices.cerebro_deduction);
+            } else {
+                inpatientSales += totalUnits * prices.disuse;
+            }
+        });
+
+        // --- Outpatient Sales ---
+        let outpatientUnitsSales = 0;
+        let outpatientReExamSales = 0;
         
-        // Wait, I'll just show the concept for now.
-        const totalUnits = (parseFloat(document.getElementById('perf-average-units')?.textContent || 0) * parseFloat(document.getElementById('perf-workdays-to-date')?.textContent || 0)) + 0; // Outpatient estimate
+        const filtered = dbReservations.filter(res => {
+            if (res.status === 'canceled') return false;
+            const d = new Date(res.res_date);
+            return d.getFullYear() === year && d.getMonth() + 1 === month;
+        });
+
+        const nursingVisits = { withCare: 0, withoutCare: 0 };
         
-        alert(`${year}年${month}月の売上概算を算出します（開発中機能）\n\n現在の合計単位数に基づく概算:\n外来分: 約 ${(totalUnits * 2000).toLocaleString()} 円\n入院分: (詳細計算ロジックを構成中)\n\n※医療点数に基づいた正確な売上集計機能を実装可能です。`);
+        filtered.forEach(res => {
+            const units = parseInt(res.units) || 1;
+            const pId = res.patient_id;
+            const cat = patientCategoryMap[pId] || 'その他';
+
+            if (res.is_meeting) {
+                if (patientNursingCareMap[pId]) nursingVisits.withCare++;
+                else nursingVisits.withoutCare++;
+                return; // Skip standard unit calculation for meetings
+            }
+
+            if (res.is_inpatient_block) return; // Inpatient calculated from manual input
+
+            if (cat === '運動器') outpatientUnitsSales += units * prices.locomotor;
+            else if (cat === '脳血管') outpatientUnitsSales += units * prices.cerebro;
+            else if (cat === '消炎') outpatientUnitsSales += units * prices.anti;
+            else outpatientUnitsSales += units * 2000; // Default
+            
+            outpatientReExamSales += prices.re_exam;
+        });
+
+        // --- Nursing Care & Plan Evaluation & Goals Sales ---
+        let nursingCareBaseSales = (nursingVisits.withoutCare * 1230) + (nursingVisits.withCare * 860);
+        let planEvalAndGoalSales = 0;
+        
+        // Plan Eval (1, 2) + Goals (1, 2) are now combined into "Inpatient/Outpatient context" sales
+        const inOutMetrics = [
+            '計画評価1', '計画評価1(初回)', '計画評価1(2回目以降)', 
+            '計画評価2', '計画評価2(初回)', '計画評価2(2回目以降)',
+            '目標1', '目標2'
+        ];
+
+        inOutMetrics.forEach(label => {
+            const storageKey = `manual_nursing_${year}_${month - 1}_${label}`;
+            const count = parseInt(localStorage.getItem(storageKey)) || 0;
+            planEvalAndGoalSales += count * (prices.nursing[label] || 0);
+        });
+
+        const combinedInOutSales = inpatientSales + outpatientUnitsSales + outpatientReExamSales + planEvalAndGoalSales;
+        const totalTotal = combinedInOutSales + nursingCareBaseSales;
+
+        alert(`💰 ${year}年${month}月 売上概算レポート\n` +
+              `----------------------------------\n` +
+              `🏥 入院売上: ${inpatientSales.toLocaleString()} 円\n` +
+              `👤 外来売上: ${(outpatientUnitsSales + outpatientReExamSales).toLocaleString()} 円\n` +
+              `📝 評価・目標: ${planEvalAndGoalSales.toLocaleString()} 円 (入外合算)\n` +
+              `🏢 介護医療院: ${nursingCareBaseSales.toLocaleString()} 円\n` +
+              `----------------------------------\n` +
+              `合計概算:  ${totalTotal.toLocaleString()} 円\n\n` +
+              `※介護: 要介護なし1230円 / あり860円 で算出しています。\n` +
+              `※2026年5月までの料金体系を適用しています。`);
     });
 
     // Close performance modal on outside click
