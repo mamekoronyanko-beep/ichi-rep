@@ -68,62 +68,128 @@
         </div>
     </main>
 
-    <!-- Patient Details Modal (Reused) -->
-    <div id="detailsModal" class="modal">
-        <div class="modal-content" style="max-width: 900px;">
-            <div class="modal-header">
-                <h2 id="details-patient-name">患者詳細</h2>
-                <span class="close-btn" onclick="document.getElementById('detailsModal').style.display='none'">&times;</span>
+    <!-- Patient Details Modal -->
+    <div id="patientDetailsModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <span class="close"
+                onclick="document.getElementById('patientDetailsModal').style.display='none'">&times;</span>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.25rem;">
+                <h2 id="details-patient-name" style="margin: 0;">患者詳細</h2>
+                <button onclick="openPatientEditForm()" class="btn" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px; display: flex; align-items: center; gap: 4px; margin: 0;">
+                    ✏️ 基本情報を編集
+                </button>
             </div>
-            <div id="details-content" style="padding: 1.5rem;">
-                <!-- Content will be injected by JS -->
-            </div>
-        </div>
-    </div>
+            <div id="details-patient-category" style="margin-bottom: 0.5rem;"></div>
+            <p id="details-patient-id" style="color: var(--text-muted); margin-bottom: 1.5rem;"></p>
 
-    <!-- Edit Modal (Reused) -->
-    <div id="editModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>患者データの編集</h2>
-                <span class="close-btn" onclick="document.getElementById('editModal').style.display='none'">&times;</span>
+            <!-- Edit Form (Hidden by default) -->
+            <div id="patient-edit-form" style="display: none; background: #f8fafc; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid #e2e8f0;">
+                <h3 style="font-size: 1rem; margin-bottom: 1rem; color: #334155; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.5rem;">基本情報の編集</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="edit-patient-id" style="font-size: 0.85rem; color: #475569;">患者ID <span style="color:#ef4444">*</span></label>
+                        <input type="text" id="edit-patient-id" required style="width: 100%; padding: 0.4rem; border: 1px solid #cbd5e1; border-radius: 4px; background: #f1f5f9;" readonly title="IDは変更できません">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="edit-patient-name" style="font-size: 0.85rem; color: #475569;">氏名 <span style="color:#ef4444">*</span></label>
+                        <input type="text" id="edit-patient-name" required style="width: 100%; padding: 0.4rem; border: 1px solid #cbd5e1; border-radius: 4px;">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;" id="edit-category-group">
+                        <label for="edit-patient-category" style="font-size: 0.85rem; color: #475569;">疾患種別</label>
+                        <select id="edit-patient-category" style="width: 100%; padding: 0.4rem; border: 1px solid #cbd5e1; border-radius: 4px;">
+                            <option value="">未設定</option>
+                            <option value="運動器">運動器</option>
+                            <option value="脳血管">脳血管</option>
+                            <option value="廃用">廃用</option>
+                            <option value="消炎">消炎</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="edit-disease-name" style="font-size: 0.85rem; color: #475569;">診断名</label>
+                        <input type="text" id="edit-disease-name" style="width: 100%; padding: 0.4rem; border: 1px solid #cbd5e1; border-radius: 4px;">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="edit-diagnosis-date" style="font-size: 0.85rem; color: #475569;">診断日</label>
+                        <input type="date" id="edit-diagnosis-date" style="width: 100%; padding: 0.4rem; border: 1px solid #cbd5e1; border-radius: 4px;">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0; display: flex; align-items: center; gap: 0.5rem; margin-top: 1.25rem;">
+                        <input type="checkbox" id="edit-patient-nursing-care" style="width: auto;">
+                        <label for="edit-patient-nursing-care" style="font-size: 0.85rem; color: #475569; cursor: pointer; margin: 0;">要介護認定あり</label>
+                    </div>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
+                    <button type="button" class="btn" onclick="document.getElementById('patient-edit-form').style.display='none'" style="background: white; border: 1px solid #cbd5e1; color: #475569; padding: 0.4rem 0.8rem; margin: 0;">キャンセル</button>
+                    <button type="button" class="btn primary" onclick="savePatientBasicInfo()" style="padding: 0.4rem 1.5rem; margin: 0;">保存する</button>
+                </div>
             </div>
-            <form id="editPatientForm" style="padding: 1.5rem;">
-                <input type="hidden" id="edit-p-id">
-                <div class="form-group">
-                    <label>氏名</label>
-                    <input type="text" id="edit-p-name" required>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2rem;"
+                id="details-grid-container">
+                <div style="background: var(--bg-color); padding: 1rem; border-radius: 8px;">
+                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.25rem;">キャンセル率</p>
+                    <p id="details-cancel-rate" style="font-size: 1.5rem; font-weight: bold; color: #ef4444;">--%</p>
+                    <p id="details-cancel-count" style="font-size: 0.8rem; color: var(--text-muted);">0 / 0 回</p>
                 </div>
-                <div class="form-group">
-                    <label>種別</label>
-                    <select id="edit-p-type">
-                        <option value="admission">入院</option>
-                        <option value="outpatient">外来</option>
-                        <option value="nursing_care">介護医療院</option>
-                    </select>
+                <div style="background: var(--bg-color); padding: 1rem; border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                        <p id="next-visit-label" style="font-size: 0.9rem; color: var(--text-muted); margin: 0;">次回予約日</p>
+                        <button onclick="fetchLatestReserveDate()" style="font-size: 0.75rem; padding: 2px 8px; cursor: pointer; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; color: #475569;">🔄 予約表から取得</button>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem;">
+                        <input type="date" id="next-visit-date"
+                            style="padding: 0.25rem; border: 1px solid #ccc; border-radius: 4px; width: 100%;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="checkbox" id="details-nursing-care" style="width: auto;">
+                            <label for="details-nursing-care"
+                                style="font-size: 0.85rem; cursor: pointer; margin: 0;">要介護認定あり</label>
+                        </div>
+                        <button onclick="saveNextVisit()" class="btn primary"
+                            style="padding: 0.25rem 0.5rem; margin: 0; width: 100%;">修正を保存</button>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>カテゴリー</label>
-                    <select id="edit-p-category">
-                        <option value="運動器">運動器</option>
-                        <option value="脳血管">脳血管</option>
-                        <option value="廃用">廃用</option>
-                        <option value="消炎">消炎</option>
-                    </select>
+                <div style="background: var(--bg-color); padding: 1rem; border-radius: 8px;">
+                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.25rem;">書類提出予定日</p>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem;">
+                        <div style="display: flex; gap: 0.25rem;">
+                            <input type="date" id="doc-submission-date"
+                                style="padding: 0.25rem; border: 1px solid #ccc; border-radius: 4px; flex: 1;">
+                            <button onclick="document.getElementById('doc-submission-date').value=''; saveNextVisit(true)" 
+                                class="btn" style="padding: 0 0.5rem; background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; margin:0;" title="日付をクリア">✕</button>
+                        </div>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>疾患名</label>
-                    <input type="text" id="edit-p-disease">
-                </div>
-                <div class="form-group">
-                    <label>診断日/発症日</label>
-                    <input type="date" id="edit-p-diag-date">
-                </div>
-                <div style="display: flex; gap: 1rem; margin-top: 2rem;">
-                    <button type="submit" class="btn primary" style="flex: 1;">変更を保存</button>
-                    <button type="button" class="btn secondary" style="flex: 1;" onclick="document.getElementById('editModal').style.display='none'">キャンセル</button>
-                </div>
-            </form>
+            </div>
+
+            <h3
+                style="margin-bottom: 1rem; font-size: 1.1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+                面談履歴</h3>
+            <div
+                style="max-height: 250px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                    <thead style="background-color: var(--bg-color); position: sticky; top: 0;">
+                        <tr>
+                            <th
+                                style="padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--border-color);">
+                                日付</th>
+                            <th
+                                style="padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--border-color);">
+                                時間</th>
+                            <th
+                                style="padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--border-color);">
+                                内容</th>
+                            <th
+                                style="padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--border-color);">
+                                キャンセル理由</th>
+                            <th
+                                style="padding: 0.75rem; text-align: center; border-bottom: 1px solid var(--border-color);">
+                                状況</th>
+                        </tr>
+                    </thead>
+                    <tbody id="details-history-body">
+                        <!-- History rows -->
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </body>
