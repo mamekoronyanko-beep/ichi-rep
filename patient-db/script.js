@@ -1093,6 +1093,55 @@ async function initApp() {
                         return;
                     }
 
+                    // --- Fetch existing patients to preserve p_nursing_care and track history ---
+                    const pIds = patientsToUpsert.map(p => p.p_id);
+                    
+                    // Supabase `in` filter has a limit, but typically imports are < 1000 rows.
+                    // For safety, we can do it in chunks if necessary, but checking 100-200 is fine.
+                    const { data: existingData, error: fetchErr } = await supabaseClient
+                        .from('patients')
+                        .select('p_id, p_disease, p_nursing_care, history')
+                        .in('p_id', pIds);
+                    
+                    if (!fetchErr && existingData) {
+                        const existingMap = new Map();
+                        existingData.forEach(ep => existingMap.set(ep.p_id, ep));
+
+                        patientsToUpsert.forEach(p => {
+                            const ep = existingMap.get(p.p_id);
+                            if (ep) {
+                                // 1. Preserve nursing care if it was true
+                                if (ep.p_nursing_care === true) {
+                                    p.p_nursing_care = true;
+                                }
+
+                                // 2. Track diagnosis history if changed
+                                if (ep.p_disease && p.p_disease && ep.p_disease !== p.p_disease) {
+                                    let history = [];
+                                    if (ep.history) {
+                                        history = typeof ep.history === 'string' ? JSON.parse(ep.history) : ep.history;
+                                    }
+                                    const todayStr = new Date().toISOString().split('T')[0].replace(/-/g, '/'); // simple formatLocalDate equivalent
+                                    const changeEntry = {
+                                        date: todayStr,
+                                        type: "diagnosis_change",
+                                        old_value: ep.p_disease,
+                                        new_value: p.p_disease,
+                                        status: "info",
+                                        note: `疾患名を「${ep.p_disease}」から「${p.p_disease}」に変更（インポート）`
+                                    };
+                                    history.push(changeEntry);
+                                    p.history = history;
+                                } else {
+                                    p.history = ep.history; // Preserve existing history
+                                }
+                            }
+                        });
+                    } else if (fetchErr) {
+                        console.error("Error fetching existing patients during import:", fetchErr);
+                    }
+                    // ----------------------------------------------------------------------------
+
                     if (confirm(`${patientsToUpsert.length} 件のデータをインポート（新規登録・上書き）しますか？`)) {
                         const { error } = await supabaseClient.from('patients').upsert(patientsToUpsert, { onConflict: 'p_id' });
                         if (error) {
