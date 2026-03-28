@@ -620,6 +620,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         let inpatientActual = 0;
         let outpatientPlanned = 0;
         let outpatientActual = 0;
+        let nursingCases = 0;
+        let nursingUnits = 0;
 
         data.forEach(res => {
             const units = parseInt(res.units) || 1;
@@ -637,11 +639,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                     antiCases += 1;
                 }
 
-                if (isInpatient || isMeeting) {
+                if (isInpatient) {
                     inpatientPlanned += units;
                     if (res.status === 'arrived') {
                         inpatientActual += units;
                     }
+                } else if (isMeeting) {
+                    nursingCases += 1;
+                    nursingUnits += units;
                 } else {
                     outpatientPlanned += units;
                     if (res.status === 'arrived') {
@@ -664,9 +669,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         setVal('anti-cases-count', antiCases);
         setVal('total-cancellations-count', cancelCount);
 
+        setVal('inpatient-planned-units', inpatientPlanned);
         setVal('inpatient-actual-units', inpatientActual);
         setVal('outpatient-planned-units', outpatientPlanned);
         setVal('outpatient-actual-units', outpatientActual);
+        setVal('nursing-actual-cases', nursingCases);
+        setVal('nursing-actual-units', nursingUnits);
 
         // 入院介入の内訳入力がある場合は、その合計値で上書きする
         updateInpatientManualStats();
