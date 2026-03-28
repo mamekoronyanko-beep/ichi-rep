@@ -107,26 +107,35 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     const getStaffAttendance = async (dateStr) => {
-        const { data, error } = await supabase.from('staff_settings').select('id, attendance').order('id', { ascending: true });
+        const { data, error } = await supabase
+            .from('staff_attendance')
+            .select('staff_id, status')
+            .eq('attendance_date', dateStr);
+        
         const attendance = Array(STAFF_COUNT).fill('work');
         if (!error && data && data.length > 0) {
-            data.forEach((s, i) => {
-                if (i < STAFF_COUNT) attendance[i] = s.attendance || 'work';
+            data.forEach((s) => {
+                if (s.staff_id <= STAFF_COUNT) {
+                    attendance[s.staff_id - 1] = s.status || 'work';
+                }
             });
         }
         return attendance;
     };
 
     const saveStaffData = async (names) => {
-        for (let i = 0; i < names.length; i++) {
-            await supabase.from('staff_settings').upsert({ id: i + 1, name: names[i] });
-        }
+        const upsertData = names.map((name, i) => ({ id: i + 1, name: name }));
+        await supabase.from('staff_settings').upsert(upsertData);
     };
 
     const saveStaffAttendance = async (dateStr, attendance) => {
-        for (let i = 0; i < attendance.length; i++) {
-            await supabase.from('staff_settings').update({ attendance: attendance[i] }).eq('id', i + 1);
-        }
+        const upsertData = attendance.map((status, i) => ({
+            staff_id: i + 1,
+            attendance_date: dateStr,
+            status: status
+        }));
+        // Use upsert to handle existing records for the same date/staff
+        await supabase.from('staff_attendance').upsert(upsertData, { onConflict: 'staff_id,attendance_date' });
     };
     // ----------------------------
 

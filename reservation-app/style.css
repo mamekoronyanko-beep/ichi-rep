@@ -956,3 +956,38 @@ body {
     .stats-sidebar, .stats-toggle-btn { display: none !important; }
     .table-container { max-height: calc(100vh - 80px) !important; }
 }
+
+/* Staff Off States */
+.staff-off-cell {
+    background-color: #e2e8f0 !important;
+    cursor: not-allowed;
+    position: relative;
+    opacity: 0.7;
+}
+
+.staff-off-cell::after {
+    content: "休み";
+    font-size: 0.65rem;
+    color: #64748b;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-weight: 700;
+}
+
+/* Non-working days (Sundays/Holidays) */
+.is-non-working-day .schedule-table {
+    background-color: #fff1f2;
+}
+
+.is-non-working-day .time-col {
+    background-color: #fee2e2 !important;
+    color: #ef4444 !important;
+    font-weight: 800;
+}
+
+.is-non-working-day .sub-header-row th {
+    background-color: #fee2e2 !important;
+}
+
