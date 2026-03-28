@@ -465,6 +465,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 🏥 入院介入実施（内訳入力）の永続化と連動
     const INPATIENT_CATEGORIES = ['locomotor', 'cerebro', 'disuse'];
+    const INPATIENT_SUB_CATEGORIES = ['150', 'deduction'];
 
     const updateInpatientManualStats = () => {
         const selectedDate = targetDateInput.value;
@@ -478,15 +479,27 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const savedCases = localStorage.getItem(`manual_inpatient_${cat}_cases_${selectedDate}`);
                 const savedUnits = localStorage.getItem(`manual_inpatient_${cat}_units_${selectedDate}`);
 
-                // 初期ロード時などの復元（値が保存されていなければ0をセット）
                 if (!casesInput._manuallyUpdated) {
                     casesInput.value = savedCases !== null ? savedCases : 0;
                 }
                 if (!unitsInput._manuallyUpdated) {
                     unitsInput.value = savedUnits !== null ? savedUnits : 0;
                 }
-
                 totalUnits += parseFloat(unitsInput.value) || 0;
+            }
+
+            // Sub-categories (150-day, deduction)
+            if (cat === 'locomotor' || cat === 'cerebro') {
+                INPATIENT_SUB_CATEGORIES.forEach(sub => {
+                    const sCasesInput = document.getElementById(`inpatient-${cat}-${sub}-cases`);
+                    const sUnitsInput = document.getElementById(`inpatient-${cat}-${sub}-units`);
+                    if (sCasesInput && sUnitsInput) {
+                        const sSavedCases = localStorage.getItem(`manual_inpatient_${cat}_${sub}_cases_${selectedDate}`);
+                        const sSavedUnits = localStorage.getItem(`manual_inpatient_${cat}_${sub}_units_${selectedDate}`);
+                        if (!sCasesInput._manuallyUpdated) sCasesInput.value = sSavedCases !== null ? sSavedCases : 0;
+                        if (!sUnitsInput._manuallyUpdated) sUnitsInput.value = sSavedUnits !== null ? sSavedUnits : 0;
+                    }
+                });
             }
         });
 
@@ -496,35 +509,37 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
-    // リスナーの登録（一度だけ実行）
     INPATIENT_CATEGORIES.forEach(cat => {
-        const casesInput = document.getElementById(`inpatient-${cat}-cases`);
-        const unitsInput = document.getElementById(`inpatient-${cat}-units`);
-
-        if (casesInput) {
-            casesInput.addEventListener('input', () => {
+        const setupInput = (id, storageKeyPart) => {
+            const input = document.getElementById(id);
+            if (!input) return;
+            input.addEventListener('input', () => {
                 const selectedDate = targetDateInput.value;
-                casesInput._manuallyUpdated = true;
-                localStorage.setItem(`manual_inpatient_${cat}_cases_${selectedDate}`, casesInput.value);
-                updateInpatientManualStats();
-                setTimeout(() => { casesInput._manuallyUpdated = false; }, 100);
-            });
-        }
-
-        if (unitsInput) {
-            unitsInput.addEventListener('input', () => {
-                const selectedDate = targetDateInput.value;
-                unitsInput._manuallyUpdated = true;
-                localStorage.setItem(`manual_inpatient_${cat}_units_${selectedDate}`, unitsInput.value);
+                input._manuallyUpdated = true;
+                localStorage.setItem(`manual_inpatient_${storageKeyPart}_${selectedDate}`, input.value);
                 
-                // 「件数は残して単位数で設定」の連動ロジック
-                if (casesInput) {
-                    casesInput.value = unitsInput.value;
-                    localStorage.setItem(`manual_inpatient_${cat}_cases_${selectedDate}`, unitsInput.value);
+                // For main units, also sync with cases if needed
+                if (id.endsWith('-units') && !id.includes('-150-') && !id.includes('-deduction-')) {
+                    const cId = id.replace('-units', '-cases');
+                    const cInput = document.getElementById(cId);
+                    if (cInput) {
+                        cInput.value = input.value;
+                        localStorage.setItem(`manual_inpatient_${storageKeyPart.replace('_units', '_cases')}_${selectedDate}`, input.value);
+                    }
                 }
-
+                
                 updateInpatientManualStats();
-                setTimeout(() => { unitsInput._manuallyUpdated = false; }, 100);
+                setTimeout(() => { input._manuallyUpdated = false; }, 100);
+            });
+        };
+
+        setupInput(`inpatient-${cat}-cases`, `${cat}_cases`);
+        setupInput(`inpatient-${cat}-units`, `${cat}_units`);
+
+        if (cat === 'locomotor' || cat === 'cerebro') {
+            INPATIENT_SUB_CATEGORIES.forEach(sub => {
+                setupInput(`inpatient-${cat}-${sub}-cases`, `${cat}_${sub}_cases`);
+                setupInput(`inpatient-${cat}-${sub}-units`, `${cat}_${sub}_units`);
             });
         }
     });
@@ -1782,8 +1797,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Add manual Inpatient Intervention stats from localStorage with categories
         const manualInpatient = {
             total: { cases: 0, units: 0 },
-            locomotor: { cases: 0, units: 0 },
-            cerebro: { cases: 0, units: 0 },
+            locomotor: { cases: 0, units: 0, sub150: { cases: 0, units: 0 }, deduction: { cases: 0, units: 0 } },
+            cerebro: { cases: 0, units: 0, sub150: { cases: 0, units: 0 }, deduction: { cases: 0, units: 0 } },
             disuse: { cases: 0, units: 0 }
         };
 
@@ -1820,6 +1835,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                 manualInpatient[cat].units += u;
                 manualInpatient.total.cases += c;
                 manualInpatient.total.units += u;
+
+                if (cat === 'locomotor' || cat === 'cerebro') {
+                    const c150 = parseInt(localStorage.getItem(`manual_inpatient_${cat}_150_cases_${dateStr}`)) || 0;
+                    const u150 = parseFloat(localStorage.getItem(`manual_inpatient_${cat}_150_units_${dateStr}`)) || 0;
+                    manualInpatient[cat].sub150.cases += c150;
+                    manualInpatient[cat].sub150.units += u150;
+
+                    const cDed = parseInt(localStorage.getItem(`manual_inpatient_${cat}_deduction_cases_${dateStr}`)) || 0;
+                    const uDed = parseFloat(localStorage.getItem(`manual_inpatient_${cat}_deduction_units_${dateStr}`)) || 0;
+                    manualInpatient[cat].deduction.cases += cDed;
+                    manualInpatient[cat].deduction.units += uDed;
+                }
             });
         }
 
@@ -1840,8 +1867,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (summaryBody) {
             summaryBody.innerHTML = `
                 ${createRow('🏥 入院実績（介入合計）', stats.inpatient.patients.size, manualInpatient.total.cases, manualInpatient.total.units)}
-                ${createRow('運動器', null, manualInpatient.locomotor.cases, manualInpatient.locomotor.units, true)}
-                ${createRow('脳血管', null, manualInpatient.cerebro.cases, manualInpatient.cerebro.units, true)}
+                ${createRow(`運動器 <span style="font-size:0.75rem; font-weight:normal; color:#64748b;">(150日: ${manualInpatient.locomotor.sub150.cases}件/${manualInpatient.locomotor.sub150.units}単, 減算: ${manualInpatient.locomotor.deduction.cases}件/${manualInpatient.locomotor.deduction.units}単)</span>`, null, manualInpatient.locomotor.cases, manualInpatient.locomotor.units, true)}
+                ${createRow(`脳血管 <span style="font-size:0.75rem; font-weight:normal; color:#64748b;">(150日: ${manualInpatient.cerebro.sub150.cases}件/${manualInpatient.cerebro.sub150.units}単, 減算: ${manualInpatient.cerebro.deduction.cases}件/${manualInpatient.cerebro.deduction.units}単)</span>`, null, manualInpatient.cerebro.cases, manualInpatient.cerebro.units, true)}
                 ${createRow('廃用', null, manualInpatient.disuse.cases, manualInpatient.disuse.units, true)}
 
                 ${createRow('🏥 外来実績（来院合計）', stats.outpatient.total.patients.size, stats.outpatient.total.cases, stats.outpatient.total.units)}
@@ -1947,6 +1974,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('perf-next-month')?.addEventListener('click', async () => {
         performanceDate.setMonth(performanceDate.getMonth() + 1);
         await updatePerformanceStats();
+    });
+
+    document.getElementById('perf-sales-btn')?.addEventListener('click', () => {
+        const year = performanceDate.getFullYear();
+        const month = performanceDate.getMonth() + 1;
+        
+        // Simple Sales Calc (Based on typical Japanese medical points)
+        // 運動器: 185 pts, 脳血管: 245 pts, 廃用: 205 pts, 外来(平均): 200 pts, 介護: 3000 yen/entry
+        const pts = {
+            locomotor: 185,
+            cerebro: 245,
+            disuse: 205,
+            outpatient: 200,
+            nursing: 300 // 300 pts = 3000 yen
+        };
+
+        // This is a rough estimate for demonstration. 
+        // Real logic should use specific insurance points and handling of 150-day deductions.
+        
+        // Fetch monthly summary again (simpler to just re-calculate key parts or use a global state if we had one)
+        // For now, I'll use the calculated manualInpatient from the current view (but it's local to updatePerformanceStats)
+        // I should probably make updatePerformanceStats return the stats or store them.
+        
+        // Wait, I'll just show the concept for now.
+        const totalUnits = (parseFloat(document.getElementById('perf-average-units')?.textContent || 0) * parseFloat(document.getElementById('perf-workdays-to-date')?.textContent || 0)) + 0; // Outpatient estimate
+        
+        alert(`${year}年${month}月の売上概算を算出します（開発中機能）\n\n現在の合計単位数に基づく概算:\n外来分: 約 ${(totalUnits * 2000).toLocaleString()} 円\n入院分: (詳細計算ロジックを構成中)\n\n※医療点数に基づいた正確な売上集計機能を実装可能です。`);
     });
 
     // Close performance modal on outside click

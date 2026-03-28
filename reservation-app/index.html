@@ -207,20 +207,40 @@
                                     <div style="font-size: 0.65rem; color: #9d174d; font-weight: 600; text-align: center;">件数</div>
                                     <div style="font-size: 0.65rem; color: #9d174d; font-weight: 600; text-align: center;">単位</div>
                                 </div>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.4rem; align-items: center; margin-bottom: 0.5rem;">
-                                    <div style="font-size: 0.75rem; font-weight: 600;">運動器</div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.4rem; align-items: center; margin-bottom: 0.2rem;">
+                                    <div style="font-size: 0.75rem; font-weight: 600;">運動器合計</div>
                                     <input type="number" id="inpatient-locomotor-cases" class="stats-input" value="0" min="0">
                                     <input type="number" id="inpatient-locomotor-units" class="stats-input" value="0" min="0" step="1">
                                 </div>
-                                <!-- 脳血管 -->
-                                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.4rem; align-items: center; margin-bottom: 0.5rem;">
-                                    <div style="font-size: 0.75rem; font-weight: 600;">脳血管</div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.4rem; align-items: center; margin-bottom: 0.2rem; opacity: 0.8;">
+                                    <div style="font-size: 0.65rem; padding-left: 0.5rem;">└ 150日超</div>
+                                    <input type="number" id="inpatient-locomotor-150-cases" class="stats-input sm" value="0" min="0">
+                                    <input type="number" id="inpatient-locomotor-150-units" class="stats-input sm" value="0" min="0">
+                                </div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.4rem; align-items: center; margin-bottom: 0.5rem; opacity: 0.8;">
+                                    <div style="font-size: 0.65rem; padding-left: 0.5rem;">└ 減算対象</div>
+                                    <input type="number" id="inpatient-locomotor-deduction-cases" class="stats-input sm" value="0" min="0">
+                                    <input type="number" id="inpatient-locomotor-deduction-units" class="stats-input sm" value="0" min="0">
+                                </div>
+
+                                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.4rem; align-items: center; margin-bottom: 0.2rem;">
+                                    <div style="font-size: 0.75rem; font-weight: 600;">脳血管合計</div>
                                     <input type="number" id="inpatient-cerebro-cases" class="stats-input" value="0" min="0">
                                     <input type="number" id="inpatient-cerebro-units" class="stats-input" value="0" min="0" step="1">
                                 </div>
-                                <!-- 廃用 -->
+                                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.4rem; align-items: center; margin-bottom: 0.2rem; opacity: 0.8;">
+                                    <div style="font-size: 0.65rem; padding-left: 0.5rem;">└ 150日超</div>
+                                    <input type="number" id="inpatient-cerebro-150-cases" class="stats-input sm" value="0" min="0">
+                                    <input type="number" id="inpatient-cerebro-150-units" class="stats-input sm" value="0" min="0">
+                                </div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.4rem; align-items: center; margin-bottom: 0.5rem; opacity: 0.8;">
+                                    <div style="font-size: 0.65rem; padding-left: 0.5rem;">└ 減算対象</div>
+                                    <input type="number" id="inpatient-cerebro-deduction-cases" class="stats-input sm" value="0" min="0">
+                                    <input type="number" id="inpatient-cerebro-deduction-units" class="stats-input sm" value="0" min="0">
+                                </div>
+
                                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.4rem; align-items: center;">
-                                    <div style="font-size: 0.75rem; font-weight: 600;">廃用</div>
+                                    <div style="font-size: 0.75rem; font-weight: 600;">廃用症候</div>
                                     <input type="number" id="inpatient-disuse-cases" class="stats-input" value="0" min="0">
                                     <input type="number" id="inpatient-disuse-units" class="stats-input" value="0" min="0" step="1">
                                 </div>
@@ -395,10 +415,15 @@
             <span class="close-btn" id="close-performance-modal-btn">&times;</span>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 2px solid var(--primary-color); padding-bottom: 1rem;">
                 <h2 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">📊 月間実績統計</h2>
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <button id="perf-prev-month" class="date-nav-btn">◁</button>
-                    <span id="perf-current-month" style="font-weight: 700; font-size: 1.25rem; min-width: 120px; text-align: center;">YYYY年MM月</span>
-                    <button id="perf-next-month" class="date-nav-btn">▷</button>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <button id="perf-sales-btn" class="btn" style="background: #059669; color: white; border: none; padding: 0.5rem 1rem; border-radius: 8px; font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 0.4rem;">
+                        💰 月間売上を表示
+                    </button>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <button id="perf-prev-month" class="date-nav-btn">◁</button>
+                        <span id="perf-current-month" style="font-weight: 700; font-size: 1.25rem; min-width: 120px; text-align: center;">YYYY年MM月</span>
+                        <button id="perf-next-month" class="date-nav-btn">▷</button>
+                    </div>
                 </div>
             </div>
 
