@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="performance.js" defer></script>
     <style>
         .perf-container {
@@ -248,6 +249,10 @@
                 <button class="year-btn" id="next-year">▶</button>
             </div>
             <div class="header-actions">
+                <input type="file" id="perf-csv-import" accept=".xlsx, .xls" style="display: none;">
+                <label for="perf-csv-import" class="btn secondary" style="margin: 0; background-color: #f8fafc; color: #475569; border: 1px solid #cbd5e1; cursor: pointer; padding: 0.6rem 1.25rem; border-radius: 8px; font-weight: 600; display: flex; align-items: center;">
+                    📥 インポート
+                </label>
                 <button class="btn-analyze" id="analysis-btn">📈 分析</button>
                 <button id="refresh-btn" class="btn primary" style="margin: 0;">🔄 更新</button>
             </div>

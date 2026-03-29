@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('prev-year').addEventListener('click', () => changeYear(-1));
     document.getElementById('next-year').addEventListener('click', () => changeYear(1));
     document.getElementById('refresh-btn').addEventListener('click', () => loadYearData());
+    document.getElementById('perf-csv-import').addEventListener('change', handleExcelImport);
     document.getElementById('analysis-btn').addEventListener('click', openAnalysisModal);
     document.getElementById('close-analysis-modal').addEventListener('click', closeAnalysisModal);
 
@@ -155,7 +156,16 @@ function computeMonthSales(month) {
 
 function renderTable() {
     monthlyData = [];
-    for (let m = 1; m <= 12; m++) monthlyData.push(computeMonthSales(m));
+    const importedStorage = localStorage.getItem(`perf_import_${currentYear}`);
+    const importedData = importedStorage ? JSON.parse(importedStorage) : null;
+
+    for (let m = 1; m <= 12; m++) {
+        if (importedData && importedData[m] && Object.keys(importedData[m]).length > 0) {
+            monthlyData.push({ ...importedData[m], isImported: true });
+        } else {
+            monthlyData.push(computeMonthSales(m));
+        }
+    }
 
     const rows = [
         { label:'🏥 入院売上',          cls:'section-header', key:'inpatient' },
@@ -175,12 +185,85 @@ function renderTable() {
     rows.forEach(r => {
         const vals = monthlyData.map(m => m[r.key]);
         const yearTotal = vals.reduce((a,b)=>a+b,0);
-        html += `<tr class="${r.cls}"><td>${r.label}</td>`;
-        vals.forEach(v => html += `<td>${v > 0 ? v.toLocaleString() : '-'}</td>`);
+        html += `<tr class="${r.cls || ''}"><td>${r.label}</td>`;
+        vals.forEach((v, idx) => {
+            const isImported = monthlyData[idx].isImported;
+            const cls = (isImported && v !== undefined && r.key !== 'total') ? 'color: #d97706 !important; font-weight: 700;' : '';
+            html += `<td style="${cls}">${v > 0 ? v.toLocaleString() : '-'}</td>`;
+        });
         html += `<td style="background:#f0f9ff;color:#0369a1;font-weight:700;">${yearTotal>0?yearTotal.toLocaleString():'-'}</td></tr>`;
     });
 
     document.getElementById('perf-table-body').innerHTML = html;
+}
+
+async function handleExcelImport(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const targetYear = prompt(`インポートするデータの「対象年（西暦）」を入力してください。\n例: ${currentYear - 1}`);
+    if (!targetYear || isNaN(targetYear)) {
+        alert("有効な年が入力されなかったため、インポートを中止しました。");
+        e.target.value = '';
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+        try {
+            const data = new Uint8Array(evt.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+
+            const importedData = {};
+            for (let m = 1; m <= 12; m++) importedData[m] = {};
+
+            let currentContext = ''; 
+
+            for (let i = 0; i < jsonData.length; i++) {
+                const row = jsonData[i];
+                if (!row || !row[0]) continue;
+                const label = String(row[0]).trim();
+
+                if (label.includes('入院')) currentContext = 'in';
+                else if (label.includes('外来')) currentContext = 'out';
+
+                let key = null;
+                if (label.includes('入院売上')) key = 'inpatient';
+                else if (label.includes('外来売上')) key = 'outpatient';
+                else if (label.includes('評価・目標')) key = 'evalGoal';
+                else if (label.includes('介護医療院')) key = 'nursing';
+                else if (label.includes('総合計売上') || label.includes('合計売上')) key = 'total';
+                else if (label.includes('運動器')) key = currentContext === 'in' ? 'inLoco' : 'outLoco';
+                else if (label.includes('脳血管')) key = currentContext === 'in' ? 'inCereb' : 'outCereb';
+                else if (label.includes('廃用')) key = 'inDisuse';
+                else if (label.includes('消炎')) key = 'outAnti';
+
+                if (key) {
+                    for (let m = 1; m <= 12; m++) {
+                        const val = parseFloat(row[m]) || 0;
+                        importedData[m][key] = val;
+                    }
+                }
+            }
+
+            localStorage.setItem(`perf_import_${targetYear}`, JSON.stringify(importedData));
+            alert(`${targetYear}年の実績データをインポートしました！`);
+            if (parseInt(targetYear) === currentYear) {
+                loadYearData();
+            } else {
+                currentYear = parseInt(targetYear);
+                document.getElementById('current-year-display').textContent = `${currentYear}年`;
+                loadYearData();
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Excelファイルの読み込みに失敗しました。フォーマットをご確認ください。");
+        }
+        e.target.value = '';
+    };
+    reader.readAsArrayBuffer(file);
 }
 
 // ===== Analysis Modal =====
