@@ -2004,122 +2004,251 @@ document.addEventListener('DOMContentLoaded', async () => {
         const month = performanceDate.getMonth() + 1;
         const isBeforeJune2026 = (year < 2026) || (year === 2026 && month < 6);
 
-        if (!isBeforeJune2026) {
-            alert('2026年6月以降の改定料金体系は現在未設定です。');
-            return;
-        }
-
-        // Prices (Yen)
-        const prices = {
-            locomotor: 1850,
-            locomotor_deduction: 1110,
-            cerebro: 2000,
-            cerebro_deduction: 1200,
-            disuse: 2050, 
-            anti: 350,
-            re_exam: 770 / 2, // 385 yen
-            nursing: {
-                '計画評価1': 3000,
-                '計画評価1(初回)': 3000,
-                '計画評価1(2回目以降)': 3000,
-                '計画評価2': 2400,
-                '計画評価2(初回)': 2400,
-                '計画評価2(2回目以降)': 2400,
-                '目標1': 2500,
-                '目標2': 1000
-            }
-        };
-
-        const { reservations: pReservations, patientCategoryMap, patientNursingCareMap } = performanceStatsCache;
-        if (!pReservations || !patientCategoryMap) {
-            alert('統計データが読み込まれていません。一度実績ページを閉じて開き直してください。');
-            return;
-        }
-
-        // --- Inpatient Sales ---
-        let inpatientSales = 0;
-        ['locomotor', 'cerebro', 'disuse'].forEach(cat => {
-            let totalUnits = 0;
-            let deductionUnits = 0;
-            const lastDay = new Date(year, month, 0).getDate();
-            for (let d = 1; d <= lastDay; d++) {
-                const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-                totalUnits += parseFloat(localStorage.getItem(`manual_inpatient_${cat}_units_${dateStr}`)) || 0;
-                if (cat === 'locomotor' || cat === 'cerebro') {
-                    deductionUnits += parseFloat(localStorage.getItem(`manual_inpatient_${cat}_deduction_units_${dateStr}`)) || 0;
+        if (isBeforeJune2026) {
+            // ==========================================
+            // PRE-JUNE 2026 LOGIC 
+            // ==========================================
+            const prices = {
+                locomotor: 1850,
+                locomotor_deduction: 1110,
+                cerebro: 2000,
+                cerebro_deduction: 1200,
+                disuse: 2050, 
+                anti: 350,
+                re_exam: 770 / 2, // 385 yen
+                nursing: {
+                    '計画評価1': 3000,
+                    '計画評価1(初回)': 3000,
+                    '計画評価1(2回目以降)': 3000,
+                    '計画評価2': 2400,
+                    '計画評価2(初回)': 2400,
+                    '計画評価2(2回目以降)': 2400,
+                    '目標1': 2500,
+                    '目標2': 1000
                 }
+            };
+
+            const { reservations: pReservations, patientCategoryMap, patientNursingCareMap } = performanceStatsCache;
+            if (!pReservations || !patientCategoryMap) {
+                alert('統計データが読み込まれていません。一度実績ページを閉じて開き直してください。');
+                return;
             }
+
+            // --- Inpatient Sales ---
+            let inpatientSales = 0;
+            ['locomotor', 'cerebro', 'disuse'].forEach(cat => {
+                let totalUnits = 0;
+                let deductionUnits = 0;
+                const lastDay = new Date(year, month, 0).getDate();
+                for (let d = 1; d <= lastDay; d++) {
+                    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                    totalUnits += parseFloat(localStorage.getItem(`manual_inpatient_${cat}_units_${dateStr}`)) || 0;
+                    if (cat === 'locomotor' || cat === 'cerebro') {
+                        deductionUnits += parseFloat(localStorage.getItem(`manual_inpatient_${cat}_deduction_units_${dateStr}`)) || 0;
+                    }
+                }
+                
+                if (cat === 'locomotor') {
+                    inpatientSales += (totalUnits - deductionUnits) * prices.locomotor + (deductionUnits * prices.locomotor_deduction);
+                } else if (cat === 'cerebro') {
+                    inpatientSales += (totalUnits - deductionUnits) * prices.cerebro + (deductionUnits * prices.cerebro_deduction);
+                } else {
+                    inpatientSales += totalUnits * prices.disuse;
+                }
+            });
+
+            // --- Outpatient & Nursing Base Sales ---
+            let outpatientUnitsSales = 0;
+            let outpatientReExamSales = 0;
+            const nursingVisits = { withCare: 0, withoutCare: 0 };
             
-            if (cat === 'locomotor') {
-                inpatientSales += (totalUnits - deductionUnits) * prices.locomotor + (deductionUnits * prices.locomotor_deduction);
-            } else if (cat === 'cerebro') {
-                inpatientSales += (totalUnits - deductionUnits) * prices.cerebro + (deductionUnits * prices.cerebro_deduction);
-            } else {
-                inpatientSales += totalUnits * prices.disuse;
-            }
-        });
-
-        // --- Outpatient & Nursing Base Sales ---
-        let outpatientUnitsSales = 0;
-        let outpatientReExamSales = 0;
-        const nursingVisits = { withCare: 0, withoutCare: 0 };
-        
-        const filtered = pReservations.filter(res => {
-            if (res.status === 'canceled') return false;
-            const d = new Date(res.res_date);
-            return d.getFullYear() === year && d.getMonth() + 1 === month;
-        });
-        
-        filtered.forEach(res => {
-            const units = parseInt(res.units) || 1;
-            const pId = res.patient_id;
-            const cat = patientCategoryMap[pId] || 'その他';
-
-            if (res.is_meeting) {
-                if (patientNursingCareMap[pId]) nursingVisits.withCare++;
-                else nursingVisits.withoutCare++;
-                return; 
-            }
-
-            if (res.is_inpatient_block) return; 
-
-            if (cat === '運動器') outpatientUnitsSales += units * prices.locomotor;
-            else if (cat === '脳血管') outpatientUnitsSales += units * prices.cerebro;
-            else if (cat === '消炎') outpatientUnitsSales += units * prices.anti;
-            else outpatientUnitsSales += units * 2000; 
+            const filtered = pReservations.filter(res => {
+                if (res.status === 'canceled') return false;
+                const d = new Date(res.res_date);
+                return d.getFullYear() === year && d.getMonth() + 1 === month;
+            });
             
-            outpatientReExamSales += prices.re_exam;
-        });
+            filtered.forEach(res => {
+                const units = parseInt(res.units) || 1;
+                const pId = res.patient_id;
+                const cat = patientCategoryMap[pId] || 'その他';
 
-        // --- Nursing Care & Plan Evaluation & Goals Sales ---
-        let nursingCareBaseSales = (nursingVisits.withoutCare * 1230) + (nursingVisits.withCare * 860);
-        let planEvalAndGoalSales = 0;
-        
-        const inOutMetrics = [
-            '計画評価1', '計画評価1(初回)', '計画評価1(2回目以降)', 
-            '計画評価2', '計画評価2(初回)', '計画評価2(2回目以降)',
-            '目標1', '目標2'
-        ];
+                if (res.is_meeting) {
+                    if (patientNursingCareMap[pId]) nursingVisits.withCare++;
+                    else nursingVisits.withoutCare++;
+                    return; 
+                }
 
-        inOutMetrics.forEach(label => {
-            const storageKey = `manual_nursing_${year}_${month - 1}_${label}`;
-            const count = parseInt(localStorage.getItem(storageKey)) || 0;
-            planEvalAndGoalSales += count * (prices.nursing[label] || 0);
-        });
+                if (res.is_inpatient_block) return; 
 
-        const combinedInOutSales = inpatientSales + outpatientUnitsSales + outpatientReExamSales + planEvalAndGoalSales;
-        const totalTotal = combinedInOutSales + nursingCareBaseSales;
+                if (cat === '運動器') outpatientUnitsSales += units * prices.locomotor;
+                else if (cat === '脳血管') outpatientUnitsSales += units * prices.cerebro;
+                else if (cat === '消炎') outpatientUnitsSales += units * prices.anti;
+                else outpatientUnitsSales += units * 2000; 
+                
+                outpatientReExamSales += prices.re_exam;
+            });
 
-        alert(`💰 ${year}年${month}月 売上概算レポート\n` +
-              `----------------------------------\n` +
-              `🏥 入院売上: ${inpatientSales.toLocaleString()} 円\n` +
-              `👤 外来売上: ${(outpatientUnitsSales + outpatientReExamSales).toLocaleString()} 円\n` +
-              `📝 評価・目標: ${planEvalAndGoalSales.toLocaleString()} 円 (入外合算)\n` +
-              `🏢 介護医療院: ${nursingCareBaseSales.toLocaleString()} 円\n` +
-              `----------------------------------\n` +
-              `合計概算:  ${totalTotal.toLocaleString()} 円\n\n` +
-              `※介護: 要介護なし1230円 / あり860円 で算出しています。\n` +
-              `※2026年5月までの料金体系を適用しています。`);
+            // --- Nursing Care & Plan Evaluation & Goals Sales ---
+            let nursingCareBaseSales = (nursingVisits.withoutCare * 1230) + (nursingVisits.withCare * 860);
+            let planEvalAndGoalSales = 0;
+            
+            const inOutMetrics = [
+                '計画評価1', '計画評価1(初回)', '計画評価1(2回目以降)', 
+                '計画評価2', '計画評価2(初回)', '計画評価2(2回目以降)',
+                '目標1', '目標2'
+            ];
+
+            inOutMetrics.forEach(label => {
+                const storageKey = `manual_nursing_${year}_${month - 1}_${label}`;
+                const count = parseInt(localStorage.getItem(storageKey)) || 0;
+                planEvalAndGoalSales += count * (prices.nursing[label] || 0);
+            });
+
+            const combinedInOutSales = inpatientSales + outpatientUnitsSales + outpatientReExamSales + planEvalAndGoalSales;
+            const totalTotal = combinedInOutSales + nursingCareBaseSales;
+
+            alert(`💰 ${year}年${month}月 売上概算レポート\n` +
+                  `----------------------------------\n` +
+                  `🏥 入院売上: ${inpatientSales.toLocaleString()} 円\n` +
+                  `👤 外来売上: ${(outpatientUnitsSales + outpatientReExamSales).toLocaleString()} 円\n` +
+                  `📝 評価・目標: ${planEvalAndGoalSales.toLocaleString()} 円 (入外合算)\n` +
+                  `🏢 介護医療院: ${nursingCareBaseSales.toLocaleString()} 円\n` +
+                  `----------------------------------\n` +
+                  `合計概算:  ${totalTotal.toLocaleString()} 円\n\n` +
+                  `※介護: 要介護なし1230円 / あり860円 で算出しています。\n` +
+                  `※2026年5月までの料金体系を適用しています。`);
+
+        } else {
+            // ==========================================
+            // POST-JUNE 2026 LOGIC 
+            // ==========================================
+            const prices = {
+                // 入院
+                in_locomotor: 1850,
+                in_locomotor_deduction: 1680,
+                in_cerebro: 2000,
+                in_cerebro_deduction: 1800,
+                in_disuse: 2000, // No specific indication, keeping legacy baseline logic
+                // 外来
+                out_locomotor: 1850,
+                out_cerebro: 2000,
+                out_anti: 350,
+                out_other: 2000,
+                
+                re_exam: 410,
+                
+                // 介護
+                nursing: {
+                    '計画評価1': 3000,
+                    '計画評価1(初回)': 3000,
+                    '計画評価1(2回目以降)': 3000,
+                    '計画評価2': 2400,
+                    '計画評価2(初回)': 2400,
+                    '計画評価2(2回目以降)': 2400,
+                    '目標1': 2500,
+                    '目標2': 1000
+                }
+            };
+
+            const { reservations: pReservations, patientCategoryMap, patientNursingCareMap } = performanceStatsCache;
+            if (!pReservations || !patientCategoryMap) {
+                alert('統計データが読み込まれていません。一度実績ページを閉じて開き直してください。');
+                return;
+            }
+
+            // --- Inpatient Sales ---
+            let inpatientSales = 0;
+            ['locomotor', 'cerebro', 'disuse'].forEach(cat => {
+                let totalUnits = 0;
+                let deductionUnits = 0;
+                const lastDay = new Date(year, month, 0).getDate();
+                for (let d = 1; d <= lastDay; d++) {
+                    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                    totalUnits += parseFloat(localStorage.getItem(`manual_inpatient_${cat}_units_${dateStr}`)) || 0;
+                    if (cat === 'locomotor' || cat === 'cerebro') {
+                        deductionUnits += parseFloat(localStorage.getItem(`manual_inpatient_${cat}_deduction_units_${dateStr}`)) || 0;
+                    }
+                }
+                
+                if (cat === 'locomotor') {
+                    inpatientSales += (totalUnits - deductionUnits) * prices.in_locomotor + (deductionUnits * prices.in_locomotor_deduction);
+                } else if (cat === 'cerebro') {
+                    inpatientSales += (totalUnits - deductionUnits) * prices.in_cerebro + (deductionUnits * prices.in_cerebro_deduction);
+                } else {
+                    inpatientSales += totalUnits * prices.in_disuse;
+                }
+            });
+
+            // --- Outpatient & Nursing Base Sales ---
+            let outpatientUnitsSales = 0;
+            let outpatientReExamSales = 0;
+            const nursingVisits = { withCare: 0, withoutCare: 0 };
+            
+            const filtered = pReservations.filter(res => {
+                if (res.status === 'canceled') return false;
+                const d = new Date(res.res_date);
+                return d.getFullYear() === year && d.getMonth() + 1 === month;
+            });
+            
+            filtered.forEach(res => {
+                const units = parseInt(res.units) || 1;
+                const pId = res.patient_id;
+                const cat = patientCategoryMap[pId] || 'その他';
+
+                if (res.is_meeting) {
+                    if (patientNursingCareMap[pId]) nursingVisits.withCare++;
+                    else nursingVisits.withoutCare++;
+                    return; 
+                }
+
+                if (res.is_inpatient_block) return; 
+
+                // Outpatient Sales
+                if (cat === '運動器') {
+                    outpatientUnitsSales += units * prices.out_locomotor;
+                    outpatientReExamSales += prices.re_exam; // 再診料は外来運動器、脳血管、消炎を参照
+                } else if (cat === '脳血管') {
+                    outpatientUnitsSales += units * prices.out_cerebro;
+                    outpatientReExamSales += prices.re_exam;
+                } else if (cat === '消炎') {
+                    outpatientUnitsSales += units * prices.out_anti;
+                    outpatientReExamSales += prices.re_exam;
+                } else {
+                    outpatientUnitsSales += units * prices.out_other; 
+                }
+            });
+
+            // --- Nursing Care & Plan Evaluation & Goals Sales ---
+            let nursingCareBaseSales = (nursingVisits.withoutCare * 1230) + (nursingVisits.withCare * 860);
+            let planEvalAndGoalSales = 0;
+            
+            const inOutMetrics = [
+                '計画評価1', '計画評価1(初回)', '計画評価1(2回目以降)', 
+                '計画評価2', '計画評価2(初回)', '計画評価2(2回目以降)',
+                '目標1', '目標2'
+            ];
+
+            inOutMetrics.forEach(label => {
+                const storageKey = `manual_nursing_${year}_${month - 1}_${label}`;
+                const count = parseInt(localStorage.getItem(storageKey)) || 0;
+                planEvalAndGoalSales += count * (prices.nursing[label] || 0);
+            });
+
+            const combinedInOutSales = inpatientSales + outpatientUnitsSales + outpatientReExamSales + planEvalAndGoalSales;
+            const totalTotal = combinedInOutSales + nursingCareBaseSales;
+
+            alert(`💰 ${year}年${month}月 売上概算レポート\n` +
+                  `----------------------------------\n` +
+                  `🏥 入院売上: ${inpatientSales.toLocaleString()} 円\n` +
+                  `👤 外来売上: ${(outpatientUnitsSales + outpatientReExamSales).toLocaleString()} 円\n` +
+                  `📝 評価・目標: ${planEvalAndGoalSales.toLocaleString()} 円 (入外合算)\n` +
+                  `🏢 介護医療院: ${nursingCareBaseSales.toLocaleString()} 円\n` +
+                  `----------------------------------\n` +
+                  `合計概算:  ${totalTotal.toLocaleString()} 円\n\n` +
+                  `※介護: 要介護なし1230円 / あり860円 で算出しています。\n` +
+                  `※2026年6月以降の改定料金体系を適用しています。`);
+        }
     });
 
     // Close performance modal on outside click
