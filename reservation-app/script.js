@@ -493,18 +493,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             // Sub-categories (150-day, deduction)
-            if (cat === 'locomotor' || cat === 'cerebro') {
-                INPATIENT_SUB_CATEGORIES.forEach(sub => {
-                    const sCasesInput = document.getElementById(`inpatient-${cat}-${sub}-cases`);
-                    const sUnitsInput = document.getElementById(`inpatient-${cat}-${sub}-units`);
-                    if (sCasesInput && sUnitsInput) {
-                        const sSavedCases = localStorage.getItem(`manual_inpatient_${cat}_${sub}_cases_${selectedDate}`);
-                        const sSavedUnits = localStorage.getItem(`manual_inpatient_${cat}_${sub}_units_${selectedDate}`);
-                        if (!sCasesInput._manuallyUpdated) sCasesInput.value = sSavedCases !== null ? sSavedCases : 0;
-                        if (!sUnitsInput._manuallyUpdated) sUnitsInput.value = sSavedUnits !== null ? sSavedUnits : 0;
-                    }
-                });
-            }
+            INPATIENT_SUB_CATEGORIES.forEach(sub => {
+                const sCasesInput = document.getElementById(`inpatient-${cat}-${sub}-cases`);
+                const sUnitsInput = document.getElementById(`inpatient-${cat}-${sub}-units`);
+                if (sCasesInput && sUnitsInput) {
+                    const sSavedCases = localStorage.getItem(`manual_inpatient_${cat}_${sub}_cases_${selectedDate}`);
+                    const sSavedUnits = localStorage.getItem(`manual_inpatient_${cat}_${sub}_units_${selectedDate}`);
+                    if (!sCasesInput._manuallyUpdated) sCasesInput.value = sSavedCases !== null ? sSavedCases : 0;
+                    if (!sUnitsInput._manuallyUpdated) sUnitsInput.value = sSavedUnits !== null ? sSavedUnits : 0;
+                }
+            });
         });
 
         const actualUnitsEl = document.getElementById('inpatient-actual-units');
@@ -540,12 +538,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         setupInput(`inpatient-${cat}-cases`, `${cat}_cases`);
         setupInput(`inpatient-${cat}-units`, `${cat}_units`);
 
-        if (cat === 'locomotor' || cat === 'cerebro') {
-            INPATIENT_SUB_CATEGORIES.forEach(sub => {
-                setupInput(`inpatient-${cat}-${sub}-cases`, `${cat}_${sub}_cases`);
-                setupInput(`inpatient-${cat}-${sub}-units`, `${cat}_${sub}_units`);
-            });
-        }
+        INPATIENT_SUB_CATEGORIES.forEach(sub => {
+            setupInput(`inpatient-${cat}-${sub}-cases`, `${cat}_${sub}_cases`);
+            setupInput(`inpatient-${cat}-${sub}-units`, `${cat}_${sub}_units`);
+        });
     });
 
     // --- スタッフ別・消炎別の単位数を入力欄に自動セット ---
@@ -1822,7 +1818,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             total: { cases: 0, units: 0 },
             locomotor: { cases: 0, units: 0, sub150: { cases: 0, units: 0 }, deduction: { cases: 0, units: 0 } },
             cerebro: { cases: 0, units: 0, sub150: { cases: 0, units: 0 }, deduction: { cases: 0, units: 0 } },
-            disuse: { cases: 0, units: 0 }
+            disuse: { cases: 0, units: 0, sub150: { cases: 0, units: 0 }, deduction: { cases: 0, units: 0 } }
         };
 
         const lastDay = new Date(year, month + 1, 0).getDate();
@@ -1859,17 +1855,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 manualInpatient.total.cases += c;
                 manualInpatient.total.units += u;
 
-                if (cat === 'locomotor' || cat === 'cerebro') {
-                    const c150 = parseInt(localStorage.getItem(`manual_inpatient_${cat}_150_cases_${dateStr}`)) || 0;
-                    const u150 = parseFloat(localStorage.getItem(`manual_inpatient_${cat}_150_units_${dateStr}`)) || 0;
-                    manualInpatient[cat].sub150.cases += c150;
-                    manualInpatient[cat].sub150.units += u150;
+                const c150 = parseInt(localStorage.getItem(`manual_inpatient_${cat}_150_cases_${dateStr}`)) || 0;
+                const u150 = parseFloat(localStorage.getItem(`manual_inpatient_${cat}_150_units_${dateStr}`)) || 0;
+                manualInpatient[cat].sub150.cases += c150;
+                manualInpatient[cat].sub150.units += u150;
 
-                    const cDed = parseInt(localStorage.getItem(`manual_inpatient_${cat}_deduction_cases_${dateStr}`)) || 0;
-                    const uDed = parseFloat(localStorage.getItem(`manual_inpatient_${cat}_deduction_units_${dateStr}`)) || 0;
-                    manualInpatient[cat].deduction.cases += cDed;
-                    manualInpatient[cat].deduction.units += uDed;
-                }
+                const cDed = parseInt(localStorage.getItem(`manual_inpatient_${cat}_deduction_cases_${dateStr}`)) || 0;
+                const uDed = parseFloat(localStorage.getItem(`manual_inpatient_${cat}_deduction_units_${dateStr}`)) || 0;
+                manualInpatient[cat].deduction.cases += cDed;
+                manualInpatient[cat].deduction.units += uDed;
             });
         }
 
@@ -1892,7 +1886,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 ${createRow('🏥 入院実績（介入合計）', stats.inpatient.patients.size, manualInpatient.total.cases, manualInpatient.total.units)}
                 ${createRow(`運動器 <span style="font-size:0.75rem; font-weight:normal; color:#64748b;">(150日: ${manualInpatient.locomotor.sub150.cases}件/${manualInpatient.locomotor.sub150.units}単, 減算: ${manualInpatient.locomotor.deduction.cases}件/${manualInpatient.locomotor.deduction.units}単)</span>`, null, manualInpatient.locomotor.cases, manualInpatient.locomotor.units, true)}
                 ${createRow(`脳血管 <span style="font-size:0.75rem; font-weight:normal; color:#64748b;">(150日: ${manualInpatient.cerebro.sub150.cases}件/${manualInpatient.cerebro.sub150.units}単, 減算: ${manualInpatient.cerebro.deduction.cases}件/${manualInpatient.cerebro.deduction.units}単)</span>`, null, manualInpatient.cerebro.cases, manualInpatient.cerebro.units, true)}
-                ${createRow('廃用', null, manualInpatient.disuse.cases, manualInpatient.disuse.units, true)}
+                ${createRow(`廃用 <span style="font-size:0.75rem; font-weight:normal; color:#64748b;">(150日: ${manualInpatient.disuse.sub150.cases}件/${manualInpatient.disuse.sub150.units}単, 減算: ${manualInpatient.disuse.deduction.cases}件/${manualInpatient.disuse.deduction.units}単)</span>`, null, manualInpatient.disuse.cases, manualInpatient.disuse.units, true)}
 
                 ${createRow('🏥 外来実績（来院合計）', stats.outpatient.total.patients.size, stats.outpatient.total.cases, stats.outpatient.total.units)}
                 ${createRow('運動器', stats.outpatient.locomotor.patients.size, stats.outpatient.locomotor.cases, stats.outpatient.locomotor.units, true)}
@@ -2013,7 +2007,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 locomotor_deduction: 1110,
                 cerebro: 2000,
                 cerebro_deduction: 1200,
-                disuse: 2050, 
+                disuse: 1460, 
+                disuse_deduction: 880,
                 anti: 350,
                 re_exam: 770 / 2, // 385 yen
                 nursing: {
@@ -2043,17 +2038,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 for (let d = 1; d <= lastDay; d++) {
                     const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
                     totalUnits += parseFloat(localStorage.getItem(`manual_inpatient_${cat}_units_${dateStr}`)) || 0;
-                    if (cat === 'locomotor' || cat === 'cerebro') {
-                        deductionUnits += parseFloat(localStorage.getItem(`manual_inpatient_${cat}_deduction_units_${dateStr}`)) || 0;
-                    }
+                    deductionUnits += parseFloat(localStorage.getItem(`manual_inpatient_${cat}_deduction_units_${dateStr}`)) || 0;
                 }
                 
                 if (cat === 'locomotor') {
                     inpatientSales += (totalUnits - deductionUnits) * prices.locomotor + (deductionUnits * prices.locomotor_deduction);
                 } else if (cat === 'cerebro') {
                     inpatientSales += (totalUnits - deductionUnits) * prices.cerebro + (deductionUnits * prices.cerebro_deduction);
-                } else {
-                    inpatientSales += totalUnits * prices.disuse;
+                } else if (cat === 'disuse') {
+                    inpatientSales += (totalUnits - deductionUnits) * prices.disuse + (deductionUnits * prices.disuse_deduction);
                 }
             });
 
@@ -2135,7 +2128,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 in_locomotor_deduction: 1680,
                 in_cerebro: 2000,
                 in_cerebro_deduction: 1800,
-                in_disuse: 2000, // No specific indication, keeping legacy baseline logic
+                in_disuse: 1460, 
+                in_disuse_deduction: 1320,
                 // 外来
                 out_locomotor: 1850,
                 out_cerebro: 2000,
@@ -2172,17 +2166,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 for (let d = 1; d <= lastDay; d++) {
                     const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
                     totalUnits += parseFloat(localStorage.getItem(`manual_inpatient_${cat}_units_${dateStr}`)) || 0;
-                    if (cat === 'locomotor' || cat === 'cerebro') {
-                        deductionUnits += parseFloat(localStorage.getItem(`manual_inpatient_${cat}_deduction_units_${dateStr}`)) || 0;
-                    }
+                    deductionUnits += parseFloat(localStorage.getItem(`manual_inpatient_${cat}_deduction_units_${dateStr}`)) || 0;
                 }
                 
                 if (cat === 'locomotor') {
                     inpatientSales += (totalUnits - deductionUnits) * prices.in_locomotor + (deductionUnits * prices.in_locomotor_deduction);
                 } else if (cat === 'cerebro') {
                     inpatientSales += (totalUnits - deductionUnits) * prices.in_cerebro + (deductionUnits * prices.in_cerebro_deduction);
-                } else {
-                    inpatientSales += totalUnits * prices.in_disuse;
+                } else if (cat === 'disuse') {
+                    inpatientSales += (totalUnits - deductionUnits) * prices.in_disuse + (deductionUnits * prices.in_disuse_deduction);
                 }
             });
 
