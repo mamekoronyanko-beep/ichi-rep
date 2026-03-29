@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>年間実績表 - MedicalDB</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="performance.js" defer></script>
+    <style>
+        .perf-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .perf-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+            background: white;
+            padding: 1.5rem 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .year-controls {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .year-btn {
+            background-color: #f1f5f9;
+            color: #334155;
+            border: none;
+            border-radius: 8px;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .year-btn:hover {
+            background-color: #e2e8f0;
+            color: #0f172a;
+        }
+
+        .year-display {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .perf-table-wrapper {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            overflow-x: auto;
+            border: 1px solid #e2e8f0;
+        }
+
+        .perf-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1200px;
+        }
+
+        .perf-table th, .perf-table td {
+            padding: 1rem;
+            text-align: right;
+            border-bottom: 1px solid #e2e8f0;
+            border-right: 1px solid #e2e8f0;
+        }
+
+        .perf-table th:first-child, .perf-table td:first-child {
+            text-align: left;
+            position: sticky;
+            left: 0;
+            background: white;
+            z-index: 10;
+            font-weight: 600;
+            box-shadow: 2px 0 4px rgba(0,0,0,0.02);
+        }
+
+        .perf-table th {
+            background-color: #f8fafc;
+            color: #475569;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 11;
+        }
+
+        .perf-table th:first-child {
+            z-index: 12;
+            background-color: #f8fafc;
+        }
+
+        .perf-table tr:hover td:not(:first-child) {
+            background-color: #f8fafc;
+        }
+
+        .section-header {
+            background-color: #f1f5f9 !important;
+            color: #334155 !important;
+            font-weight: 700 !important;
+        }
+
+        .row-sub {
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+        .row-sub td:first-child {
+            padding-left: 2rem !important;
+        }
+
+        .total-row {
+            background-color: #eff6ff !important;
+            font-weight: 700 !important;
+            color: #1e40af !important;
+        }
+
+        .total-row td:first-child {
+            background-color: #eff6ff !important;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="logo">MedicalDB 🏥</div>
+        <ul class="nav-links">
+            <li><a href="index.html">ホーム</a></li>
+            <li><a href="all-patients.html">全患者</a></li>
+            <li><a href="admission.html">入院</a></li>
+            <li><a href="outpatient.html">外来</a></li>
+            <li><a href="nursing-care.html">介護医療院</a></li>
+            <li><a href="../reservation-app/index.html">予約表</a></li>
+            <li><a href="performance.html" class="active">実績表</a></li>
+        </ul>
+    </nav>
+
+    <main class="perf-container">
+        <div class="perf-header">
+            <div>
+                <h1 style="color: #0f172a; margin-bottom: 0.5rem;">📊 年間実績表</h1>
+                <p style="color: #64748b; margin: 0;">各月の売上情報を集計して表示します。</p>
+            </div>
+            <div class="year-controls">
+                <button class="year-btn" id="prev-year">◀</button>
+                <div class="year-display" id="current-year-display">2026年</div>
+                <button class="year-btn" id="next-year">▶</button>
+            </div>
+            <button id="refresh-btn" class="btn primary" style="margin: 0;">🔄 最新情報に更新</button>
+        </div>
+
+        <div class="perf-table-wrapper">
+            <table class="perf-table" id="perf-table">
+                <thead>
+                    <tr>
+                        <th style="min-width: 200px;">項目</th>
+                        <th>1月</th>
+                        <th>2月</th>
+                        <th>3月</th>
+                        <th>4月</th>
+                        <th>5月</th>
+                        <th>6月</th>
+                        <th>7月</th>
+                        <th>8月</th>
+                        <th>9月</th>
+                        <th>10月</th>
+                        <th>11月</th>
+                        <th>12月</th>
+                        <th style="background-color: #e0f2fe; color: #0369a1;">合計</th>
+                    </tr>
+                </thead>
+                <tbody id="perf-table-body">
+                    <tr><td colspan="14" style="text-align: center; padding: 3rem; color: #64748b;">データを読み込み中...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+</body>
+</html>
