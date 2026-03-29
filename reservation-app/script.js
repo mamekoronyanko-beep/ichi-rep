@@ -2081,12 +2081,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 if (res.is_inpatient_block) return; 
 
-                if (cat === '運動器') outpatientUnitsSales += units * prices.locomotor;
-                else if (cat === '脳血管') outpatientUnitsSales += units * prices.cerebro;
-                else if (cat === '消炎') outpatientUnitsSales += units * prices.anti;
-                else outpatientUnitsSales += units * 2000; 
-                
-                outpatientReExamSales += prices.re_exam;
+                if (cat === '運動器') {
+                    outpatientUnitsSales += units * prices.locomotor;
+                    outpatientReExamSales += prices.re_exam;
+                } else if (cat === '脳血管') {
+                    outpatientUnitsSales += units * prices.cerebro;
+                    outpatientReExamSales += prices.re_exam;
+                } else if (cat === '消炎') {
+                    outpatientUnitsSales += units * prices.anti;
+                    outpatientReExamSales += prices.re_exam;
+                } else {
+                    outpatientUnitsSales += units * 2000; 
+                }
             });
 
             // --- Nursing Care & Plan Evaluation & Goals Sales ---
