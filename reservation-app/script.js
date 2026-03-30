@@ -606,6 +606,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (error || !data) return;
 
+        const patientIds = [...new Set(data.map(r => r.patient_id).filter(id => id && id !== 'INPATIENT'))];
+        const { data: pData } = await supabase.from('patients').select('p_id, p_type, p_nursing_care').in('p_id', patientIds);
+        const patientMap = {};
+        if (pData) pData.forEach(p => patientMap[p.p_id] = p);
+
         let staffUnits = 0;
         let staffCases = 0;
         let antiUnits = 0;
@@ -618,6 +623,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         let outpatientActual = 0;
         let nursingCases = 0;
         let nursingUnits = 0;
+        
+        let inpatientMeetingCases = 0;
+        let nursingMeetingCases = 0;
 
         data.forEach(res => {
             const units = parseInt(res.units) || 1;
@@ -635,14 +643,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                     antiCases += 1;
                 }
 
-                if (isInpatient) {
+                if (isMeeting) {
+                    const p = patientMap[res.patient_id];
+                    if (p && (p.p_type === 'nursing_care' || p.p_nursing_care === true)) {
+                        nursingMeetingCases += 1;
+                    } else {
+                        inpatientMeetingCases += 1;
+                    }
+                } else if (isInpatient) {
                     inpatientPlanned += units;
                     if (res.status === 'arrived') {
                         inpatientActual += units;
                     }
-                } else if (isMeeting) {
-                    nursingCases += 1;
-                    nursingUnits += units;
                 } else {
                     outpatientPlanned += units;
                     if (res.status === 'arrived') {
@@ -667,10 +679,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         setVal('inpatient-planned-units', inpatientPlanned);
         setVal('inpatient-actual-units', inpatientActual);
+        setVal('inpatient-meeting-cases', inpatientMeetingCases);
+        
         setVal('outpatient-planned-units', outpatientPlanned);
         setVal('outpatient-actual-units', outpatientActual);
+        
         setVal('nursing-actual-cases', nursingCases);
         setVal('nursing-actual-units', nursingUnits);
+        setVal('nursing-meeting-cases', nursingMeetingCases);
 
         // 入院介入の内訳入力がある場合は、その合計値で上書きする
         updateInpatientManualStats();
@@ -2067,8 +2083,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const cat = patientCategoryMap[pId] || 'その他';
 
                 if (res.is_meeting) {
-                    if (patientNursingCareMap[pId]) nursingVisits.withCare++;
-                    else nursingVisits.withoutCare++;
                     return; 
                 }
 

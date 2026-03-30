@@ -130,8 +130,6 @@ function computeMonthSales(month) {
         const units = parseInt(res.units) || 1;
         const cat = patientCategoryMap[res.patient_id] || 'その他';
         if (res.is_meeting) {
-            if (patientNursingCareMap[res.patient_id]) nursingVisits.withCare++;
-            else nursingVisits.withoutCare++;
             return;
         }
         if (res.is_inpatient_block) return;
