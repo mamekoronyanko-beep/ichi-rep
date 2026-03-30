@@ -220,6 +220,7 @@ async function handleExcelImport(e) {
             for (let m = 1; m <= 12; m++) importedData[m] = {};
 
             let currentContext = ''; 
+            let matchedKeysCount = 0;
 
             for (let i = 0; i < jsonData.length; i++) {
                 const row = jsonData[i];
@@ -230,26 +231,33 @@ async function handleExcelImport(e) {
                 else if (label.includes('外来')) currentContext = 'out';
 
                 let key = null;
-                if (label.includes('入院売上')) key = 'inpatient';
-                else if (label.includes('外来売上')) key = 'outpatient';
-                else if (label.includes('評価・目標')) key = 'evalGoal';
-                else if (label.includes('介護医療院')) key = 'nursing';
-                else if (label.includes('総合計売上') || label.includes('合計売上')) key = 'total';
+                if (label.includes('入院売上') || label === '入院' || label === '入院合計') key = 'inpatient';
+                else if (label.includes('外来売上') || label === '外来' || label === '外来合計') key = 'outpatient';
+                else if (label.includes('評価・目標') || label.includes('評価目標') || label.includes('評価')) key = 'evalGoal';
+                else if (label.includes('介護医療院') || label.includes('介護')) key = 'nursing';
+                else if (label.includes('総合計売上') || label.includes('合計売上') || label === '合計' || label === '総合計') key = 'total';
                 else if (label.includes('運動器')) key = currentContext === 'in' ? 'inLoco' : 'outLoco';
                 else if (label.includes('脳血管')) key = currentContext === 'in' ? 'inCereb' : 'outCereb';
-                else if (label.includes('廃用')) key = 'inDisuse';
+                else if (label.includes('廃用') || label.includes('廃用症候群')) key = 'inDisuse';
                 else if (label.includes('消炎')) key = 'outAnti';
 
                 if (key) {
+                    matchedKeysCount++;
                     for (let m = 1; m <= 12; m++) {
-                        const val = parseFloat(row[m]) || 0;
+                        let rawVal = String(row[m] || '0').replace(/,/g, '').replace(/[^\d.-]/g, '');
+                        const val = parseFloat(rawVal) || 0;
                         importedData[m][key] = val;
                     }
                 }
             }
 
+            if (matchedKeysCount === 0) {
+                alert("Excelを取り込みましたが、認識できる項目（入院、外来など）が見つかりませんでした。\nA列に「入院」「外来」「介護」などの項目名が正しく入力されているか確認してください。");
+                return;
+            }
+
             localStorage.setItem(`perf_import_${targetYear}`, JSON.stringify(importedData));
-            alert(`${targetYear}年の実績データをインポートしました！`);
+            alert(`${targetYear}年の実績データをインポートしました！\n（${matchedKeysCount} 個の項目を読み込みました）`);
             if (parseInt(targetYear) === currentYear) {
                 loadYearData();
             } else {
