@@ -45,8 +45,6 @@ function isNonWorkingDay(dateStr) {
     if (month === 12 && (day === 29 || day === 30 || day === 31)) return true;
 
     if (holidaysData[dateStr]) return true; // Japanese Holiday
-    // Check doctor/custom holidays
-    if (doctorHolidays && doctorHolidays.some(h => h.attendance_date === dateStr)) return true;
     return false;
 }
 

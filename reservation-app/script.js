@@ -64,11 +64,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Check if dateStr exists in holidaysData (format YYYY-MM-DD)
         if (holidaysData[dateStr]) return true;
-        // Check custom DB holidays
-        if (dbHolidaysData && dbHolidaysData.length > 0) {
-            const isDbHoliday = dbHolidaysData.some(h => h.attendance_date === dateStr);
-            if (isDbHoliday) return true;
-        }
+
         return false;
     }
 
