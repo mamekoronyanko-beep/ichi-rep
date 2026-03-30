@@ -52,8 +52,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     function isNonWorkingDay(dateStr) {
         if (!dateStr) return false;
         const date = new Date(dateStr);
+        const month = date.getMonth() + 1; // 1-12
+        const day = date.getDate();
+
         // Sunday is 0
         if (date.getDay() === 0) return true;
+        
+        // Fixed Holidays: Jan 1, 2, 3 and Dec 29, 30, 31
+        if (month === 1 && (day === 1 || day === 2 || day === 3)) return true;
+        if (month === 12 && (day === 29 || day === 30 || day === 31)) return true;
+
         // Check if dateStr exists in holidaysData (format YYYY-MM-DD)
         if (holidaysData[dateStr]) return true;
         // Check custom DB holidays

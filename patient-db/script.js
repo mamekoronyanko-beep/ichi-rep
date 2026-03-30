@@ -35,7 +35,15 @@ async function fetchHolidays() {
 
 function isNonWorkingDay(dateStr) {
     const date = new Date(dateStr);
+    const month = date.getMonth() + 1; // 1-12
+    const day = date.getDate();
+
     if (date.getDay() === 0) return true; // Sunday
+
+    // Fixed Holidays: Jan 1, 2, 3 and Dec 29, 30, 31
+    if (month === 1 && (day === 1 || day === 2 || day === 3)) return true;
+    if (month === 12 && (day === 29 || day === 30 || day === 31)) return true;
+
     if (holidaysData[dateStr]) return true; // Japanese Holiday
     // Check doctor/custom holidays
     if (doctorHolidays && doctorHolidays.some(h => h.attendance_date === dateStr)) return true;
