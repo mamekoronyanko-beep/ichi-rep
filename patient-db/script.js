@@ -382,8 +382,13 @@ async function openPatientDetails(dbId) {
 
     currentPatientDbId = dbId;
 
-    const { data: patient, error } = await supabaseClient.from('patients').select('*').eq('p_id', dbId).single();
-    if (error || !patient) return;
+    const baseId = dbId.split('-')[0];
+
+    // Fetch all related patient records (e.g. 123, 123-2) to aggregate history
+    const { data: relatedPatients, error } = await supabaseClient.from('patients').select('*').like('p_id', `${baseId}%`);
+    if (error || !relatedPatients || relatedPatients.length === 0) return;
+
+    const patient = relatedPatients.find(p => p.p_id === dbId) || relatedPatients[0];
 
     document.getElementById('details-patient-name').textContent = patient.p_name;
 
@@ -399,13 +404,21 @@ async function openPatientDetails(dbId) {
 
     document.getElementById('details-patient-id').textContent = `ID: ${patient.p_id}`;
 
-    // Parse history
+    // Map and flatten all histories into one combined timeline
     let history = [];
-    try {
-        if (patient.history) {
-            history = typeof patient.history === 'string' ? JSON.parse(patient.history) : patient.history;
-        }
-    } catch (e) { }
+    relatedPatients.forEach(rp => {
+        try {
+            if (rp.history) {
+                let hArray = typeof rp.history === 'string' ? JSON.parse(rp.history) : rp.history;
+                // Annotate the disease context so users know which diagnostic line this belongs to
+                hArray = hArray.map(item => ({ ...item, _contextDisease: rp.p_disease }));
+                history.push(...hArray);
+            }
+        } catch (e) { }
+    });
+    
+    // Sort descending by date
+    history.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
     // Calculate cancel rate
     let totalAppointments = 0;
@@ -458,6 +471,9 @@ async function openPatientDetails(dbId) {
                     else statusHtml = '<span style="background: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">予約中</span>';
                     
                     typeHtml = `${h.type}${h.isWalkIn ? ' <span style="color:#f59e0b; font-weight:bold; font-size:0.75rem;">[予約外]</span>' : ''}`;
+                    if (h._contextDisease && h._contextDisease !== patient.p_disease) {
+                        typeHtml += ` <span style="font-size:0.7rem; color:#64748b; background:#f1f5f9; padding:1px 4px; border-radius:3px;">${h._contextDisease}への予約</span>`;
+                    }
                 }
  
                 tr.innerHTML = `
@@ -1208,53 +1224,43 @@ async function initApp() {
                         return;
                     }
 
-                    // --- Fetch existing patients to preserve p_nursing_care and track history ---
-                    const pIds = patientsToUpsert.map(p => p.p_id);
-                    
-                    // Supabase `in` filter has a limit, but typically imports are < 1000 rows.
-                    // For safety, we can do it in chunks if necessary, but checking 100-200 is fine.
-                    const { data: existingData, error: fetchErr } = await supabaseClient
-                        .from('patients')
-                        .select('p_id, p_disease, p_nursing_care, history')
-                        .in('p_id', pIds);
-                    
-                    if (!fetchErr && existingData) {
-                        const existingMap = new Map();
-                        existingData.forEach(ep => existingMap.set(ep.p_id, ep));
+                    // --- Smart ID Suffixing for Multiple Diagnoses ---
+                    const { data: allDb } = await supabaseClient.from('patients').select('p_id, p_disease, p_nursing_care, history');
+                    const dbMap = new Map();
+                    if (allDb) allDb.forEach(ep => dbMap.set(ep.p_id, ep));
 
-                        patientsToUpsert.forEach(p => {
-                            const ep = existingMap.get(p.p_id);
-                            if (ep) {
-                                // 1. Preserve nursing care if it was true
-                                if (ep.p_nursing_care === true) {
-                                    p.p_nursing_care = true;
-                                }
+                    let finalUpsertList = [];
+                    let internalMap = new Map();
 
-                                // 2. Track diagnosis history if changed
-                                if (ep.p_disease && p.p_disease && ep.p_disease !== p.p_disease) {
-                                    let history = [];
-                                    if (ep.history) {
-                                        history = typeof ep.history === 'string' ? JSON.parse(ep.history) : ep.history;
-                                    }
-                                    const todayStr = new Date().toISOString().split('T')[0].replace(/-/g, '/'); // simple formatLocalDate equivalent
-                                    const changeEntry = {
-                                        date: todayStr,
-                                        type: "diagnosis_change",
-                                        old_value: ep.p_disease,
-                                        new_value: p.p_disease,
-                                        status: "info",
-                                        note: `疾患名を「${ep.p_disease}」から「${p.p_disease}」に変更（インポート）`
-                                    };
-                                    history.push(changeEntry);
-                                    p.history = history;
-                                } else {
-                                    p.history = ep.history; // Preserve existing history
-                                }
-                            }
-                        });
-                    } else if (fetchErr) {
-                        console.error("Error fetching existing patients during import:", fetchErr);
+                    for (let p of patientsToUpsert) {
+                        let baseId = p.p_id.split('-')[0];
+                        let disease = p.p_disease.trim();
+                        
+                        let targetId = baseId;
+                        let suffixCounter = 2;
+                        
+                        while(true) {
+                            let existing = dbMap.get(targetId) || internalMap.get(targetId);
+                            if (!existing) break; // ID is totally free
+                            if ((existing.p_disease || '').trim() === disease) break; // Same ID AND same disease -> overwrite safely
+                            // Conflict! Same ID but DIFFERENT disease -> allocate a new suffix pointer
+                            targetId = `${baseId}-${suffixCounter}`;
+                            suffixCounter++;
+                        }
+                        
+                        p.p_id = targetId;
+                        
+                        let ep = dbMap.get(targetId);
+                        if (ep) {
+                            if (ep.p_nursing_care === true) p.p_nursing_care = true;
+                            p.history = ep.history; 
+                        }
+                        
+                        internalMap.set(targetId, p);
+                        finalUpsertList.push(p);
                     }
+                    
+                    patientsToUpsert = finalUpsertList;
                     // ----------------------------------------------------------------------------
 
                     if (confirm(`${patientsToUpsert.length} 件のデータをインポート（新規登録・上書き）しますか？`)) {
