@@ -1176,7 +1176,7 @@ async function initApp() {
                     else if (document.getElementById('archivedOutpatientTableBody')) currentPageType = 'archived_outpatient';
                     else if (document.getElementById('archivedNursingCareTableBody')) currentPageType = 'archived_nursing_care';
 
-                    const patientsToUpsert = jsonData.map(row => {
+                    let patientsToUpsert = jsonData.map(row => {
                         // Find keys by keywords (flexible matching)
                         const findKey = (keywords) => {
                             const keys = Object.keys(row);
