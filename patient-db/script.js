@@ -1233,8 +1233,8 @@ async function initApp() {
                     let internalMap = new Map();
 
                     for (let p of patientsToUpsert) {
-                        let baseId = p.p_id.split('-')[0];
-                        let disease = p.p_disease.trim();
+                        let baseId = String(p.p_id).split('-')[0];
+                        let disease = String(p.p_disease || '').trim();
                         
                         let targetId = baseId;
                         let suffixCounter = 2;
@@ -1242,7 +1242,7 @@ async function initApp() {
                         while(true) {
                             let existing = dbMap.get(targetId) || internalMap.get(targetId);
                             if (!existing) break; // ID is totally free
-                            if ((existing.p_disease || '').trim() === disease) break; // Same ID AND same disease -> overwrite safely
+                            if (String(existing.p_disease || '').trim() === disease) break; // Same ID AND same disease -> overwrite safely
                             // Conflict! Same ID but DIFFERENT disease -> allocate a new suffix pointer
                             targetId = `${baseId}-${suffixCounter}`;
                             suffixCounter++;
