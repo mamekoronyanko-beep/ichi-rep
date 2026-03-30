@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Global holidays state
     let holidaysData = {};
+    let dbHolidaysData = []; // Store custom holidays from doctor_attendance table
     let dbReservations = []; // Make global to be accessible across functions
     let performanceStatsCache = { reservations: [], patientMap: {} }; // For sales calculation
 
@@ -27,10 +28,18 @@ document.addEventListener('DOMContentLoaded', async () => {
      */
     async function fetchHolidays() {
         try {
+            // 1. Fetch public holidays
             const response = await fetch('https://holidays-jp.github.io/api/v1/date.json');
             if (response.ok) {
                 holidaysData = await response.json();
-                console.log('Holidays loaded:', Object.keys(holidaysData).length);
+                console.log('Public holidays loaded:', Object.keys(holidaysData).length);
+            }
+
+            // 2. Fetch custom holidays (doctor_attendance table)
+            const { data, error } = await supabase.from('doctor_attendance').select('*');
+            if (!error && data) {
+                dbHolidaysData = data;
+                console.log('Custom holidays loaded:', dbHolidaysData.length);
             }
         } catch (error) {
             console.error('Failed to fetch holidays:', error);
@@ -46,7 +55,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Sunday is 0
         if (date.getDay() === 0) return true;
         // Check if dateStr exists in holidaysData (format YYYY-MM-DD)
-        return !!holidaysData[dateStr];
+        if (holidaysData[dateStr]) return true;
+        // Check custom DB holidays
+        if (dbHolidaysData && dbHolidaysData.length > 0) {
+            const isDbHoliday = dbHolidaysData.some(h => h.attendance_date === dateStr);
+            if (isDbHoliday) return true;
+        }
+        return false;
     }
 
     let draggedSourceKey = null; // Global to store key during drag
@@ -127,7 +142,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const saveStaffData = async (names) => {
         const upsertData = names.map((name, i) => ({ id: i + 1, name: name }));
-        await supabase.from('staff_settings').upsert(upsertData);
+        const { error } = await supabase.from('staff_settings').upsert(upsertData);
+        if (error) throw new Error("スタッフ名の保存に失敗しました: " + error.message);
     };
 
     const saveStaffAttendance = async (dateStr, attendance) => {
@@ -137,7 +153,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             status: status
         }));
         // Use upsert to handle existing records for the same date/staff
-        await supabase.from('staff_attendance').upsert(upsertData, { onConflict: 'staff_id,attendance_date' });
+        const { error } = await supabase.from('staff_attendance').upsert(upsertData, { onConflict: 'staff_id,attendance_date' });
+        if (error) {
+            console.error("Staff attendance upsert error:", error);
+            throw new Error("出勤設定の保存に失敗しました。ユニーク制約エラーの可能性があります: " + error.message);
+        }
     };
     // ----------------------------
 
@@ -363,6 +383,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     } else if (isStaffOff) {
                         td.classList.add('staff-off-cell');
                         td.style.backgroundColor = '#e2e8f0';
+                        // 半日休みなどの詳細ラベルを反映
+                        td.innerHTML = `<div style="font-size: 0.65rem; color: #64748b; font-weight: 700; text-align: center;">${offLabel}</div>`;
                     }
 
                     const staffKey = `reservation_${selectedDate}_${timeString}_staff_${i}`;
@@ -1256,12 +1278,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                 newAttendance.push(select.value);
             });
 
-            await saveStaffData(newNames);
-            await saveStaffAttendance(selectedDate, newAttendance);
+            try {
+                await saveStaffData(newNames);
+                await saveStaffAttendance(selectedDate, newAttendance);
 
-            await createSchedule();
-            closeStaffSettingsModal();
-            alert('スタッフ設定を保存しました。');
+                await createSchedule();
+                closeStaffSettingsModal();
+                alert('スタッフ設定を保存しました。');
+            } catch (err) {
+                console.error(err);
+                alert("エラーが発生しました: " + err.message);
+            }
         });
     }
 
@@ -2325,6 +2352,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'doctor_attendance' },
+                async () => {
+                    flashSyncIndicator();
+                    await fetchHolidays(); // Refresh holiday cache
+                    createSchedule();
+                }
+            )
+            .subscribe();
+
+        // 4. Staff Attendance Table (Daily Attendance)
+        supabase
+            .channel('public:staff-attendance-changes')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'staff_attendance' },
                 () => {
                     flashSyncIndicator();
                     createSchedule();

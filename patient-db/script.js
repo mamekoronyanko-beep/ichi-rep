@@ -37,6 +37,8 @@ function isNonWorkingDay(dateStr) {
     const date = new Date(dateStr);
     if (date.getDay() === 0) return true; // Sunday
     if (holidaysData[dateStr]) return true; // Japanese Holiday
+    // Check doctor/custom holidays
+    if (doctorHolidays && doctorHolidays.some(h => h.attendance_date === dateStr)) return true;
     return false;
 }
 
