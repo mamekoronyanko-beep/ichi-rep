@@ -1283,7 +1283,7 @@ async function initApp() {
                     excelImportInput.value = '';
                 } catch (error) {
                     console.error('Error reading Excel file:', error);
-                    alert('Excelファイルの読み込みに失敗しました。対応しているファイル形式（.xlsx, .xls）か確認してください。');
+                    alert('エラー詳細: ' + (error.stack || error.message || error) + '\n\nExcelファイルの読み込みに失敗しました。対応しているファイル形式（.xlsx, .xls）か確認してください。');
                 }
             };
 
