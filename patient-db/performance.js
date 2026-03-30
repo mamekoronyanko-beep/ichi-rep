@@ -214,50 +214,144 @@ async function handleExcelImport(e) {
             const data = new Uint8Array(evt.target.result);
             const workbook = XLSX.read(data, { type: 'array' });
             const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-            const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+            const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1, raw: false });
 
             const importedData = {};
             for (let m = 1; m <= 12; m++) importedData[m] = {};
 
-            let currentContext = ''; 
-            let matchedKeysCount = 0;
+            // 1. Scan for Months and Categories
+            let monthCoords = {}; 
+            let categoryCoords = []; 
 
-            for (let i = 0; i < jsonData.length; i++) {
-                const row = jsonData[i];
-                if (!row || !row[0]) continue;
-                const label = String(row[0]).trim();
+            const identifyCategory = (str) => {
+                if (!str) return null;
+                const s = String(str).trim();
+                if (s.includes('入院売上') || s === '入院' || s === '入院合計') return 'inpatient';
+                if (s.includes('外来売上') || s === '外来' || s === '外来合計') return 'outpatient';
+                if (s.includes('評価・目標') || s.includes('評価目標') || s.includes('評価')) return 'evalGoal';
+                if (s.includes('介護医療院') || s.includes('介護')) return 'nursing';
+                if (s.includes('総合計売上') || s.includes('合計売上') || s === '合計' || s === '総合計') return 'total';
+                if (s.includes('運動器')) return 'Loco'; 
+                if (s.includes('脳血管')) return 'Cereb';
+                if (s.includes('廃用') || s.includes('廃用症候群')) return 'inDisuse';
+                if (s.includes('消炎')) return 'outAnti';
+                return null;
+            };
 
-                if (label.includes('入院')) currentContext = 'in';
-                else if (label.includes('外来')) currentContext = 'out';
+            for (let r = 0; r < jsonData.length; r++) {
+                const row = jsonData[r];
+                if (!row) continue;
+                for (let c = 0; c < row.length; c++) {
+                    const cell = String(row[c] || '').trim();
+                    if (!cell) continue;
 
-                let key = null;
-                if (label.includes('入院売上') || label === '入院' || label === '入院合計') key = 'inpatient';
-                else if (label.includes('外来売上') || label === '外来' || label === '外来合計') key = 'outpatient';
-                else if (label.includes('評価・目標') || label.includes('評価目標') || label.includes('評価')) key = 'evalGoal';
-                else if (label.includes('介護医療院') || label.includes('介護')) key = 'nursing';
-                else if (label.includes('総合計売上') || label.includes('合計売上') || label === '合計' || label === '総合計') key = 'total';
-                else if (label.includes('運動器')) key = currentContext === 'in' ? 'inLoco' : 'outLoco';
-                else if (label.includes('脳血管')) key = currentContext === 'in' ? 'inCereb' : 'outCereb';
-                else if (label.includes('廃用') || label.includes('廃用症候群')) key = 'inDisuse';
-                else if (label.includes('消炎')) key = 'outAnti';
+                    const monthMatch = cell.match(/^0?([1-9]|1[0-2])月?$/);
+                    if (monthMatch && (cell.includes('月') || (!cell.includes('月') && parseInt(monthMatch[1]) >= 1 && parseInt(monthMatch[1]) <= 12))) {
+                        const m = parseInt(monthMatch[1]);
+                        if (!monthCoords[m]) monthCoords[m] = [];
+                        monthCoords[m].push({ r, c });
+                    }
 
-                if (key) {
-                    matchedKeysCount++;
-                    for (let m = 1; m <= 12; m++) {
-                        let rawVal = String(row[m] || '0').replace(/,/g, '').replace(/[^\d.-]/g, '');
-                        const val = parseFloat(rawVal) || 0;
-                        importedData[m][key] = val;
+                    const catKey = identifyCategory(cell);
+                    if (catKey) {
+                        categoryCoords.push({ key: catKey, r, c, label: cell });
                     }
                 }
             }
 
-            if (matchedKeysCount === 0) {
-                alert("Excelを取り込みましたが、認識できる項目（入院、外来など）が見つかりませんでした。\nA列に「入院」「外来」「介護」などの項目名が正しく入力されているか確認してください。");
+            let monthAxis = 'unknown';
+            let fixedIndex = -1; 
+            let validMonthMap = {}; 
+
+            let rowCounts = {};
+            let colCounts = {};
+
+            for (let m = 1; m <= 12; m++) {
+                if (!monthCoords[m]) continue;
+                monthCoords[m].forEach(coord => {
+                    rowCounts[coord.r] = (rowCounts[coord.r] || 0) + 1;
+                    colCounts[coord.c] = (colCounts[coord.c] || 0) + 1;
+                });
+            }
+
+            let bestRow = Object.keys(rowCounts).reduce((a, b) => rowCounts[a] > rowCounts[b] ? a : b, -1);
+            let bestCol = Object.keys(colCounts).reduce((a, b) => colCounts[a] > colCounts[b] ? a : b, -1);
+
+            if (bestRow !== -1 && rowCounts[bestRow] >= 3) {
+                monthAxis = 'horizontal';
+                fixedIndex = parseInt(bestRow);
+                for (let m = 1; m <= 12; m++) {
+                    if (monthCoords[m]) {
+                        const found = monthCoords[m].find(c => c.r === fixedIndex);
+                        if (found) validMonthMap[m] = found;
+                    }
+                }
+            } else if (bestCol !== -1 && colCounts[bestCol] >= 3) {
+                monthAxis = 'vertical';
+                fixedIndex = parseInt(bestCol);
+                for (let m = 1; m <= 12; m++) {
+                    if (monthCoords[m]) {
+                        const found = monthCoords[m].find(c => c.c === fixedIndex);
+                        if (found) validMonthMap[m] = found;
+                    }
+                }
+            }
+
+            if (categoryCoords.length === 0) {
+                alert("Excelデータを調べましたが、「入院」「外来」「介護」などの項目名が検知できませんでした。\n文字が正しく入力されているか確認してください。");
                 return;
             }
 
+            if (monthAxis === 'unknown' || Object.keys(validMonthMap).length === 0) {
+                alert("Excelから月の軸（1月～12月）を自動検出できませんでした。\n「1月」「2月」のように月を示すヘッダーが存在するか確認してください。");
+                return;
+            }
+
+            if (monthAxis === 'horizontal') {
+                categoryCoords.sort((a, b) => a.r - b.r);
+            } else {
+                categoryCoords.sort((a, b) => a.c - b.c);
+            }
+
+            let currentContext = '';
+            categoryCoords.forEach(cat => {
+                if (cat.key === 'inpatient') currentContext = 'in';
+                if (cat.key === 'outpatient') currentContext = 'out';
+                
+                if (cat.key === 'Loco') cat.resolvedKey = currentContext === 'in' ? 'inLoco' : 'outLoco';
+                else if (cat.key === 'Cereb') cat.resolvedKey = currentContext === 'in' ? 'inCereb' : 'outCereb';
+                else cat.resolvedKey = cat.key;
+            });
+
+            let matchedKeysCount = 0;
+            const uniqueCategories = [...new Set(categoryCoords.map(c => c.resolvedKey))];
+
+            uniqueCategories.forEach(finalKey => {
+                const catNode = categoryCoords.find(c => c.resolvedKey === finalKey);
+                if (!catNode) return;
+                
+                matchedKeysCount++;
+                for (let m = 1; m <= 12; m++) {
+                    if (!validMonthMap[m]) continue;
+                    
+                    let targetR, targetC;
+                    if (monthAxis === 'horizontal') {
+                        targetR = catNode.r;
+                        targetC = validMonthMap[m].c;
+                    } else {
+                        targetR = validMonthMap[m].r;
+                        targetC = catNode.c;
+                    }
+
+                    if (jsonData[targetR] && jsonData[targetR][targetC] !== undefined) {
+                        let rawVal = String(jsonData[targetR][targetC]).replace(/,/g, '').replace(/[^\d.-]/g, '');
+                        importedData[m][finalKey] = parseFloat(rawVal) || 0;
+                    }
+                }
+            });
+
             localStorage.setItem(`perf_import_${targetYear}`, JSON.stringify(importedData));
-            alert(`${targetYear}年の実績データをインポートしました！\n（${matchedKeysCount} 個の項目を読み込みました）`);
+            alert(`${targetYear}年の実績データをインポートしました！\n（${matchedKeysCount} 個の項目をマトリクス（行・列）から自動解析して読み込みました）`);
             if (parseInt(targetYear) === currentYear) {
                 loadYearData();
             } else {
