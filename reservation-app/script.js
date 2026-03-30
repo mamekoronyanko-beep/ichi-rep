@@ -500,6 +500,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const updateInpatientManualStats = () => {
         const selectedDate = targetDateInput.value;
         let totalUnits = 0;
+        let totalCases = 0;
 
         INPATIENT_CATEGORIES.forEach(cat => {
             const casesInput = document.getElementById(`inpatient-${cat}-cases`);
@@ -516,6 +517,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     unitsInput.value = savedUnits !== null ? savedUnits : 0;
                 }
                 totalUnits += parseFloat(unitsInput.value) || 0;
+                totalCases += parseInt(casesInput.value) || 0;
             }
 
             // Sub-categories (150-day, deduction)
@@ -532,9 +534,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         const actualUnitsEl = document.getElementById('inpatient-actual-units');
-        if (actualUnitsEl) {
-            actualUnitsEl.textContent = totalUnits;
-        }
+        if (actualUnitsEl) actualUnitsEl.textContent = totalUnits;
+        
+        const actualCasesEl = document.getElementById('inpatient-actual-cases');
+        if (actualCasesEl) actualCasesEl.textContent = totalCases;
     };
 
     INPATIENT_CATEGORIES.forEach(cat => {
@@ -643,12 +646,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         let antiCases = 0;
         let cancelCount = 0;
 
-        let inpatientPlanned = 0;
-        let inpatientActual = 0;
-        let outpatientPlanned = 0;
-        let outpatientActual = 0;
-        let nursingCases = 0;
-        let nursingUnits = 0;
+        let inpatientPlannedUnits = 0;
+        let inpatientPlannedCases = 0;
+        let inpatientActualUnits = 0;
+        let inpatientActualCases = 0;
+        
+        let outpatientPlannedUnits = 0;
+        let outpatientPlannedCases = 0;
+        let outpatientActualUnits = 0;
+        let outpatientActualCases = 0;
+        
+        let nursingActualUnits = 0;
+        let nursingActualCases = 0;
         
         let inpatientMeetingCases = 0;
         let nursingMeetingCases = 0;
@@ -677,14 +686,24 @@ document.addEventListener('DOMContentLoaded', async () => {
                         inpatientMeetingCases += 1;
                     }
                 } else if (isInpatient) {
-                    inpatientPlanned += units;
+                    inpatientPlannedUnits += units;
+                    inpatientPlannedCases += 1;
                     if (res.status === 'arrived') {
-                        inpatientActual += units;
+                        inpatientActualUnits += units;
+                        inpatientActualCases += 1;
                     }
                 } else {
-                    outpatientPlanned += units;
-                    if (res.status === 'arrived') {
-                        outpatientActual += units;
+                    const p = patientMap[res.patient_id];
+                    if (p && (p.p_type === 'nursing_care' || p.p_nursing_care === true)) {
+                        nursingActualUnits += units;
+                        nursingActualCases += 1;
+                    } else {
+                        outpatientPlannedUnits += units;
+                        outpatientPlannedCases += 1;
+                        if (res.status === 'arrived') {
+                            outpatientActualUnits += units;
+                            outpatientActualCases += 1;
+                        }
                     }
                 }
             }
@@ -703,15 +722,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         setVal('anti-cases-count', antiCases);
         setVal('total-cancellations-count', cancelCount);
 
-        setVal('inpatient-planned-units', inpatientPlanned);
-        setVal('inpatient-actual-units', inpatientActual);
+        setVal('inpatient-planned-units', inpatientPlannedUnits);
+        setVal('inpatient-planned-cases', inpatientPlannedCases);
+        setVal('inpatient-actual-units', inpatientActualUnits);
+        setVal('inpatient-actual-cases', inpatientActualCases);
         setVal('inpatient-meeting-cases', inpatientMeetingCases);
         
-        setVal('outpatient-planned-units', outpatientPlanned);
-        setVal('outpatient-actual-units', outpatientActual);
+        setVal('outpatient-planned-units', outpatientPlannedUnits);
+        setVal('outpatient-planned-cases', outpatientPlannedCases);
+        setVal('outpatient-actual-units', outpatientActualUnits);
+        setVal('outpatient-actual-cases', outpatientActualCases);
         
-        setVal('nursing-actual-cases', nursingCases);
-        setVal('nursing-actual-units', nursingUnits);
+        setVal('nursing-actual-units', nursingActualUnits);
+        setVal('nursing-actual-cases', nursingActualCases);
         setVal('nursing-meeting-cases', nursingMeetingCases);
 
         // 入院介入の内訳入力がある場合は、その合計値で上書きする
