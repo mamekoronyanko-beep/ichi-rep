@@ -795,8 +795,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 } else {
                     const p = patientMap[res.patient_id];
                     if (p && (p.p_type === 'nursing_care' || p.p_nursing_care === true)) {
-                        nursingActualUnits += units;
-                        nursingActualCases += 1;
+                        // 介護の計画数は現状管理していないが、実績は'arrived'のみをカウント
+                        if (res.status === 'arrived') {
+                            nursingActualUnits += units;
+                            nursingActualCases += 1;
+                        }
                     } else {
                         outpatientPlannedUnits += units;
                         outpatientPlannedCases += 1;
