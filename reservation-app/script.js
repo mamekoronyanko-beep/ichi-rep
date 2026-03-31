@@ -205,9 +205,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             // 変更時に自動計算と永続化を行う
             input.addEventListener('input', () => {
-                const selectedDate = targetDateInput.value;
-                localStorage.setItem(`manual_staff_units_${selectedDate}_${i}`, input.value);
                 updateManualTotalFromFields();
+                syncManualMetricsToSupabase();
             });
 
             td.appendChild(input);
@@ -225,10 +224,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         antiInput.style.cssText = 'width:100%; font-size:0.85rem; font-weight:700; color:#0369a1; text-align:center; border:1px solid #bae6fd; border-radius:4px; padding:0.2rem; background:#f0f9ff;';
         
         antiInput.addEventListener('input', () => {
-            const selectedDate = targetDateInput.value;
-            localStorage.setItem(`manual_anti_units_${selectedDate}_1`, antiInput.value);
-            // 消炎枠は合計には含めない仕様（現状維持）ならここは何もしない。
-            // もし含めるなら updateManualTotalFromFields() を呼ぶ。
+            syncManualMetricsToSupabase();
         });
 
         antiTd.appendChild(antiInput);
@@ -495,7 +491,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 🏥 入院介入実施（内訳入力）の永続化と連動
     const INPATIENT_CATEGORIES = ['locomotor', 'cerebro', 'disuse'];
-    const INPATIENT_SUB_CATEGORIES = ['150', 'deduction'];
+    const INPATIENT_SUB_CATEGORIES = {
+        locomotor: ['150', 'deduction'],
+        cerebro: ['180', 'deduction'],
+        disuse: ['120', 'deduction']
+    };
 
     const updateInpatientManualStats = () => {
         const selectedDate = targetDateInput.value;
@@ -507,29 +507,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             const unitsInput = document.getElementById(`inpatient-${cat}-units`);
 
             if (casesInput && unitsInput) {
-                const savedCases = localStorage.getItem(`manual_inpatient_${cat}_cases_${selectedDate}`);
-                const savedUnits = localStorage.getItem(`manual_inpatient_${cat}_units_${selectedDate}`);
-
-                if (!casesInput._manuallyUpdated) {
-                    casesInput.value = savedCases !== null ? savedCases : 0;
-                }
-                if (!unitsInput._manuallyUpdated) {
-                    unitsInput.value = savedUnits !== null ? savedUnits : 0;
-                }
                 totalUnits += parseFloat(unitsInput.value) || 0;
                 totalCases += parseInt(casesInput.value) || 0;
             }
 
-            // Sub-categories (150-day, deduction)
-            INPATIENT_SUB_CATEGORIES.forEach(sub => {
+            // Sub-categories (threshold, deduction)
+            const subs = INPATIENT_SUB_CATEGORIES[cat] || [];
+            subs.forEach(sub => {
                 const sCasesInput = document.getElementById(`inpatient-${cat}-${sub}-cases`);
                 const sUnitsInput = document.getElementById(`inpatient-${cat}-${sub}-units`);
-                if (sCasesInput && sUnitsInput) {
-                    const sSavedCases = localStorage.getItem(`manual_inpatient_${cat}_${sub}_cases_${selectedDate}`);
-                    const sSavedUnits = localStorage.getItem(`manual_inpatient_${cat}_${sub}_units_${selectedDate}`);
-                    if (!sCasesInput._manuallyUpdated) sCasesInput.value = sSavedCases !== null ? sSavedCases : 0;
-                    if (!sUnitsInput._manuallyUpdated) sUnitsInput.value = sSavedUnits !== null ? sSavedUnits : 0;
-                }
+                // Sub-category units are NOT added to the main total again
             });
         });
 
@@ -540,38 +527,37 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (actualCasesEl) actualCasesEl.textContent = totalCases;
     };
 
-    INPATIENT_CATEGORIES.forEach(cat => {
-        const setupInput = (id, storageKeyPart) => {
-            const input = document.getElementById(id);
-            if (!input) return;
-            input.addEventListener('input', () => {
-                const selectedDate = targetDateInput.value;
-                input._manuallyUpdated = true;
-                localStorage.setItem(`manual_inpatient_${storageKeyPart}_${selectedDate}`, input.value);
-                
-                // For main units, also sync with cases if needed
-                if (id.endsWith('-units') && !id.includes('-150-') && !id.includes('-deduction-')) {
-                    const cId = id.replace('-units', '-cases');
-                    const cInput = document.getElementById(cId);
-                    if (cInput) {
-                        cInput.value = input.value;
-                        localStorage.setItem(`manual_inpatient_${storageKeyPart.replace('_units', '_cases')}_${selectedDate}`, input.value);
+        INPATIENT_CATEGORIES.forEach(cat => {
+            const setupInput = (id) => {
+                const input = document.getElementById(id);
+                if (!input) return;
+                input.addEventListener('input', () => {
+                    input._manuallyUpdated = true;
+                    
+                    // For main units, also sync with cases if needed
+                    if (id.endsWith('-units') && !id.includes('-150-') && !id.includes('-180-') && !id.includes('-120-') && !id.includes('-deduction-')) {
+                        const cId = id.replace('-units', '-cases');
+                        const cInput = document.getElementById(cId);
+                        if (cInput) {
+                            cInput.value = input.value;
+                        }
                     }
-                }
-                
-                updateInpatientManualStats();
-                setTimeout(() => { input._manuallyUpdated = false; }, 100);
+                    
+                    updateInpatientManualStats();
+                    syncManualMetricsToSupabase(); // Supabaseへ同期
+                    setTimeout(() => { input._manuallyUpdated = false; }, 100);
+                });
+            };
+
+            setupInput(`inpatient-${cat}-cases`);
+            setupInput(`inpatient-${cat}-units`);
+
+            const subs = INPATIENT_SUB_CATEGORIES[cat] || [];
+            subs.forEach(sub => {
+                setupInput(`inpatient-${cat}-${sub}-cases`);
+                setupInput(`inpatient-${cat}-${sub}-units`);
             });
-        };
-
-        setupInput(`inpatient-${cat}-cases`, `${cat}_cases`);
-        setupInput(`inpatient-${cat}-units`, `${cat}_units`);
-
-        INPATIENT_SUB_CATEGORIES.forEach(sub => {
-            setupInput(`inpatient-${cat}-${sub}-cases`, `${cat}_${sub}_cases`);
-            setupInput(`inpatient-${cat}-${sub}-units`, `${cat}_${sub}_units`);
         });
-    });
 
     // --- スタッフ別・消炎別の単位数を入力欄に自動セット ---
     const updateStaffUnitInputs = (reservations) => {
@@ -628,10 +614,63 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     const updateDailyStats = async (dateStr) => {
+        // --- 手動入力項目をSupabaseから同期 ---
+        const loadManualMetricsFromSupabase = async (dStr) => {
+            const { data, error } = await supabase
+                .from('reservations')
+                .select('remarks')
+                .eq('res_date', dStr)
+                .eq('patient_id', '_METRICS_')
+                .single();
+
+            if (!error && data && data.remarks) {
+                try {
+                    const metrics = JSON.parse(data.remarks);
+                    // 1日必要単位数
+                    const ritualUnits = document.getElementById('manual-total-units');
+                    if (ritualUnits && metrics.manual_total_units !== undefined) {
+                        ritualUnits.value = metrics.manual_total_units;
+                    }
+                    // スタッフ別・消炎単位数
+                    for (let i = 1; i <= STAFF_COUNT; i++) {
+                        const input = document.getElementById(`staff-units-${i}`);
+                        if (input && metrics[`staff_units_${i}`] !== undefined) {
+                            input.value = metrics[`staff_units_${i}`];
+                        }
+                    }
+                    const antiInput = document.getElementById('anti-units-1');
+                    if (antiInput && metrics.manual_anti_units_1 !== undefined) {
+                        antiInput.value = metrics.manual_anti_units_1;
+                    }
+                    // 入院内訳
+                    INPATIENT_CATEGORIES.forEach(cat => {
+                        const keys = [`inpatient-${cat}-cases`, `inpatient-${cat}-units`];
+                        const subs = INPATIENT_SUB_CATEGORIES[cat] || [];
+                        subs.forEach(sub => {
+                            keys.push(`inpatient-${cat}-${sub}-cases`);
+                            keys.push(`inpatient-${cat}-${sub}-units`);
+                        });
+                        
+                        keys.forEach(key => {
+                            const el = document.getElementById(key);
+                            if (el && metrics[key] !== undefined) {
+                                el.value = metrics[key];
+                            }
+                        });
+                    });
+                } catch (e) {
+                    console.error("Manual metrics parse error:", e);
+                }
+            }
+        };
+
+        await loadManualMetricsFromSupabase(dateStr);
+
         const { data, error } = await supabase
             .from('reservations')
             .select('*')
-            .eq('res_date', dateStr);
+            .eq('res_date', dateStr)
+            .neq('patient_id', '_METRICS_'); // 集計からは除外
 
         if (error || !data) return;
 
@@ -2401,6 +2440,84 @@ document.addEventListener('DOMContentLoaded', async () => {
             .subscribe();
     };
 
+    // --- 手動入力をSupabaseへ同期保存する関数 ---
+    let syncTimeout = null;
+    const syncManualMetricsToSupabase = async () => {
+        if (syncTimeout) clearTimeout(syncTimeout);
+        syncTimeout = setTimeout(async () => {
+            const dateStr = targetDateInput.value;
+            const metrics = {};
+            
+            // 1日必要単位数
+            const ritualUnits = document.getElementById('manual-total-units');
+            if (ritualUnits) metrics.manual_total_units = ritualUnits.value;
+            
+            // スタッフ別・消炎単位数
+            for (let i = 1; i <= STAFF_COUNT; i++) {
+                const input = document.getElementById(`staff-units-${i}`);
+                if (input) metrics[`staff_units_${i}`] = input.value;
+            }
+            const antiInput = document.getElementById('anti-units-1');
+            if (antiInput) metrics.manual_anti_units_1 = antiInput.value;
+            
+            // 入院内訳
+            INPATIENT_CATEGORIES.forEach(cat => {
+                const keys = [`inpatient-${cat}-cases`, `inpatient-${cat}-units`];
+                const subs = INPATIENT_SUB_CATEGORIES[cat] || [];
+                subs.forEach(sub => {
+                    keys.push(`inpatient-${cat}-${sub}-cases`);
+                    keys.push(`inpatient-${cat}-${sub}-units`);
+                });
+                
+                keys.forEach(key => {
+                    const el = document.getElementById(key);
+                    if (el) metrics[key] = el.value;
+                });
+            });
+
+            const upsertData = {
+                res_date: dateStr,
+                res_time: '00:00', // ダミー
+                res_type: 'manual_stats',
+                res_index: 0,
+                patient_id: '_METRICS_',
+                patient_name: 'システム集計データ',
+                remarks: JSON.stringify(metrics),
+                status: 'booked'
+            };
+
+            const { error } = await supabase
+                .from('reservations')
+                .upsert(upsertData, { onConflict: 'res_date,res_time,res_type,res_index' });
+            
+            if (error) console.error("Metrics sync error:", error);
+        }, 1000); // 1秒デバウンス
+    };
+
+    // 手動入力フィールドにイベントリスナーを追加
+    const attachManualSyncListeners = () => {
+        const ids = ['manual-total-units', 'anti-units-1'];
+        
+        INPATIENT_CATEGORIES.forEach(cat => {
+            ids.push(`inpatient-${cat}-cases`);
+            ids.push(`inpatient-${cat}-units`);
+            const subs = INPATIENT_SUB_CATEGORIES[cat] || [];
+            subs.forEach(sub => {
+                ids.push(`inpatient-${cat}-${sub}-cases`);
+                ids.push(`inpatient-${cat}-${sub}-units`);
+            });
+        });
+        
+        for (let i = 1; i <= STAFF_COUNT; i++) ids.push(`staff-units-${i}`);
+
+        ids.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('input', syncManualMetricsToSupabase);
+            }
+        });
+    };
+
     // Initialization sequence
     async function init() {
         await migrateDataToSupabase();
@@ -2409,6 +2526,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         await createSchedule();
         populateDatalists();
         setupRealtimeSubscription();
+        attachManualSyncListeners(); // 同期リスナーの開始
     }
     init();
 
