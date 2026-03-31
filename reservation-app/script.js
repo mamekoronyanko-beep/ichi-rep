@@ -746,7 +746,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         let inpatientMeetingCases = 0;
         let nursingMeetingCases = 0;
 
+        // 枠ごとの重複を排除（同じ時間・タイプ・インデックスの重複があれば、arrivedを最優先、次にbookedを優先）
+        const deduplicatedMap = {};
         data.forEach(res => {
+            const key = `${res.res_time}_${res.res_type}_${res.res_index}`;
+            const existing = deduplicatedMap[key];
+            if (!existing) {
+                deduplicatedMap[key] = res;
+            } else {
+                // 優先度: arrived > booked > その他 (canceledなど)
+                const priority = (s) => (s === 'arrived' ? 3 : s === 'booked' ? 2 : 1);
+                if (priority(res.status) > priority(existing.status)) {
+                    deduplicatedMap[key] = res;
+                }
+            }
+        });
+
+        Object.values(deduplicatedMap).forEach(res => {
             const units = parseInt(res.units) || 1;
             const isInpatient = res.is_inpatient_block === true;
             const isMeeting = res.is_meeting === true;
@@ -1692,6 +1708,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                 is_meeting: isMeeting,
                 status: 'booked'
             };
+
+            // 重複チェック (念のため)
+            const { data: existingCheck } = await supabase
+                .from('reservations')
+                .select('id')
+                .eq('res_date', selectedDate)
+                .eq('res_time', selectedTime)
+                .eq('res_type', selectedType)
+                .eq('res_index', parseInt(selectedIndex))
+                .neq('status', 'canceled')
+                .limit(1);
+
+            if (existingCheck && existingCheck.length > 0) {
+                alert("この枠には既に予約が入っています。再読み込みして確認してください。");
+                return;
+            }
 
             const { error: insertError } = await supabase.from('reservations').insert([reservationData]);
 
