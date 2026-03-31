@@ -128,16 +128,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     const getStaffAttendance = async (dateStr) => {
-        const { data, error } = await supabase
-            .from('staff_attendance')
-            .select('staff_id, status')
-            .eq('attendance_date', dateStr);
-        
         const attendance = Array(STAFF_COUNT).fill('work');
-        if (!error && data && data.length > 0) {
-            data.forEach((s) => {
-                if (s.staff_id <= STAFF_COUNT) {
-                    attendance[s.staff_id - 1] = s.status || 'work';
+
+        // デートごとのスタッフ勤怠はreservationsテーブルに特殊キーで保存する
+        // patient_id = '_STAFF_{id}_{dateStr}' の形式
+        const specialIds = Array.from({ length: STAFF_COUNT }, (_, i) => `_STAFF_${i + 1}_${dateStr}`);
+
+        const { data, error } = await supabase
+            .from('reservations')
+            .select('patient_id, remarks')
+            .in('patient_id', specialIds);
+
+        if (!error && data) {
+            data.forEach(row => {
+                const match = row.patient_id.match(/^_STAFF_(\d+)_/);
+                if (match) {
+                    const idx = parseInt(match[1]) - 1;
+                    if (idx >= 0 && idx < STAFF_COUNT) {
+                        attendance[idx] = row.remarks || 'work';
+                    }
                 }
             });
         }
@@ -151,16 +160,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     const saveStaffAttendance = async (dateStr, attendance) => {
-        const upsertData = attendance.map((status, i) => ({
-            staff_id: i + 1,
-            attendance_date: dateStr,
-            status: status
-        }));
-        // Use upsert to handle existing records for the same date/staff
-        const { error } = await supabase.from('staff_attendance').upsert(upsertData, { onConflict: 'staff_id,attendance_date' });
-        if (error) {
-            console.error("Staff attendance upsert error:", error);
-            throw new Error("出勤設定の保存に失敗しました。ユニーク制約エラーの可能性があります: " + error.message);
+        // 各スタッフの勤怠をreservationsテーブルのupsertで保存
+        for (let i = 0; i < attendance.length; i++) {
+            const patientId = `_STAFF_${i + 1}_${dateStr}`;
+            const status = attendance[i];
+
+            // 既存レコードを確認
+            const { data: existing } = await supabase
+                .from('reservations')
+                .select('id')
+                .eq('patient_id', patientId)
+                .limit(1);
+
+            if (existing && existing.length > 0) {
+                // 更新
+                await supabase.from('reservations').update({ remarks: status }).eq('patient_id', patientId);
+            } else {
+                // 新規挿入
+                await supabase.from('reservations').insert([{
+                    patient_id: patientId,
+                    patient_name: `_staff_attendance_`,
+                    res_date: dateStr,
+                    res_time: '00:00',
+                    res_type: 'staff',
+                    res_index: i + 1,
+                    status: 'booked',
+                    remarks: status
+                }]);
+            }
         }
     };
     // ----------------------------
@@ -236,7 +263,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const { data: resData, error } = await supabase
             .from('reservations')
             .select('*')
-            .eq('res_date', selectedDate);
+            .eq('res_date', selectedDate)
+            .neq('patient_id', '_METRICS_')
+            .not('patient_name', 'eq', '_staff_attendance_');
         
         dbReservations = resData || [];
 
@@ -715,7 +744,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             .from('reservations')
             .select('*')
             .eq('res_date', dateStr)
-            .neq('patient_id', '_METRICS_'); // 集計からは除外
+            .neq('patient_id', '_METRICS_') // 集計からは除外
+            .not('patient_name', 'eq', '_staff_attendance_'); // 出勤設定レコードを除外
 
         if (error || !data) return;
 

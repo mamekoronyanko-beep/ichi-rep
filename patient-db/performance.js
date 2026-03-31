@@ -124,7 +124,7 @@ function computeMonthSales(month) {
     // Outpatient from reservations
     const nursingVisits = { withCare: 0, withoutCare: 0 };
     allReservations.filter(r => {
-        if (r.status === 'canceled') return false;
+        if (r.status !== 'arrived') return false; // 実績のみ反映
         return new Date(r.res_date).getMonth() + 1 === month;
     }).forEach(res => {
         const units = parseInt(res.units) || 1;
