@@ -527,6 +527,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (actualCasesEl) actualCasesEl.textContent = totalCases;
     };
 
+    // 🏢 介護医療院介入実施（内訳入力）の永続化と連動
+    const updateNursingManualStats = () => {
+        const casesInput = document.getElementById('nursing-manual-cases');
+        const unitsInput = document.getElementById('nursing-manual-units');
+        const dCasesInput = document.getElementById('nursing-manual-deduction-cases');
+        const dUnitsInput = document.getElementById('nursing-manual-deduction-units');
+
+        let totalUnits = 0;
+        let totalCases = 0;
+
+        if (unitsInput) totalUnits = parseFloat(unitsInput.value) || 0;
+        if (casesInput) totalCases = parseInt(casesInput.value) || 0;
+
+        const actualUnitsEl = document.getElementById('nursing-actual-units');
+        if (actualUnitsEl) actualUnitsEl.textContent = totalUnits;
+        
+        const actualCasesEl = document.getElementById('nursing-actual-cases');
+        if (actualCasesEl) actualCasesEl.textContent = totalCases;
+    };
+
         INPATIENT_CATEGORIES.forEach(cat => {
             const setupInput = (id) => {
                 const input = document.getElementById(id);
@@ -558,6 +578,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                 setupInput(`inpatient-${cat}-${sub}-units`);
             });
         });
+
+        // 介護内訳用
+        const setupNursingInput = (id) => {
+            const input = document.getElementById(id);
+            if (!input) return;
+            input.addEventListener('input', () => {
+                input._manuallyUpdated = true;
+                updateNursingManualStats();
+                syncManualMetricsToSupabase();
+                setTimeout(() => { input._manuallyUpdated = false; }, 100);
+            });
+        };
+        setupNursingInput('nursing-manual-cases');
+        setupNursingInput('nursing-manual-units');
+        setupNursingInput('nursing-manual-deduction-cases');
+        setupNursingInput('nursing-manual-deduction-units');
 
     // --- スタッフ別・消炎別の単位数を入力欄に自動セット ---
     const updateStaffUnitInputs = (reservations) => {
@@ -657,6 +693,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 el.value = metrics[key];
                             }
                         });
+                    });
+                    
+                    // 介護内訳
+                    const nursingKeys = ['nursing-manual-cases', 'nursing-manual-units', 'nursing-manual-deduction-cases', 'nursing-manual-deduction-units'];
+                    nursingKeys.forEach(key => {
+                        const el = document.getElementById(key);
+                        if (el && metrics[key] !== undefined) {
+                            el.value = metrics[key];
+                        }
                     });
                 } catch (e) {
                     console.error("Manual metrics parse error:", e);
@@ -772,12 +817,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         setVal('outpatient-actual-units', outpatientActualUnits);
         setVal('outpatient-actual-cases', outpatientActualCases);
         
+        setVal('nursingActualUnits', nursingActualUnits);
         setVal('nursing-actual-units', nursingActualUnits);
         setVal('nursing-actual-cases', nursingActualCases);
         setVal('nursing-meeting-cases', nursingMeetingCases);
 
-        // 入院介入の内訳入力がある場合は、その合計値で上書きする
+        // 全体実績合計の計算 (入院+外来のみ)
+        const updateGrandTotalActual = () => {
+            const iActual = parseInt(document.getElementById('inpatient-actual-units').textContent) || 0;
+            const oActual = parseInt(document.getElementById('outpatient-actual-units').textContent) || 0;
+            const grandTotal = iActual + oActual; // 介護は含めない
+            setVal('total-overall-actual-units', grandTotal);
+        };
+
+        // 各内訳入力がある場合は、その合計値で上書きする
         updateInpatientManualStats();
+        updateNursingManualStats();
+        
+        // 全体の最終的な実績合計を表示
+        updateGrandTotalActual();
 
         // 1日必要単位数にスタッフ枠の合計を自動反映（手動入力がある場合はそれを優先）
         updateManualTotalFromFields();
@@ -2475,6 +2533,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 });
             });
 
+            // 介護内訳
+            const nursingKeys = ['nursing-manual-cases', 'nursing-manual-units', 'nursing-manual-deduction-cases', 'nursing-manual-deduction-units'];
+            nursingKeys.forEach(key => {
+                const el = document.getElementById(key);
+                if (el) metrics[key] = el.value;
+            });
+
             const upsertData = {
                 res_date: dateStr,
                 res_time: '00:00', // ダミー
@@ -2507,6 +2572,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 ids.push(`inpatient-${cat}-${sub}-units`);
             });
         });
+        
+        const nursingKeys = ['nursing-manual-cases', 'nursing-manual-units', 'nursing-manual-deduction-cases', 'nursing-manual-deduction-units'];
+        nursingKeys.forEach(key => ids.push(key));
         
         for (let i = 1; i <= STAFF_COUNT; i++) ids.push(`staff-units-${i}`);
 
