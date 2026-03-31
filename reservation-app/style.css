@@ -966,14 +966,7 @@ body {
 }
 
 .staff-off-cell::after {
-    content: "休み";
-    font-size: 0.65rem;
-    color: #64748b;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-weight: 700;
+    content: ""; /* テキスト表示なし・色変更のみ */
 }
 
 /* Non-working days (Sundays/Holidays) */
