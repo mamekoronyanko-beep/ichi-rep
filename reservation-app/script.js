@@ -291,10 +291,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         // ---------------------------------------------------------------------
 
-        const startTime = new Date();
+        // 固定の基準日を使用してループ比較を安定させる
+        const baseDate = new Date(2000, 0, 1); // 固定基準日
+        const startTime = new Date(baseDate);
         startTime.setHours(START_HOUR, 0, 0, 0);
 
-        const endTime = new Date();
+        const endTime = new Date(baseDate);
         endTime.setHours(END_HOUR, 0, 0, 0);
 
         let currentTime = new Date(startTime);
@@ -411,9 +413,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     } else if (isStaffOff) {
                         td.classList.add('staff-off-cell');
-                        td.style.backgroundColor = '#e2e8f0';
-                        // 半日休みなどの詳細ラベルを反映
-                        td.innerHTML = `<div style="font-size: 0.65rem; color: #64748b; font-weight: 700; text-align: center;">${offLabel}</div>`;
+                        td.style.backgroundColor = '#e2e8f0'; // 色変更のみ（ラベルなし）
                     }
 
                     const staffKey = `reservation_${selectedDate}_${timeString}_staff_${i}`;
