@@ -821,12 +821,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (res.status === 'canceled') {
                 cancelCount++;
             } else {
-                if (res.res_type === 'staff') {
-                    staffUnits += units;
-                    staffCases += 1;
-                } else if (res.res_type === 'anti') {
-                    antiUnits += units;
-                    antiCases += 1;
+                if (!isMeeting) {
+                    if (res.res_type === 'staff') {
+                        staffUnits += units;
+                        staffCases += 1;
+                    } else if (res.res_type === 'anti') {
+                        antiUnits += units;
+                        antiCases += 1;
+                    }
                 }
 
                 if (isMeeting) {
@@ -1126,13 +1128,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (inpatientDatalist) {
             inpatientDatalist.innerHTML = '';
-            const { data: admissions } = await supabase.from('patients').select('p_id, p_name').eq('p_type', 'admission');
-            if (admissions) {
+            // 入院と介護の両方を取得
+            const { data: nonOutpatients } = await supabase
+                .from('patients')
+                .select('p_id, p_name, p_type, p_nursing_care')
+                .neq('p_type', 'outpatient');
+
+            if (nonOutpatients) {
                 const uniqueInpatientEntries = new Set();
-                admissions.forEach(p => {
+                nonOutpatients.forEach(p => {
                     const normId = normalize(p.p_id);
                     const normName = p.p_name ? p.p_name.trim() : '';
-                    const entryValue = `${normId} : ${normName}`;
+                    
+                    // タイプ判定
+                    const isNursing = (p.p_type === 'nursing_care' || (p.p_type === 'admission' && p.p_nursing_care === true));
+                    const typeLabel = isNursing ? '(介護)' : '(入院)';
+                    
+                    const entryValue = `${normId} : ${normName} ${typeLabel}`;
                     
                     if (!uniqueInpatientEntries.has(entryValue)) {
                         const opt = document.createElement('option');
@@ -1750,7 +1762,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (combinedVal.includes(' : ')) {
                     const parts = combinedVal.split(' : ');
                     pId = parts[0];
-                    pName = parts[1];
+                    // "(入院)" や "(介護)" などのラベルを除去して名前を抽出
+                    pName = parts[1].replace(/\s*\([\u4E00-\u9FFF]+\)\s*$/, '').trim();
                 } else {
                     pName = combinedVal;
                     pId = '';
