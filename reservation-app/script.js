@@ -136,8 +136,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const { data, error } = await supabase
             .from('reservations')
-            .select('patient_id, remarks')
-            .in('patient_id', specialIds);
+            .select('patient_id, remarks, created_at')
+            .in('patient_id', specialIds)
+            .order('created_at', { ascending: true }); // 昇順で取得し、forEachで後勝ち（最新）にする
 
         if (!error && data) {
             data.forEach(row => {
@@ -707,11 +708,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 .select('remarks')
                 .eq('res_date', dStr)
                 .eq('patient_id', '_METRICS_')
-                .single();
+                .order('created_at', { ascending: false })
+                .limit(1);
 
-            if (!error && data && data.remarks) {
+            if (!error && data && data.length > 0 && data[0].remarks) {
                 try {
-                    const metrics = JSON.parse(data.remarks);
+                    const metrics = JSON.parse(data[0].remarks);
                     // 1日必要単位数
                     const ritualUnits = document.getElementById('manual-total-units');
                     if (ritualUnits && metrics.manual_total_units !== undefined) {
@@ -2651,22 +2653,35 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (el) metrics[key] = el.value;
             });
 
-            const upsertData = {
-                res_date: dateStr,
-                res_time: '00:00', // ダミー
-                res_type: 'manual_stats',
-                res_index: 0,
-                patient_id: '_METRICS_',
-                patient_name: 'システム集計データ',
-                remarks: JSON.stringify(metrics),
-                status: 'booked'
-            };
-
-            const { error } = await supabase
+            // 保存処理 (Unique制約がない場合があるため、明示的に存在チェックしてから更新または挿入)
+            const { data: existing } = await supabase
                 .from('reservations')
-                .upsert(upsertData, { onConflict: 'res_date,res_time,res_type,res_index' });
-            
-            if (error) console.error("Metrics sync error:", error);
+                .select('id')
+                .eq('res_date', dateStr)
+                .eq('patient_id', '_METRICS_')
+                .limit(1);
+
+            if (existing && existing.length > 0) {
+                const { error } = await supabase
+                    .from('reservations')
+                    .update({ remarks: JSON.stringify(metrics) })
+                    .eq('id', existing[0].id);
+                if (error) console.error("Metrics update error:", error);
+            } else {
+                const { error } = await supabase
+                    .from('reservations')
+                    .insert([{
+                        res_date: dateStr,
+                        res_time: '00:00',
+                        res_type: 'manual_stats',
+                        res_index: 0,
+                        patient_id: '_METRICS_',
+                        patient_name: 'システム集計データ',
+                        remarks: JSON.stringify(metrics),
+                        status: 'booked'
+                    }]);
+                if (error) console.error("Metrics insert error:", error);
+            }
         }, 1000); // 1秒デバウンス
     };
 
