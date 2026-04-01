@@ -192,7 +192,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
     // ----------------------------
 
+    let _scheduleRendering = false;
+    let _scheduleDebounceTimer = null;
+
     const createSchedule = async () => {
+        // デバウンス: 連続した呼び出しをまとめて一度だけ実行
+        if (_scheduleDebounceTimer) clearTimeout(_scheduleDebounceTimer);
+        return new Promise((resolve) => {
+            _scheduleDebounceTimer = setTimeout(async () => {
+                // 既に実行中なら何もしない（二重実行防止）
+                if (_scheduleRendering) { resolve(); return; }
+                _scheduleRendering = true;
+                try {
+                    await _createScheduleInner();
+                } finally {
+                    _scheduleRendering = false;
+                }
+                resolve();
+            }, 80); // 80ms デバウンス
+        });
+    };
+
+    const _createScheduleInner = async () => {
         const selectedDate = targetDateInput.value;
         const date = new Date(selectedDate);
         const dayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][date.getDay()];
@@ -810,7 +831,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 if (isMeeting) {
                     const p = patientMap[res.patient_id];
-                    if (p && (p.p_type === 'nursing_care' || p.p_nursing_care === true)) {
+                    // 介護医療院の患者かどうかを正確に判定
+                    // patients テーブルでは p_type='admission' かつ p_nursing_care=true が介護
+                    const isNursingCarePatient = p && (
+                        p.p_type === 'nursing_care' ||             // 旧形式
+                        (p.p_type === 'admission' && p.p_nursing_care === true) // 現行形式
+                    );
+                    if (isNursingCarePatient) {
                         nursingMeetingCases += 1;
                     } else {
                         inpatientMeetingCases += 1;
@@ -824,7 +851,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                 } else {
                     const p = patientMap[res.patient_id];
-                    if (p && (p.p_type === 'nursing_care' || p.p_nursing_care === true)) {
+                    // 介護医療院の判定: p_type='admission' かつ p_nursing_care=true が必須条件
+                    // 外来患者 (p_type='outpatient') は p_nursing_care が true でも外来としてカウント
+                    const isNursingCarePatient = p && (
+                        p.p_type === 'nursing_care' ||   // 旧形式
+                        (p.p_type === 'admission' && p.p_nursing_care === true)  // 現行形式
+                    );
+                    if (isNursingCarePatient) {
                         // 介護の計画数は現状管理していないが、実績は'arrived'のみをカウント
                         if (res.status === 'arrived') {
                             nursingActualUnits += units;
