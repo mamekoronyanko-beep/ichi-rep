@@ -2734,4 +2734,49 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('Selected date changed to:', e.target.value);
         await createSchedule();
     });
+
+    // --- データベース初期化機能 (Database Initialization) ---
+    const initDbBtn = document.getElementById('init-db-btn');
+    if (initDbBtn) {
+        initDbBtn.addEventListener('click', async () => {
+            const confirm1 = confirm('【警告】\n本当にすべての患者データと予約データを完全に削除しますか？\nこの操作は取り消せません。');
+            if (!confirm1) return;
+
+            const password = prompt('確認のため、パスワード「0000」と入力してください。');
+            if (password !== '0000') {
+                alert('パスワードが一致しないため、初期化を中止しました。');
+                return;
+            }
+
+            try {
+                // Supabaseからの削除処理 (idが存在するすべてのレコードを削除)
+                const { error: resError } = await supabase
+                    .from('reservations')
+                    .delete()
+                    .neq('id', 'dummy_value_to_delete_all');
+                
+                if (resError) throw new Error('予約データの削除に失敗: ' + resError.message);
+
+                const { error: patError } = await supabase
+                    .from('patients')
+                    .delete()
+                    .neq('p_id', 'dummy_value_to_delete_all');
+                
+                if (patError) throw new Error('患者データの削除に失敗: ' + patError.message);
+
+                // LocalStorageの関連キーも削除
+                Object.keys(localStorage).forEach(key => {
+                    if (key.startsWith('manual_') || key.startsWith('stats_') || key.startsWith('perf_import_') || key.startsWith('sync_progress_')) {
+                        localStorage.removeItem(key);
+                    }
+                });
+
+                alert('データベースの初期化が完了しました。ページを再読み込みします。');
+                window.location.reload();
+            } catch (err) {
+                console.error('初期化エラー:', err);
+                alert('初期化中にエラーが発生しました: ' + err.message);
+            }
+        });
+    }
 });
