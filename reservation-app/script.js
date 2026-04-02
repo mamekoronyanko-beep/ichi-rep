@@ -908,6 +908,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         setVal('nursing-actual-cases', nursingActualCases);
         setVal('nursing-meeting-cases', nursingMeetingCases);
 
+        // 🚀 クイックサマリーバー (ホーム画面専用) へ数値を反映
+        setVal('top-total-cases', staffCases);
+        setVal('top-outpatient-planned-cases', outpatientPlannedCases);
+        setVal('top-outpatient-actual-cases', outpatientActualCases);
+
         // 全体実績合計の計算 (入院+外来のみ)
         const updateGrandTotalActual = () => {
             const iActual = parseInt(document.getElementById('inpatient-actual-units').textContent) || 0;

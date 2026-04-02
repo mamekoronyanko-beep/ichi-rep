@@ -86,6 +86,28 @@
         </header>
         <main class="schedule-wrapper">
             <div class="table-content-area">
+                <!-- 🚀 クイックサマリーバー (ホーム画面専用) -->
+                <div class="quick-summary-bar">
+                    <div class="summary-item total-highlight">
+                        <span class="label">本日の総予約数:</span>
+                        <span class="value-wrapper">
+                            <span id="top-total-cases" class="value">0</span><span class="unit">件</span>
+                        </span>
+                    </div>
+                    <div class="summary-separator"></div>
+                    <div class="summary-item outpatient-highlight">
+                        <span class="label">👤 外来予約:</span>
+                        <span class="value-wrapper">
+                            <span id="top-outpatient-planned-cases" class="value">0</span><span class="unit">件</span>
+                        </span>
+                        <span class="sub-label">（実績:</span>
+                        <span class="value-wrapper">
+                            <span id="top-outpatient-actual-cases" class="value actual">0</span><span class="unit actual">件</span>
+                        </span>
+                        <span class="sub-label">）</span>
+                    </div>
+                </div>
+
                 <div class="table-container">
                 <table class="schedule-table">
                     <thead>

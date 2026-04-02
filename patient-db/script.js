@@ -1329,12 +1329,15 @@ async function renderHomeDashboard() {
     document.getElementById('count-outpatient').textContent = outpatientCount;
     document.getElementById('count-nursing').textContent = nursingCount;
 
-    // Fetch today's reservations (simplified)
+    // 本日のリハビリ予約数（スタッフ枠のみ、面談・消炎・管理用データ除外）をカウント
     const todayStr = formatLocalDate(new Date());
     const { count: todayCount } = await supabaseClient
         .from('reservations')
         .select('*', { count: 'exact', head: true })
-        .eq('res_date', todayStr);
+        .eq('res_date', todayStr)
+        .eq('res_type', 'staff')
+        .eq('is_meeting', false)
+        .not('patient_id', 'like', '_%');
     
     document.getElementById('count-today-res').textContent = todayCount || 0;
 
