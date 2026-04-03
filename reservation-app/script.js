@@ -2839,4 +2839,88 @@ document.addEventListener('DOMContentLoaded', async () => {
             alert(`予約データをExcelファイル (${fileName}) として出力しました。`);
         });
     }
+
+    // --- Excel Export (月間予約一覧出力) ---
+    const exportMonthExcelBtn = document.getElementById('export-month-excel-btn');
+    if (exportMonthExcelBtn) {
+        exportMonthExcelBtn.addEventListener('click', async () => {
+            if (typeof XLSX === 'undefined') {
+                alert('Excel出力ライブラリが読み込まれていません。ページを再読み込みしてください。');
+                return;
+            }
+            if (!targetDateInput || !targetDateInput.value) {
+                alert('月を判定するための日付が選択されていません。');
+                return;
+            }
+
+            exportMonthExcelBtn.disabled = true;
+            exportMonthExcelBtn.innerHTML = '⏳ <span class="btn-text">処理中...</span>';
+
+            try {
+                // Determine target month (YYYY-MM)
+                const yearMonth = targetDateInput.value.substring(0, 7);
+                
+                // Fetch all reservations for this month
+                const { data, error } = await supabase
+                    .from('reservations')
+                    .select('*')
+                    .like('res_date', `${yearMonth}-%`)
+                    .neq('patient_id', '_METRICS_')
+                    .eq('is_meeting', false)
+                    .order('res_date', { ascending: true })
+                    .order('res_time', { ascending: true });
+
+                if (error) throw new Error('データ取得に失敗: ' + error.message);
+                
+                if (!data || data.length === 0) {
+                    alert(`${yearMonth}月の予約データがありません。`);
+                    return;
+                }
+
+                // Map to Array
+                const exportData = data.map(res => {
+                    let statusStr = res.status;
+                    if (statusStr === 'booked') statusStr = '予約';
+                    else if (statusStr === 'completed') statusStr = '完了';
+                    else if (statusStr === 'cancelled') statusStr = 'キャンセル';
+                    
+                    let typeStr = res.res_type;
+                    if (typeStr === 'inpatient') typeStr = '入院';
+                    else if (typeStr === 'outpatient') typeStr = '外来';
+                    else if (typeStr === 'nursing_care') typeStr = '介護';
+                    else if (typeStr === 'staff') typeStr = 'スタッフ枠';
+                    else if (typeStr === 'locomotor') typeStr = '運動器';
+                    else if (typeStr === 'cerebro') typeStr = '脳血管';
+                    else if (typeStr === 'disuse') typeStr = '廃用';
+                    else if (typeStr === 'anti') typeStr = '消炎';
+                    
+                    return {
+                        '日付': res.res_date || '',
+                        '時間': res.res_time || '',
+                        '患者ID': res.patient_id || '',
+                        '氏名': res.patient_name || '',
+                        '枠・種類': typeStr || '',
+                        '単位数': res.units || '',
+                        'ステータス': statusStr,
+                        '備考': res.remarks || ''
+                    };
+                });
+
+                const worksheet = XLSX.utils.json_to_sheet(exportData);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, `${yearMonth}月予約一覧`);
+                
+                const fileName = `予約一覧_${yearMonth.replace('-', '')}月分.xlsx`;
+                
+                XLSX.writeFile(workbook, fileName);
+                alert(`${yearMonth}月の予約一覧 (${fileName}) を出力しました。`);
+            } catch (err) {
+                console.error('月間出力エラー:', err);
+                alert('エラーが発生しました: ' + err.message);
+            } finally {
+                exportMonthExcelBtn.disabled = false;
+                exportMonthExcelBtn.innerHTML = '📅 <span class="btn-text">月間出力</span>';
+            }
+        });
+    }
 });
