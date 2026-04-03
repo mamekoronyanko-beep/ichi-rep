@@ -2859,12 +2859,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             try {
                 // Determine target month (YYYY-MM)
                 const yearMonth = targetDateInput.value.substring(0, 7);
+                const [year, month] = yearMonth.split('-');
+                const lastDay = new Date(year, month, 0).getDate();
+                const startDate = `${yearMonth}-01`;
+                const endDate = `${yearMonth}-${lastDay}`;
                 
                 // Fetch all reservations for this month
                 const { data, error } = await supabase
                     .from('reservations')
                     .select('*')
-                    .like('res_date', `${yearMonth}-%`)
+                    .gte('res_date', startDate)
+                    .lte('res_date', endDate)
                     .neq('patient_id', '_METRICS_')
                     .eq('is_meeting', false)
                     .order('res_date', { ascending: true })
