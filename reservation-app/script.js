@@ -2779,4 +2779,64 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
     }
+
+    // --- Excel Export (本日の予定出力) ---
+    const exportExcelBtn = document.getElementById('export-excel-btn');
+    if (exportExcelBtn) {
+        exportExcelBtn.addEventListener('click', () => {
+            if (typeof XLSX === 'undefined') {
+                alert('Excel出力ライブラリが読み込まれていません。ページを再読み込みしてください。');
+                return;
+            }
+            if (!dbReservations || dbReservations.length === 0) {
+                alert('出力する予約データがありません。');
+                return;
+            }
+            
+            // Filter out system metrics and meetings
+            const exportData = dbReservations
+                .filter(res => res.patient_id !== '_METRICS_' && !res.is_meeting)
+                .map(res => {
+                    let statusStr = res.status;
+                    if (statusStr === 'booked') statusStr = '予約';
+                    else if (statusStr === 'completed') statusStr = '完了';
+                    else if (statusStr === 'cancelled') statusStr = 'キャンセル';
+                    
+                    let typeStr = res.res_type;
+                    if (typeStr === 'inpatient') typeStr = '入院';
+                    else if (typeStr === 'outpatient') typeStr = '外来';
+                    else if (typeStr === 'nursing_care') typeStr = '介護';
+                    else if (typeStr === 'staff') typeStr = 'スタッフ枠';
+                    else if (typeStr === 'locomotor') typeStr = '運動器';
+                    else if (typeStr === 'cerebro') typeStr = '脳血管';
+                    else if (typeStr === 'disuse') typeStr = '廃用';
+                    else if (typeStr === 'anti') typeStr = '消炎';
+                    
+                    return {
+                        '時間': res.res_time || '',
+                        '患者ID': res.patient_id || '',
+                        '氏名': res.patient_name || '',
+                        '枠・種類': typeStr || '',
+                        '単位数': res.units || '',
+                        'ステータス': statusStr,
+                        '備考': res.remarks || ''
+                    };
+                });
+            
+            if (exportData.length === 0) {
+                alert('出力する有効な予約データがありません。');
+                return;
+            }
+
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, '予約表');
+            
+            const selectedDateStr = targetDateInput ? targetDateInput.value.replace(/-/g, '') : '本日の予定';
+            const fileName = `予約表_${selectedDateStr}.xlsx`;
+            
+            XLSX.writeFile(workbook, fileName);
+            alert(`予約データをExcelファイル (${fileName}) として出力しました。`);
+        });
+    }
 });

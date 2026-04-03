@@ -2269,3 +2269,82 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+// --- Excel Export 機能 (Database Export) ---
+document.addEventListener('DOMContentLoaded', () => {
+    const exportBtn = document.querySelector('.export-excel-btn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', async () => {
+            if (typeof XLSX === 'undefined') {
+                alert('Excelライブラリが読み込まれていません。再度お試しください。');
+                return;
+            }
+
+            exportBtn.disabled = true;
+            exportBtn.textContent = '処理中...';
+
+            try {
+                const exportType = exportBtn.getAttribute('data-export-type') || 'all';
+                let query = supabaseClient.from('patients').select('*');
+                
+                if (exportType === 'admission') {
+                    query = query.eq('p_type', 'admission');
+                } else if (exportType === 'outpatient') {
+                    query = query.eq('p_type', 'outpatient');
+                } else if (exportType === 'nursing_care') {
+                    query = query.eq('p_type', 'nursing_care');
+                }
+
+                const { data, error } = await query;
+                if (error) {
+                    throw new Error('データの取得に失敗しました: ' + error.message);
+                }
+                if (!data || data.length === 0) {
+                    alert('出力するデータがありません。');
+                    return;
+                }
+
+                // Map data to Japanese properties for Excel
+                const exportData = data.map(p => {
+                    let typeStr = p.p_type;
+                    if (typeStr === 'admission') typeStr = '入院';
+                    else if (typeStr === 'outpatient') typeStr = '外来';
+                    else if (typeStr === 'nursing_care') typeStr = '介護';
+
+                    return {
+                        '患者ID': p.p_id || '',
+                        '氏名': p.p_name || '',
+                        'データベース種別': typeStr || '',
+                        'カテゴリー': p.p_category || '',
+                        '疾患名': p.p_disease || '',
+                        '診断日/発症日/終了日': p.p_diagnosis_date || '',
+                        '次回面談/予約日': p.next_reserve_date || '',
+                        '書類提出予定日': p.p_doc_submission_date || '',
+                        '要介護認定': p.p_nursing_care ? 'あり' : 'なし'
+                    };
+                });
+
+                const worksheet = XLSX.utils.json_to_sheet(exportData);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, '患者データ');
+                
+                const todayStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
+                let typeName = '一覧';
+                if (exportType === 'admission') typeName = '入院';
+                if (exportType === 'outpatient') typeName = '外来';
+                if (exportType === 'nursing_care') typeName = '介護医療院';
+
+                const fileName = `患者データ_${typeName}_${todayStr}.xlsx`;
+                
+                XLSX.writeFile(workbook, fileName);
+                alert(`データをExcelファイル (${fileName}) として出力しました。`);
+            } catch (err) {
+                console.error(err);
+                alert(err.message);
+            } finally {
+                exportBtn.disabled = false;
+                exportBtn.textContent = '📤 エクスポート';
+            }
+        });
+    }
+});
