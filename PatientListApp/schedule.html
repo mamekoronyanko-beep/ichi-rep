@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>本日の予約表</title>
+    <link rel="stylesheet" href="schedule.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <header>
+            <div class="header-content">
+                <h1>デイリー予約表</h1>
+                <p>9:00 〜 18:00 (20分枠) / 12:00〜13:00 休憩</p>
+            </div>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <input type="file" id="scheduleExcelInput" accept=".xlsx, .xls, .csv" style="display: none;">
+                <button id="importScheduleBtn" class="nav-btn"
+                    style="width: auto; padding: 0 1.5rem; border-radius: 999px; font-size: 1rem; white-space: nowrap;">📁
+                    エクセル読込</button>
+                <a href="index.html" class="back-link">← 患者一覧へ戻る</a>
+            </div>
+        </header>
+
+        <main class="content-area">
+            <div class="date-controls">
+                <button id="prevDayBtn" class="nav-btn">&lt;</button>
+                <h2 id="currentDateDisplay">2026年3月10日 (火)</h2>
+                <button id="nextDayBtn" class="nav-btn">&gt;</button>
+            </div>
+
+            <div class="table-wrapper">
+                <table id="scheduleTable">
+                    <thead>
+                        <tr>
+                            <th class="time-col">時間</th>
+                            <th>スタッフ枠 1</th>
+                            <th>スタッフ枠 2</th>
+                            <th>スタッフ枠 3</th>
+                            <th>スタッフ枠 4</th>
+                            <th>スタッフ枠 5</th>
+                            <th class="shoen-col">消炎枠</th>
+                        </tr>
+                    </thead>
+                    <tbody id="scheduleBody">
+                        <!-- JSで動的に追加 -->
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <script src="schedule.js"></script>
+</body>
+
+</html>

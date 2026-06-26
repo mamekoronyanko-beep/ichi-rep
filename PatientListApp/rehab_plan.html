@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>リハビリテーション総合実施計画書 (2026年度版)</title>
+    <link rel="stylesheet" href="rehab_plan.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="no-print screen-header">
+        <a href="index.html" class="back-btn">← 戻る</a>
+        <div class="controls">
+            <button id="autoFillBtn" class="secondary-btn">テストデータ入力</button>
+            <button id="saveBtn" class="primary-btn">一時保存</button>
+            <button id="printBtn" class="primary-btn print-icon">🖨️ 印刷する</button>
+        </div>
+    </div>
+
+    <div class="a4-container" id="printableArea">
+        <div class="document-header">
+            <h1>リハビリテーション総合実施計画書</h1>
+            <div class="date-section">
+                <label>作成日: <input type="date" id="creationDate"></label>
+                <div class="doc-origin">
+                    病院名: <input type="text" id="hospitalName" value="〇〇病院" style="width:150px;"><br>
+                    担当医師: <input type="text" id="doctorName" style="width:120px;">印<br>
+                    担当PT/OT/ST: <input type="text" id="therapistName" style="width:120px;">印
+                </div>
+            </div>
+        </div>
+
+        <section class="form-section">
+            <table class="data-table">
+                <tr>
+                    <th width="15%">フリガナ</th>
+                    <td width="35%"><input type="text" id="patientKana" class="full-width"></td>
+                    <th width="15%">性別</th>
+                    <td width="35%">
+                        <label><input type="radio" name="gender" value="男"> 男</label>
+                        <label><input type="radio" name="gender" value="女"> 女</label>
+                    </td>
+                </tr>
+                <tr>
+                    <th>患者氏名</th>
+                    <td><input type="text" id="patientName" class="full-width"></td>
+                    <th>生年月日・年齢</th>
+                    <td>
+                        <input type="date" id="birthDate"> 
+                        <span id="ageDisplay"></span>歳
+                    </td>
+                </tr>
+                <tr>
+                    <th>病棟・室</th>
+                    <td><input type="text" id="wardRoom" class="full-width" placeholder="〇病棟 〇号室"></td>
+                    <th>発症・手術日</th>
+                    <td><input type="date" id="onsetSurgeDate"></td>
+                </tr>
+                <tr>
+                    <th>疾患名</th>
+                    <td colspan="3"><input type="text" id="diseaseName" class="full-width" placeholder="例：右被殻出血、右大腿骨頸部骨折など"></td>
+                </tr>
+            </table>
+        </section>
+
+        <section class="form-section">
+            <h2 class="section-title">1. 現在の状況（機能障害、活動制限、参加制約、予後予測）</h2>
+            <textarea id="currentStatus" rows="4" class="full-width" placeholder="関節可動域、筋力、高次脳機能、活動・参加の状況などを記載"></textarea>
+        </section>
+
+        <section class="form-section">
+            <h2 class="section-title">2. ADL評価 (FIM / BI 等)</h2>
+            <div class="adl-calculator wrapper">
+                <p class="instruction-text no-print">※ラジオボタンを選択すると自動で合計点が計算されます</p>
+                <table class="adl-table">
+                    <thead>
+                        <tr>
+                            <th colspan="2">項目 \ 点数(1-7)</th>
+                            <th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th>
+                            <th width="40px">点</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fimBody">
+                        <!-- JSで動的生成 -->
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th colspan="9" style="text-align: right;">運動系合計：</th>
+                            <th id="fimMotorTotal">0</th>
+                        </tr>
+                        <tr>
+                            <th colspan="9" style="text-align: right;">認知系合計：</th>
+                            <th id="fimCognitiveTotal">0</th>
+                        </tr>
+                        <tr class="total-row">
+                            <th colspan="9" style="text-align: right;">FIM 総合計：</th>
+                            <th id="fimTotal">0</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </section>
+
+        <section class="form-section row-split">
+            <div class="half-col">
+                <h2 class="section-title">3. 長期目標</h2>
+                <div class="quick-select no-print">
+                    <select id="longGoalSelect">
+                        <option value="">-- 定型文選択 --</option>
+                        <option value="屋内歩行自立、見守り下でのＡＤＬ自立">屋内歩行自立、見守り下でのＡＤＬ自立</option>
+                        <option value="自宅退院、屋外歩行自立">自宅退院、屋外歩行自立</option>
+                        <option value="車椅子駆動自立、移乗動作の自立">車椅子駆動自立、移乗動作の自立</option>
+                        <option value="復職、交通機関の利用自立">復職、交通機関の利用自立</option>
+                    </select>
+                </div>
+                <textarea id="longGoal" rows="4" class="full-width"></textarea>
+            </div>
+            <div class="half-col">
+                <h2 class="section-title">4. 短期目標 (約1ヶ月後)</h2>
+                <textarea id="shortGoal" rows="4" class="full-width"></textarea>
+            </div>
+        </section>
+
+        <section class="form-section">
+            <h2 class="section-title">5. リハビリテーションプログラム</h2>
+            <table class="program-table">
+                <tr>
+                    <th width="20%">PT (理学療法)</th>
+                    <td>
+                        <textarea id="programPT" rows="2" class="full-width" placeholder="関節可動域訓練、筋力増強訓練、基本動作訓練、歩行訓練 等"></textarea>
+                        <div class="freq">頻度: <input type="text" id="freqPT" placeholder="週〇回"> 時間: <input type="text" id="timePT" placeholder="〇単位"></div>
+                    </td>
+                </tr>
+                <tr>
+                    <th>OT (作業療法)</th>
+                    <td>
+                        <textarea id="programOT" rows="2" class="full-width" placeholder="ADL訓練、上肢機能訓練、家事動作訓練 等"></textarea>
+                        <div class="freq">頻度: <input type="text" id="freqOT" placeholder="週〇回"> 時間: <input type="text" id="timeOT" placeholder="〇単位"></div>
+                    </td>
+                </tr>
+                <tr>
+                    <th>ST (言語聴覚療法)</th>
+                    <td>
+                        <textarea id="programST" rows="2" class="full-width" placeholder="嚥下訓練、構音訓練、高次脳機能訓練 等"></textarea>
+                        <div class="freq">頻度: <input type="text" id="freqST" placeholder="週〇回"> 時間: <input type="text" id="timeST" placeholder="〇単位"></div>
+                    </td>
+                </tr>
+            </table>
+        </section>
+
+        <section class="form-section">
+            <h2 class="section-title">6. 栄養・口腔・社会的背景・ポリファーマシーの状況等</h2>
+            <textarea id="socialNutrition" rows="3" class="full-width" placeholder="食形態、義歯の有無、同居家族、退院後の住環境、減薬の方向性 等"></textarea>
+        </section>
+
+        <section class="form-section signature-section">
+            <p>上記計画に基づき、リハビリテーションを実施いたします。内容についてご不明な点がございましたらお申し出ください。</p>
+            <div class="signature-box">
+                <div class="sig-date">説明日・同意日: 　　年　　月　　日</div>
+                <div class="sig-patient">患者署名: ___________________________</div>
+                <div class="sig-family">家族・代理人等署名: ___________________________ (続柄: 　　)</div>
+            </div>
+        </section>
+    </div>
+
+    <script src="rehab_plan.js"></script>
+</body>
+</html>

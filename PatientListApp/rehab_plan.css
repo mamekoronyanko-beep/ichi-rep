@@ -1,0 +1,273 @@
+/* rehab_plan.css - 2026 Rehabilitation Plan Styles */
+
+:root {
+    --primary-color: #3b82f6;
+    --primary-hover: #2563eb;
+    --border-color: #e5e7eb;
+    --text-main: #1f2937;
+    --bg-main: #f3f4f6;
+    --white: #ffffff;
+}
+
+body {
+    font-family: 'Inter', 'Noto Sans JP', sans-serif;
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    margin: 0;
+    padding: 0;
+}
+
+/* Screen Header controls */
+.screen-header {
+    background: var(--white);
+    padding: 15px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+}
+
+.back-btn {
+    text-decoration: none;
+    color: var(--text-main);
+    font-weight: 500;
+}
+
+.controls button {
+    margin-left: 10px;
+}
+
+.primary-btn, .secondary-btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: none;
+    font-size: 14px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.primary-btn {
+    background-color: var(--primary-color);
+    color: var(--white);
+}
+
+.primary-btn:hover {
+    background-color: var(--primary-hover);
+}
+
+.secondary-btn {
+    background-color: #f3f4f6;
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+}
+
+.secondary-btn:hover {
+    background-color: #e5e7eb;
+}
+
+/* A4 Page Container */
+.a4-container {
+    background: var(--white);
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto;
+    padding: 20mm;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    box-sizing: border-box;
+    margin-bottom: 40px;
+}
+
+.document-header {
+    text-align: center;
+    position: relative;
+    margin-bottom: 30px;
+    border-bottom: 2px solid var(--text-main);
+    padding-bottom: 10px;
+}
+
+.document-header h1 {
+    font-size: 24px;
+    margin: 0 0 15px 0;
+    letter-spacing: 2px;
+}
+
+.date-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    font-size: 14px;
+    text-align: left;
+}
+
+.doc-origin {
+    text-align: right;
+    line-height: 1.6;
+}
+
+/* Forms */
+input[type="text"], input[type="date"], textarea, select {
+    border: 1px solid var(--border-color);
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.full-width {
+    width: 100%;
+}
+
+.form-section {
+    margin-bottom: 20px;
+}
+
+.section-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 10px 0;
+    background-color: #f8fafc;
+    padding: 6px 10px;
+    border-left: 4px solid var(--primary-color);
+}
+
+.data-table, .program-table, .adl-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.data-table th, .data-table td, 
+.program-table th, .program-table td,
+.adl-table th, .adl-table td {
+    border: 1px solid #cbd5e1;
+    padding: 8px;
+    vertical-align: middle;
+}
+
+.data-table th, .program-table th {
+    background-color: #f1f5f9;
+    text-align: center;
+    font-weight: 500;
+}
+
+.row-split {
+    display: flex;
+    gap: 20px;
+}
+
+.half-col {
+    flex: 1;
+}
+
+textarea {
+    resize: vertical;
+    min-height: 40px;
+}
+
+/* FIM Table specific */
+.adl-table th {
+    background-color: #f1f5f9;
+    font-size: 12px;
+}
+.adl-table td {
+    text-align: center;
+}
+.adl-table td.item-name {
+    text-align: left;
+    white-space: nowrap;
+}
+.instruction-text {
+    font-size: 12px;
+    color: #64748b;
+    margin: 0 0 5px 0;
+}
+.total-row th {
+    background-color: #e2e8f0;
+    font-weight: 700;
+}
+.quick-select {
+    margin-bottom: 5px;
+}
+
+/* Program Specific */
+.freq {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 5px;
+    font-size: 12px;
+    align-items: center;
+}
+.freq input {
+    width: 60px;
+    padding: 2px 4px;
+}
+
+/* Signature */
+.signature-section p {
+    font-size: 13px;
+    margin-bottom: 15px;
+}
+.signature-box {
+    border: 1px solid #cbd5e1;
+    padding: 20px;
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Print CSS */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+    body {
+        background-color: white;
+    }
+    .a4-container {
+        box-shadow: none;
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        min-height: auto;
+    }
+    input, textarea, select {
+        border: none !important;
+        background: transparent !important;
+        padding: 0 !important;
+        resize: none !important;
+        appearance: none;
+        box-shadow: none !important;
+    }
+    input[type="radio"] {
+        display: none;
+    }
+    input[type="radio"]:checked::after {
+        content: "〇";
+        display: inline-block;
+        font-size: 16px;
+        position: absolute;
+        top: -2px;
+        left: -2px;
+    }
+    input[type="radio"]:checked {
+        display: inline-block;
+        position: relative;
+    }
+    .adl-table td input[type="radio"] {
+        display: inline-block;
+    }
+    .adl-table td input[type="radio"]:not(:checked) {
+        opacity: 0;
+    }
+}

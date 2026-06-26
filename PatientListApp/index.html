@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>患者面談一覧表</title>
+    <link rel="stylesheet" href="styles.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <header>
+            <h1>患者面談・提出期限管理</h1>
+            <p>ID、面談日、ROM測定開始日などの情報を一目で確認できます</p>
+        </header>
+
+        <div class="main-layout">
+            <!-- カレンダーサイドバー -->
+            <aside class="sidebar">
+                <h3>医師休診日カレンダー <small>(クリックで休みをチェック)</small></h3>
+                <div class="calendar-controls">
+                    <button id="prevMonthBtn" class="month-nav-btn">&lt;</button>
+                    <span id="calendarTitle">2026年3月 - 4月</span>
+                    <button id="nextMonthBtn" class="month-nav-btn">&gt;</button>
+                </div>
+                <div class="calendars-wrapper">
+                    <!-- 1つ目のカレンダー -->
+                    <div class="calendar-container">
+                        <h4 id="calMonth1">2026年 3月</h4>
+                        <div class="calendar-grid" id="calendar1"></div>
+                    </div>
+                    <!-- 2つ目のカレンダー -->
+                    <div class="calendar-container">
+                        <h4 id="calMonth2">2026年 4月</h4>
+                        <div class="calendar-grid" id="calendar2"></div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- メインリスト -->
+            <main class="content-area">
+                <div class="table-controls">
+                    <input type="text" id="searchInput" placeholder="患者氏名やIDで検索..." class="search-input">
+                    <div class="action-buttons">
+                        <a href="rehab_plan.html" class="secondary-btn"
+                            style="text-decoration: none; display: flex; align-items: center; justify-content: center;">📝
+                            計画書作成</a>
+                        <a href="schedule.html" class="secondary-btn"
+                            style="text-decoration: none; display: flex; align-items: center; justify-content: center;">📅
+                            予約表</a>
+                        <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" style="display: none;">
+                        <button id="importExcelBtn" class="secondary-btn">📁 エクセル読込</button>
+                        <button id="addBtn" class="primary-btn">＋ 新規追加</button>
+                    </div>
+                </div>
+
+                <div class="month-tabs" id="monthTabs">
+                    <!-- JSで動的に追加 -->
+                </div>
+
+                <div class="table-wrapper">
+                    <table id="patientTable">
+                        <thead>
+                            <tr>
+                                <th data-sort="id" class="sortable">ID <span class="sort-icon"></span></th>
+                                <th data-sort="name" class="sortable">患者氏名 <span class="sort-icon"></span></th>
+                                <th data-sort="careRequired" class="sortable">要介護 <span class="sort-icon"></span></th>
+                                <th data-sort="hasTarget" class="sortable">目標 <span class="sort-icon"></span></th>
+                                <th data-sort="interviewDate" class="sortable">面談日 <span class="sort-icon"></span></th>
+                                <th data-sort="romDate" class="sortable">ROM測定開始日 <span class="sort-icon"></span></th>
+                                <th data-sort="deadline" class="sortable">医師提出期限日 <span class="sort-icon"></span></th>
+                                <th data-sort="doctorMonth" class="sortable">医師面談予定月 <span class="sort-icon"></span>
+                                </th>
+                                <th data-sort="status" class="sortable">ステータス <span class="sort-icon"></span></th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="patientList">
+                            <!-- JSで動的に追加 -->
+                        </tbody>
+                    </table>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- 新規追加モーダル -->
+    <div id="addModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" id="closeModal">&times;</span>
+            <h2>新規患者追加</h2>
+            <form id="addForm">
+                <div class="form-group">
+                    <label for="newId">ID</label>
+                    <input type="text" id="newId" required>
+                </div>
+                <div class="form-group">
+                    <label for="newName">患者氏名</label>
+                    <input type="text" id="newName" required>
+                </div>
+                <div class="form-group">
+                    <label>疾患カテゴリー</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="category" value="運動器" checked> 運動器</label>
+                        <label><input type="radio" name="category" value="脳血管"> 脳血管</label>
+                    </div>
+                </div>
+                <div class="form-group checkbox-group"
+                    style="flex-direction: row; align-items: center; gap: 1rem; justify-content: flex-start;">
+                    <label style="display: flex; align-items: center; gap: 0.25rem; margin: 0; cursor: pointer;">
+                        <input type="checkbox" id="newCareRequired" style="width: auto; height: 1.2rem; margin: 0;">
+                        要介護
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.25rem; margin: 0; cursor: pointer;">
+                        <input type="checkbox" id="newHasTarget" style="width: auto; height: 1.2rem; margin: 0;">
+                        目標
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label for="newInterviewDate">面談日</label>
+                    <input type="date" id="newInterviewDate">
+                </div>
+                <div class="form-group">
+                    <label for="newRomDate">ROM測定開始日</label>
+                    <input type="date" id="newRomDate">
+                </div>
+                <div class="form-group">
+                    <label for="newDeadline">医師提出期限日</label>
+                    <input type="date" id="newDeadline">
+                </div>
+                <div class="form-group">
+                    <label for="newDoctorMonth">医師面談予定月</label>
+                    <input type="month" id="newDoctorMonth">
+                </div>
+                <button type="submit" class="primary-btn submit-btn">追加する</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

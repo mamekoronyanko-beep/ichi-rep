@@ -1,0 +1,221 @@
+:root {
+    --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    --card-bg: rgba(255, 255, 255, 0.85);
+    --text-main: #2d3748;
+    --text-muted: #718096;
+    --primary: #4f46e5;
+    --primary-hover: #4338ca;
+    --border-color: #e2e8f0;
+    --break-bg: #f8fafc;
+    --break-text: #94a3b8;
+    --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Inter', 'Noto Sans JP', sans-serif;
+    background: url('bg.png') no-repeat center center fixed, var(--bg-gradient);
+    background-size: cover;
+    color: var(--text-main);
+    min-height: 100vh;
+    padding: 2rem;
+    display: flex;
+    justify-content: center;
+}
+
+.app-container {
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(12px);
+    border-radius: 20px;
+    padding: 2.5rem;
+    width: 100%;
+    max-width: 1400px;
+    min-height: 90vh;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    display: flex;
+    flex-direction: column;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.4);
+    padding-bottom: 1rem;
+}
+
+.header-content h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 0.25rem;
+}
+
+.header-content p {
+    color: var(--text-muted);
+    font-size: 1rem;
+}
+
+.back-link {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.5);
+    transition: all 0.3s ease;
+}
+
+.back-link:hover {
+    background: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.date-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    margin-bottom: 1.5rem;
+}
+
+.date-controls h2 {
+    font-size: 1.5rem;
+    color: var(--text-main);
+    font-weight: 700;
+    min-width: 280px;
+    text-align: center;
+}
+
+.nav-btn {
+    background: white;
+    border: 1px solid var(--border-color);
+    color: var(--primary);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 1.2rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.nav-btn:hover {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+    transform: translateY(-2px);
+}
+
+.table-wrapper {
+    overflow-x: auto;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    background: rgba(255, 255, 255, 0.8);
+    box-shadow: var(--shadow-md);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+th,
+td {
+    padding: 0;
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    height: 50px;
+}
+
+th {
+    background: rgba(248, 250, 252, 0.9);
+    font-weight: 600;
+    color: var(--primary);
+    text-align: center;
+    padding: 1rem;
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.time-col {
+    width: 100px;
+    text-align: center;
+    font-weight: bold;
+    color: var(--text-muted);
+    background: rgba(248, 250, 252, 0.9);
+}
+
+.shoen-col {
+    background: #e0f2fe !important;
+    color: #0284c7 !important;
+}
+
+/* Break time Styling */
+.break-row td {
+    background: #e2e8f0;
+}
+
+.break-row .time-col {
+    background: #cbd5e1;
+    color: #475569;
+}
+
+.break-cell {
+    text-align: center;
+    color: #64748b;
+    font-size: 0.9rem;
+    font-style: italic;
+    letter-spacing: 0.1em;
+    pointer-events: none;
+    background: repeating-linear-gradient(45deg,
+            #f1f5f9,
+            #f1f5f9 10px,
+            #e2e8f0 10px,
+            #e2e8f0 20px);
+}
+
+/* Input cells */
+.slot-input {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: transparent;
+    padding: 0.5rem;
+    font-size: 0.95rem;
+    outline: none;
+    text-align: center;
+    transition: background 0.2s;
+}
+
+.slot-input:focus {
+    background: #fffbeb;
+    box-shadow: inset 0 0 0 2px var(--primary);
+}
+
+.slot-input.has-value {
+    font-weight: 600;
+    color: #0f172a;
+    background: #eff6ff;
+}
+
+th:nth-child(7),
+td:nth-child(7) {
+    background: rgba(224, 242, 254, 0.3);
+}
+
+td:nth-child(7) .slot-input.has-value {
+    background: #dbeafe;
+    color: #1e3a8a;
+}
